@@ -1,0 +1,5 @@
+*.o
+*.hi
+visualizer/suvi
+visualizer/suvi16
+visualizer/visual
