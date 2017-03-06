@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.27"
+version="0.28"
 
 # default vaules
 DIR="$HOME/Documents/ownCloud"
@@ -25,7 +25,8 @@ help () {
     echo " ${cmd} -r -t T          - Set the timeout to T then run the bencmark"
     echo " ${cmd} -r -T            - Set the timeout to 310 then run the bencmark"
     echo " ${cmd} -r -n N          - Set the sequence number to N then run the bencmark"
-    echo " ${cmd} -r -e E          - Set the executable name to V (something like '${MiosExecutable}')"
+    echo " ${cmd} -r -G DIR       - Set  the solver repository dir to DIR (like '${GITDIR}')"
+    echo " ${cmd} -r -e EXE       - Set the executable name to EXE (something like '${MiosExecutable}')"
     echo " ${cmd} -r -S            - Set to force owncloud syhchronization mode and run"
     echo " ${cmd} -c               - Cat the current benchmark's result"
     echo " ${cmd} -g               - run mkcactus.R to make a graph"
@@ -44,7 +45,7 @@ showLog () {
 
 mode="unknown"
 forceSync=0
-while getopts brcgsSTkhuli::n:e:D:o:P: OPT
+while getopts brcgsSTkhuli::n:e:D:o:P:t:G: OPT
 do
     case $OPT in
 	b) mode="build"
@@ -68,6 +69,8 @@ do
 	   ;;
 	D) DUMPIDR=$OPTARG
 	   ;;
+	G ) GITDIR="$OPTARG"
+	    ;;
 	e) MiosExecutable="$OPTARG"
 	   ;;
 	S) forceSync=1
@@ -136,6 +139,12 @@ case ${mode} in
 	;;
 esac
 
+if [ ! -d "${GITDIR}" ] ;
+then
+    echo "No git directory: ${GITDIR}"
+    exit -1
+fi
+
 if [ $(cd ${GITDIR}; git status | grep -q modified; echo $?) == "0" ] ; then
     echo "ABORT: the mios repository is not clean. Please commit before benchmark."
     exit 0
@@ -143,7 +152,7 @@ fi
 
 # update variables
 id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
-MiosWithId="mios-${id}"
+MiosWithId="${MiosExecutable}-${id}"
 log="${DUMPDIR}/${MiosWithId}-`date --iso-8601`-${LogNumber}.csv"
 
 # echo "mode=${mode}"
@@ -152,7 +161,7 @@ if [ $mode = "build" ] ;
 then
     if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
 	echo "building ${MiosWithId} ..."
-	(cd ${GITDIR}; stack clean; stack install $INSTALLOPTS --flag mios:llvm)
+	(cd ${GITDIR}; stack clean; stack install $INSTALLOPTS)
 	mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
 	echo "done"
     fi
@@ -162,7 +171,7 @@ fi
 
 # if there is no exectable, install
 if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
-    (cd ${GITDIR}; stack clean; stack install $INSTALLOPTS --flag mios:llvm)
+    (cd ${GITDIR}; stack clean; stack install $INSTALLOPTS)
     # set unique name
     mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
 fi
