@@ -1,12 +1,12 @@
 #!/bin/sh
-version="0.28"
+version="0.29"
 
 # default vaules
 DIR="$HOME/Documents/ownCloud"
 DUMPDIR="."
 LogNumber=1
 GITDIR=$HOME/Repositories/mios15
-Benchsuit="SR2015subset1"
+Benchsuit="SR15easy"
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
 timeout=1260
@@ -20,7 +20,7 @@ help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
     echo " ${cmd} -r [-o OPTIONS]  - Run the bencmark suit"
-    echo " ${cmd} -r -P PROBLEM    - Select dataset: 'SR2015subset1' or 'SR15m'"
+    echo " ${cmd} -r -P PROBLEM    - Select dataset: 'SR15easy', 'SR2015subset1' or 'SR15m' (default: '${Benchsuit}'"
     echo " ${cmd} -r -i ID         - Select solver by ID (as '${id}') then run the bencmark"
     echo " ${cmd} -r -t T          - Set the timeout to T then run the bencmark"
     echo " ${cmd} -r -T            - Set the timeout to 310 then run the bencmark"
