@@ -183,10 +183,9 @@ main = do
         Nothing | dumpAll conf -> putStrLn "solver, num, seq, target, time"
         _                      -> putStrLn "solver, num, target, time"
       unless (message conf == "") $ putStrLn ("# " ++ message conf)
-      -- system $ if (message conf == "") then "echo -n \"# \"" else printf "echo -n \"# '%s' : \"" (message conf)
       when singleSolver $ do
         let solver = head (solvers conf)
-        void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\)/T\\1/'); echo -n ' ; '; %s --version" solver solver
+        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\)/T\\1/'); echo -n ' ; '; %s --version" solver solver
         return ()
       unless (skipTitle conf) . void . system $ printf "echo \"# p='%s', t=%d on `hostname` @ `date -Iseconds`\"" (solverOptions conf) (timeout conf)
       let opts = solverOptions conf
