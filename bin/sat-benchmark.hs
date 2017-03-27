@@ -12,7 +12,8 @@ import System.Posix.Env (getEnvDefault)
 import System.Process (system)
 import Text.Printf
 
-version = "sat-benchmark 0.8.18"
+version :: String
+version = "sat-benchmark 0.9.0"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -31,6 +32,8 @@ data ConfigurationOption = ConfigurationOption
                      , devNull :: Bool
                      , showID :: Bool
                      , showHelp :: Bool
+                     , header :: Maybe String
+                     , skipTitle :: Bool
                      , message :: String
                      , auxKey :: String
                      }
@@ -53,6 +56,8 @@ defaultConfigration = ConfigurationOption
   , devNull = True
   , showID = False
   , showHelp = False
+  , header = Nothing
+  , skipTitle = False
   , message = ""
   , auxKey = ""
   }
@@ -67,7 +72,7 @@ options =
      (NoArg (\c -> c { fundamentalExamSet = True }))
      "run on fundamental problems"
   , Option ['3'] ["3SAT"]
-     (ReqArg (\v c -> c { threeSATSet = True, rangeTo = read v}) (show (rangeTo defaultConfigration)))
+     (ReqArg (\v c -> c { threeSATSet = True, rangeTo = read v, rangeFrom = read v}) (show (rangeTo defaultConfigration)))
      ("run on 3-SAT problems upto " ++ show (rangeTo defaultConfigration))
   , Option ['s'] ["structured"]
      (NoArg (\c -> c { structuredSATSet = True }))
@@ -110,13 +115,19 @@ options =
   , Option ['M'] ["message"]
      (ReqArg (\v c -> c { message = v }) (show (message defaultConfigration)))
      "set optional message used as a header of result"
+  , Option ['H'] ["header"]
+     (ReqArg (\v c -> c { header = Just $ undecodeNewline v }) "header")
+     "set CSV header"
+  , Option ['J'] ["SkipTitle"]
+     (NoArg (\c -> c { skipTitle = True }))
+     "skip experimental information"
   , Option ['K'] ["auxKey"]
      (ReqArg (\v c -> c { auxKey = v }) (show (auxKey defaultConfigration)))
      "set optional key string that is append to the solver name"
     ]
 
 usage :: String
-usage = "Usage: sat-benchmark [OPTIONS] [solvers]"
+usage = "[" ++ version ++ "] Usage: sat-benchmark [OPTIONS] [solvers]"
 
 parseOptions :: [String] -> IO ConfigurationOption
 parseOptions argv =
@@ -127,6 +138,12 @@ parseOptions argv =
         let conf = foldl (flip id) defaultConfigration o
         return $ conf { solvers = l }
       (_, _, errs) -> ioError (userError (concat errs ++ usageInfo usage options))
+
+undecodeNewline :: String -> String
+undecodeNewline [] = []
+undecodeNewline [a] = [a]
+undecodeNewline ('\\' : 'n' : x) = '\n' : undecodeNewline x
+undecodeNewline (a : x) = a : undecodeNewline x
 
 setEnv = "export LC_ALL=C; export TIMEFORMAT=\" %2U\""
 baseDir = (++ "/Repositories/SATbench")
@@ -161,14 +178,17 @@ main = do
     _ | showID conf -> putStrLn $ version
     _ | null (solvers conf) -> putStrLn $ usageInfo usage options
     _ ->  do
-      putStrLn $ if dumpAll conf then "solver, num, seq, target, time" else "solver, num, target, time"
+      case header conf of
+        Just h                 -> putStr h
+        Nothing | dumpAll conf -> putStrLn "solver, num, seq, target, time"
+        _                      -> putStrLn "solver, num, target, time"
       unless (message conf == "") $ putStrLn ("# " ++ message conf)
       -- system $ if (message conf == "") then "echo -n \"# \"" else printf "echo -n \"# '%s' : \"" (message conf)
       when singleSolver $ do
         let solver = head (solvers conf)
-        system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\)/T\\1/'); echo -n ' ; '; %s --version" solver solver
+        void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\)/T\\1/'); echo -n ' ; '; %s --version" solver solver
         return ()
-      system $ printf "echo \"# p='%s', t=%d on `hostname` @ `date -Iseconds`\"" (solverOptions conf) (timeout conf)
+      unless (skipTitle conf) . void . system $ printf "echo \"# p='%s', t=%d on `hostname` @ `date -Iseconds`\"" (solverOptions conf) (timeout conf)
       let opts = solverOptions conf
       forM_ (solvers conf) $ \solver -> do
         val <- system $ "which " ++ solver ++ " > /dev/null"
