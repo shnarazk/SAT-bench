@@ -210,5 +210,5 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1 
 fi
 
-postSlack watching "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
+postSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
 echo "done."
