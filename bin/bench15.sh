@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.30"
+version="0.31"
 
 # default vaules
 DIR="$HOME/Documents/ownCloud"
@@ -210,5 +210,5 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1 
 fi
 
-postSlack watching "The ${MiosWithId} benchmark has just done!"
+postSlack watching "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
 echo "done."
