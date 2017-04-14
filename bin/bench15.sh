@@ -2,7 +2,7 @@
 version="0.31"
 
 # default vaules
-DIR="$HOME/Documents/ownCloud"
+DIR="$HOME/Documents/"
 DUMPDIR="."
 LogNumber=1
 GITDIR=$HOME/Repositories/mios15
