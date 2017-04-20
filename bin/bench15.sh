@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.32"
+version="0.33"
 
 # default vaules
 BENCHDIR="$HOME/Documents/"
@@ -29,11 +29,11 @@ help () {
     echo " ${cmd} -r -e EXE       - Set the executable name to EXE (something like '${MiosExecutable}')"
     echo " ${cmd} -r -S            - Set to force owncloud syhchronization mode and run"
     echo " ${cmd} -c               - Cat the current benchmark's result"
-    echo " ${cmd} -g               - run mkcactus.R to make a graph"
+    echo " ${cmd} -g               - run mkCactus.R to make a graph"
     echo " ${cmd} -s               - sync the owncloud directory"
     echo " ${cmd} -k               - Kill the current benchmark"
     echo " ${cmd} -h               - Display this message"
- }   
+ }
 
 showLog () {
     if [ ! -f ${log} ] ; then
@@ -113,7 +113,7 @@ case ${mode} in
 	eval "(cd ${DUMPDIR}; ./mkcactus.R)"
 	eval "(cd ${DUMPDIR}; ./mkcactusSU.R)"
 	if [ ${forceSync} == 1 ] ; then
-	    eval ${upload} > /dev/null 2>&1 
+	    eval ${upload} > /dev/null 2>&1
 	fi
 	exit 0
 	;;
@@ -133,7 +133,7 @@ case ${mode} in
     "log")
 	showLog
 	if [ ${forceSync} == 1 ] ; then
-	    eval ${upload} > /dev/null 2>&1 
+	    eval ${upload} > /dev/null 2>&1
 	fi
 	exit 0
 	;;
@@ -191,7 +191,6 @@ echo " * result: ${log}"
 echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs
 
 # run the benchmark
-echo -n "running ... "
 cd $BENCHDIR
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
@@ -201,13 +200,20 @@ fi
 echo "cd $BENCHDIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${DUMPDIR}/${log}"
 sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${DUMPDIR}/${log}
 
-if [ -f ${DUMPDIR}/mkcactus.R ] ;
-then
-    (cd ${DUMPDIR}; ./mkcactus.R)
-fi
+# build the report
+cd ${DUMPDIR};
+PATH="${PATH}:."
+case "$Benchsuit" in
+    "SR15easy")
+	which mkCactusEasy.R > /dev/null 2>&1 && mkcactus.R ;;
+    "SR15m131")
+	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R ;;
+    "*")
+	;;
+esac
 
 if [ ${forceSync} == 1 ] ; then
-    eval ${upload} > /dev/null 2>&1 
+    eval ${upload} > /dev/null 2>&1
 fi
 
 postSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
