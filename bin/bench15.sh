@@ -1,8 +1,8 @@
 #!/bin/sh
-version="0.31"
+version="0.32"
 
 # default vaules
-DIR="$HOME/Documents/"
+BENCHDIR="$HOME/Documents/"
 DUMPDIR="."
 LogNumber=1
 GITDIR=$HOME/Repositories/mios15
@@ -192,13 +192,13 @@ echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs
 
 # run the benchmark
 echo -n "running ... "
-cd $DIR
+cd $BENCHDIR
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
 else
     upload=""
 fi
-echo "cd $DIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${DUMPDIR}/${log}"
+echo "cd $BENCHDIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${DUMPDIR}/${log}"
 sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${DUMPDIR}/${log}
 
 if [ -f ${DUMPDIR}/mkcactus.R ] ;
