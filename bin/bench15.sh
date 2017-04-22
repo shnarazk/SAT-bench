@@ -204,8 +204,8 @@ if [ ${forceSync} == 1 ] ; then
 else
     upload=""
 fi
-echo "cd $BENCHDIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${DUMPDIR}/${log}"
-sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${DUMPDIR}/${log}
+echo "cd $BENCHDIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
+sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
 
 # build the report
 cd ${DUMPDIR};
