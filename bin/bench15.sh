@@ -1,11 +1,11 @@
 #!/bin/sh
-version="0.34"
+version="0.35"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
-DUMPDIR="."
+DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
+GITDIR="$HOME/Repositories/mios15"
 LogNumber=1
-GITDIR=$HOME/Repositories/mios15
 Benchsuit="SR15easy"
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
@@ -25,8 +25,10 @@ help () {
     echo " ${cmd} -r -t T          - Set the timeout to T then run the bencmark"
     echo " ${cmd} -r -T            - Set the timeout to 310 then run the bencmark"
     echo " ${cmd} -r -n N          - Set the sequence number to N then run the bencmark"
-    echo " ${cmd} -r -G DIR       - Set  the solver repository dir to DIR (like '${GITDIR}')"
-    echo " ${cmd} -r -e EXE       - Set the executable name to EXE (something like '${MiosExecutable}')"
+    echo " ${cmd} -r -B DIR        - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
+    echo " ${cmd} -r -D DIR        - Set the dump dir to DIR (default: '${DUMPDIR}')"
+    echo " ${cmd} -r -G DIR        - Set the repository dir to DIR (default: '${GITDIR}')"
+    echo " ${cmd} -r -e EXE        - Set the executable name to EXE (something like '${MiosExecutable}')"
     echo " ${cmd} -r -S            - Set to force owncloud syhchronization mode and run"
     echo " ${cmd} -c               - Cat the current benchmark's result"
     echo " ${cmd} -g               - run mkCactus.R to make a graph"
@@ -45,7 +47,7 @@ showLog () {
 
 mode="unknown"
 forceSync=0
-while getopts brcgsSTkhuli::n:e:D:o:P:t:G: OPT
+while getopts brcgsSTkhuli::n:e:o:P:t:B:D:G: OPT
 do
     case $OPT in
 	b) mode="build"
@@ -69,8 +71,12 @@ do
 	   ;;
 	D) DUMPIDR=$OPTARG
 	   ;;
-	G ) GITDIR="$OPTARG"
-	    ;;
+	B) BENCHDIR="$OPTARG"
+	   ;;
+	D) DUMPDIR="$OPTARG"
+	   ;;
+	G) GITDIR="$OPTARG"
+	   ;;
 	e) MiosExecutable="$OPTARG"
 	   ;;
 	S) forceSync=1
@@ -110,8 +116,8 @@ case ${mode} in
 	;;
     "graph")
 	echo -n "make a graph..."
-	eval "(cd ${DUMPDIR}; ./mkcactus.R)"
-	eval "(cd ${DUMPDIR}; ./mkcactusSU.R)"
+	eval "(cd ${DUMPDIR}; mkCactus131.R)"
+	eval "(cd ${DUMPDIR}; mkCactusSU131.R)"
 	if [ ${forceSync} == 1 ] ; then
 	    eval ${upload} > /dev/null 2>&1
 	fi
