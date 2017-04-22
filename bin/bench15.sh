@@ -1,8 +1,8 @@
 #!/bin/sh
-version="0.33"
+version="0.34"
 
 # default vaules
-BENCHDIR="$HOME/Documents/"
+BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="."
 LogNumber=1
 GITDIR=$HOME/Repositories/mios15
