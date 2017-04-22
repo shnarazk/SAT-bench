@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.35"
+version="0.36"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -19,22 +19,23 @@ INSTALLOPTS=""
 help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
-    echo " ${cmd} -r [-o OPTIONS]  - Run the bencmark suit"
-    echo " ${cmd} -r -P PROBLEM    - Select dataset: 'SR15easy' or 'SR15m131' (default: '${Benchsuit}'"
-    echo " ${cmd} -r -i ID         - Select solver by ID (as '${id}') then run the bencmark"
-    echo " ${cmd} -r -t T          - Set the timeout to T then run the bencmark"
-    echo " ${cmd} -r -T            - Set the timeout to 310 then run the bencmark"
-    echo " ${cmd} -r -n N          - Set the sequence number to N then run the bencmark"
-    echo " ${cmd} -r -B DIR        - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
-    echo " ${cmd} -r -D DIR        - Set the dump dir to DIR (default: '${DUMPDIR}')"
-    echo " ${cmd} -r -G DIR        - Set the repository dir to DIR (default: '${GITDIR}')"
-    echo " ${cmd} -r -e EXE        - Set the executable name to EXE (something like '${MiosExecutable}')"
-    echo " ${cmd} -r -S            - Set to force owncloud syhchronization mode and run"
-    echo " ${cmd} -c               - Cat the current benchmark's result"
-    echo " ${cmd} -g               - run mkCactus.R to make a graph"
-    echo " ${cmd} -s               - sync the owncloud directory"
-    echo " ${cmd} -k               - Kill the current benchmark"
-    echo " ${cmd} -h               - Display this message"
+    echo " ${cmd} -r            - Run the bencmark suit"
+    echo " ${cmd} -r -P SET     - Select dataset: 'SR15easy' or 'SR15m131' (default: '${Benchsuit}'"
+    echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
+    echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
+    echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
+    echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
+    echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
+    echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
+    echo " ${cmd} -r -t T       - Set timeout to T (default: ${timeout})"
+    echo " ${cmd} -r -T         - Set timeout to 310"
+    echo " ${cmd} -r -n N       - Set log sequence number to N (default: ${LogNumber})"
+    echo " ${cmd} -r -S         - Force owncloud syhchronization"
+    echo " ${cmd} -c            - Cat the current benchmark's result"
+    echo " ${cmd} -g            - run mkCactus.R to make a graph"
+    echo " ${cmd} -s            - sync the owncloud directory"
+    echo " ${cmd} -k            - Kill the current benchmark"
+    echo " ${cmd} -h            - Display this message"
  }
 
 showLog () {
