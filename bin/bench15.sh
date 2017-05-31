@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.36"
+version="0.37"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -24,6 +24,7 @@ help () {
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
+    echo " ${cmd} -r -e EXE     - Use the executable name to EXE without compilation"
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
@@ -48,7 +49,7 @@ showLog () {
 
 mode="unknown"
 forceSync=0
-while getopts brcgsSTkhuli::n:e:o:P:t:B:D:G: OPT
+while getopts brcgsSTkhuli::n:e:E:o:P:t:B:D:G: OPT
 do
     case $OPT in
 	b) mode="build"
@@ -79,6 +80,10 @@ do
 	G) GITDIR="$OPTARG"
 	   ;;
 	e) MiosExecutable="$OPTARG"
+	   ;;
+	E) MiosExecutable="$OPTARG"
+	   mode="run"
+	   SkipCompile=1
 	   ;;
 	S) forceSync=1
 	   ;;
@@ -153,13 +158,21 @@ then
 fi
 
 if [ $(cd ${GITDIR}; git status | grep -q modified; echo $?) == "0" ] ; then
-    echo "ABORT: the mios repository is not clean. Please commit before benchmark."
-    exit 0
+    if [ "${SkipCompile}" == "0" ] ; then
+	echo "ABORT: the mios repository is not clean. Please commit before benchmark."
+	exit 0
+    fi
 fi
 
 # update variables
-id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
-MiosWithId="${MiosExecutable}-${id}"
+if [ $SkipCompile == "0" ] ;
+then
+    id=''
+    MiosWithId="${MiosExecutable}"
+else
+    id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
+    MiosWithId="${MiosExecutable}-${id}"
+fi
 log="${DUMPDIR}/${MiosWithId}-`date --iso-8601`-${LogNumber}.csv"
 
 # echo "mode=${mode}"
