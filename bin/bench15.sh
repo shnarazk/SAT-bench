@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.37"
+version="0.38"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -12,6 +12,7 @@ MiosOptions=""
 timeout=1260
 timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
 upload=`which syncCloud > /dev/null 2>&1; if [ $? = 0 ] ; then echo "syncCloud" ; else echo; fi`
+SkipCompile=0
 
 INSTALLOPTS=""
 # INSTALLOPTS="--flag mios:devel"
@@ -165,7 +166,7 @@ if [ $(cd ${GITDIR}; git status | grep -q modified; echo $?) == "0" ] ; then
 fi
 
 # update variables
-if [ $SkipCompile == "0" ] ;
+if [ $SkipCompile == "1" ] ;
 then
     id=''
     MiosWithId="${MiosExecutable}"
