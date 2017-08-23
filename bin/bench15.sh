@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.38"
+version="0.39"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -25,7 +25,7 @@ help () {
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
-    echo " ${cmd} -r -e EXE     - Use the executable name to EXE without compilation"
+    echo " ${cmd} -r -E EXE     - Use the executable name to EXE without compilation"
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
