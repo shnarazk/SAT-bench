@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.40"
+version="0.41"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -240,9 +240,13 @@ cd ${DUMPDIR};
 PATH="${PATH}:."
 case "$Benchsuit" in
     "SR15easy")
-	which mkCactusEasy.R > /dev/null 2>&1 && mkcactus.R ;;
+	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R
+        uploadSlack livestream cactus2015-SR15easy.png
+	;;
     "SR15m131")
-	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R ;;
+	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R
+	uploadSlack livestream cactus2015-SR15m131.png
+	;;
     "*")
 	;;
 esac
