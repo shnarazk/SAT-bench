@@ -229,6 +229,8 @@ if [ ${forceSync} == 1 ] ; then
     (sleep 43200; ${upload}) &
     (sleep 46800; ${upload}) &
     (sleep 50400; ${upload}) &
+    (sleep 54000; ${upload}) &
+    (sleep 57600; ${upload}) &
 else
     upload=""
 fi
