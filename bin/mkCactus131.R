@@ -4,8 +4,6 @@
 # cat mkSATgraph.R | R --vanilla
 library("ggplot2")
 
-commandArgs()
-
 target="cactus2015.pdf"
 getData <- function (f) {
 	df1 = read.csv(f, header=T, sep=",", comment="#")
