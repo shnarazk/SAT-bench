@@ -4,7 +4,6 @@
 # cat mkSATgraph.R | R --vanilla
 library("ggplot2")
 
-target="cactus2015.pdf"
 getData <- function (f) {
 	df1 = read.csv(f, header=T, sep=",", comment="#")
 	df2 = df1[order(df1[,4]),]         	# sort by time (the 4th column)
@@ -36,14 +35,18 @@ merged = list()
 args <- commandArgs(trailingOnly=TRUE)
 if (0 < length(args)){
     exps = args[1]
+    targetPDF=paste("cactus2015-SR15m131-", exps, ".pdf", sep="")
+    targetPNG=paste("cactus2015-SR15m131-", exps, ".png", sep="")
   } else {
      exps = "runs"
+     targetPDF="cactus2015-SR15m131.pdf"
+     targetpng="cactus2015-SR15m131.png"
   }
 runs <- read.csv(exps, comment="#", sep=",", header=F)
 for (i in seq(nrow(runs))) { merged = rbind(merged, getData2(runs[i,])); }
 
-pdf(target, width=10, height=7)
+pdf(targetPDF, width=10, height=7)
 graph(merged)
-ggsave(target)
-ggsave(file="cactus2015-SR15m131.png", width=9, height=6, dpi=200)
+ggsave(targetPDF)
+ggsave(file=targetPNG, width=9, height=6, dpi=200)
 dev.off()
