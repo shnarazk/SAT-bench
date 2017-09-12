@@ -40,7 +40,7 @@ if (0 < length(args)){
   } else {
      exps = "runs"
      targetPDF="cactus2015-SR15m131.pdf"
-     targetpng="cactus2015-SR15m131.png"
+     targetPNG="cactus2015-SR15m131.png"
   }
 runs <- read.csv(exps, comment="#", sep=",", header=F)
 for (i in seq(nrow(runs))) { merged = rbind(merged, getData2(runs[i,])); }
