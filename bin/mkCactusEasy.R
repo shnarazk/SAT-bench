@@ -4,9 +4,10 @@
 # cat mkSATgraph.R | R --vanilla
 library("ggplot2")
 
-getData <- function (f) {
-	df1 = read.csv(f, header=T, sep=",", comment="#")
+getData <- function (t, p) {
+	df1 = read.csv(as.character(t[[1]]), header=T, sep=",", comment="#")
 	df2 = df1[order(df1[,4]),]         	# sort by time (the 4th column)
+	if (p && t[[2]] != "") { df2[1] = sub("^ +", "", as.character(t[[2]])) }
 	df2[[2]] = 1:nrow(df2)            	# reassign rownumbers
 	df2
 	}
@@ -47,7 +48,8 @@ if (0 < length(args)){
      targetpng="cactus2015-SR15Easy.png"
   }
 runs <- read.csv(exps", comment="#", sep=",", header=F)
-for(run in runs[,1]) { merged = rbind(merged, getData(run)); }
+withTag <- 1 < ncol(runs)
+for (i in seq(nrow(runs))) { merged = rbind(merged, getData(runs[i,], withTag)); }
 
 pdf(targetPDF, width=10, height=7)
 graph(merged)
