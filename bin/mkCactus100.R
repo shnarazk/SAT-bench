@@ -19,7 +19,7 @@ graph <- function (d = merged) {
       g <- g + theme(legend.position = c(0.38,0.5), legend.justification = c(1,0))
       g <- g + scale_x_continuous(limits=c(0,100),breaks=seq(0,100,10))
       g <- g + scale_y_continuous(limits=c(0,1210) ,breaks=seq(0,1250,200))
-      g <- g + xlab("#solved") + ylab("execution time [sec]") # + ggtitle("Cactus Plot on SAT-Race 2015 main track subset")
+      g <- g + xlab("#solved") + ylab("execution time [sec]") # + ggtitle("Cactus Plot on SAT-Race 2017 main track small subset")
       print(g)
 }
 
