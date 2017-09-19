@@ -1,12 +1,12 @@
 #!/bin/sh
-version="0.41"
+version="0.42"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios15"
 LogNumber=1
-Benchsuit="SR15easy"
+Benchsuit="SR17s100"
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
 timeout=1260
