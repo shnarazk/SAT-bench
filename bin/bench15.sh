@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.42"
+version="0.43"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -209,31 +209,40 @@ echo "# Benchmark configuration:"
 echo " * solver: `ls -l $HOME/.local/bin/${MiosWithId}`"
 echo " * result: ${log}"
 
-echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs
-
 # run the benchmark
 cd $BENCHDIR
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
-    (sleep  3600; ${upload}) &
-    (sleep  7200; ${upload}) &
-    (sleep 10800; ${upload}) &
-    (sleep 14400; ${upload}) &
-    (sleep 18000; ${upload}) &
-    (sleep 21600; ${upload}) &
-    (sleep 25200; ${upload}) &
-    (sleep 28800; ${upload}) &
-    (sleep 32400; ${upload}) &
-    (sleep 36000; ${upload}) &
-    (sleep 39600; ${upload}) &
-    (sleep 43200; ${upload}) &
-    (sleep 46800; ${upload}) &
-    (sleep 50400; ${upload}) &
-    (sleep 54000; ${upload}) &
-    (sleep 57600; ${upload}) &
+    (sleep  3600; ${upload} > /dev/null 2>&1) &
+    (sleep  7200; ${upload} > /dev/null 2>&1) &
+    (sleep 10800; ${upload} > /dev/null 2>&1) &
+    (sleep 14400; ${upload} > /dev/null 2>&1) &
+    (sleep 18000; ${upload} > /dev/null 2>&1) &
+    (sleep 21600; ${upload} > /dev/null 2>&1) &
+    (sleep 25200; ${upload} > /dev/null 2>&1) &
+    (sleep 28800; ${upload} > /dev/null 2>&1) &
+    (sleep 32400; ${upload} > /dev/null 2>&1) &
+    (sleep 36000; ${upload} > /dev/null 2>&1) &
+    (sleep 39600; ${upload} > /dev/null 2>&1) &
+    (sleep 43200; ${upload} > /dev/null 2>&1) &
+    (sleep 46800; ${upload} > /dev/null 2>&1) &
+    (sleep 50400; ${upload} > /dev/null 2>&1) &
+    (sleep 54000; ${upload} > /dev/null 2>&1) &
+    (sleep 57600; ${upload} > /dev/null 2>&1) &
 else
     upload=""
 fi
+
+if [ ${forceSync} == 1 ] ; then
+    eval ${upload} > /dev/null 2>&1
+fi
+
+echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs
+
+if [ ${forceSync} == 1 ] ; then
+    eval ${upload} > /dev/null 2>&1
+fi
+
 echo "cd $BENCHDIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
 sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
 
