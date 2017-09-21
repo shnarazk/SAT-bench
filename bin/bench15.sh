@@ -21,7 +21,7 @@ help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
     echo " ${cmd} -r            - Run the bencmark suit"
-    echo " ${cmd} -r -P SET     - Select dataset: 'SR15easy' or 'SR15m131' (default: '${Benchsuit}'"
+    echo " ${cmd} -r -P SET     - Select dataset: 'SR15easy' or 'SR15m131' (default: '${Benchsuit}')"
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
