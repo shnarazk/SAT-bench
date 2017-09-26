@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.43"
+version="0.44"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -237,7 +237,7 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
 fi
 
-echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs
+echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs-${Benchsuit}-$(hostname)
 
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
