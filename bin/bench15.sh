@@ -42,7 +42,7 @@ help () {
 
 showLog () {
     if [ ! -f ${log} ] ; then
-	log="${DUMPDIR}/${MiosWithId}-*-${LogNumber}.csv"
+	log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}-*-${LogNumber}.csv"
     fi
     cat ${log}
     echo "# end of $log"
@@ -174,7 +174,7 @@ else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
     MiosWithId="${MiosExecutable}-${id}"
 fi
-log="${DUMPDIR}/${MiosWithId}-`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}--`date --iso-8601`-${LogNumber}.csv"
 
 # echo "mode=${mode}"
 
