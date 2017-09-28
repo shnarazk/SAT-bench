@@ -31,9 +31,9 @@ if (0 < length(args)){
     targetPDF=paste("cactus-SR17s100-", exps, ".pdf", sep="")
     targetPNG=paste("cactus-SR17s100-", exps, ".png", sep="")
   } else {
-     exps = "runs"
-     targetPDF="cactus-SR17s100.pdf"
-     targetPNG="cactus-SR17s100.png"
+     exps = "runs-s100"
+     targetPDF="cactus-SR17s100-runs-SR17s100.pdf"
+     targetPNG="cactus-SR17s100-runs-SR17s100.png"
   }
 runs <- read.csv(exps, comment="#", sep=",", header=F)
 withTag <- 1 < ncol(runs)
