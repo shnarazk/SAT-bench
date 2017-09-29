@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.44"
+version="0.45"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -237,7 +237,8 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
 fi
 
-echo "\"`basename ${log}`\"" >> ${DUMPDIR}/runs-${Benchsuit}-$(hostname)
+RUNS=runs-${Benchsuit}-$(hostname)
+echo "\"`basename ${log}`\"" >> ${DUMPDIR}/$(RUNS)
 
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
@@ -251,12 +252,12 @@ cd ${DUMPDIR};
 PATH="${PATH}:."
 case "$Benchsuit" in
     "SR15easy")
-	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R
-        uploadSlack livestream cactus2015-SR15easy.png
+	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R $(RUNS)
+        uploadSlack livestream cactus2015-SR15easy-$(RUNS).png
 	;;
     "SR15m131")
-	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R
-	uploadSlack livestream cactus2015-SR15m131.png
+	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R $(RUNS)
+	uploadSlack livestream cactus2015-SR15m131-$(RUNS).png
 	;;
     "*")
 	;;
