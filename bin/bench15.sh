@@ -238,7 +238,7 @@ if [ ${forceSync} == 1 ] ; then
 fi
 
 RUNS=runs-${Benchsuit}-$(hostname)
-echo "\"`basename ${log}`\"" >> ${DUMPDIR}/$(RUNS)
+echo "\"`basename ${log}`\"" >> ${DUMPDIR}/${RUNS}
 
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
@@ -252,12 +252,12 @@ cd ${DUMPDIR};
 PATH="${PATH}:."
 case "$Benchsuit" in
     "SR15easy")
-	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R $(RUNS)
-        uploadSlack livestream cactus2015-SR15easy-$(RUNS).png
+	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R ${RUNS}
+        uploadSlack livestream cactus2015-SR15easy-${RUNS}.png
 	;;
     "SR15m131")
-	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R $(RUNS)
-	uploadSlack livestream cactus2015-SR15m131-$(RUNS).png
+	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R ${RUNS}
+	uploadSlack livestream cactus2015-SR15m131-${RUNS}.png
 	;;
     "*")
 	;;
