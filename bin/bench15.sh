@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.45"
+version="0.46"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -42,7 +42,7 @@ help () {
 
 showLog () {
     if [ ! -f ${log} ] ; then
-	log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}-*-${LogNumber}.csv"
+	log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}-*-${HOSTNAME}-${LogNumber}.csv"
     fi
     cat ${log}
     echo "# end of $log"
@@ -174,7 +174,7 @@ else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
     MiosWithId="${MiosExecutable}-${id}"
 fi
-log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}--`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}--`date --iso-8601`-${HOSTNAME}-${LogNumber}.csv"
 
 # echo "mode=${mode}"
 
