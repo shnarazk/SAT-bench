@@ -13,7 +13,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.10.0"
+version = "sat-benchmark 0.10.1"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -42,7 +42,7 @@ data ConfigurationOption = ConfigurationOption
 defaultConfigration = ConfigurationOption
   {
     targets = Nothing
-  , rangeFrom = 200
+  , rangeFrom = 175
   , rangeTo = 250
   , fundamentalExamSet = False
   , threeSATSet = False
@@ -72,7 +72,7 @@ options =
      (NoArg (\c -> c { fundamentalExamSet = True }))
      "run on fundamental problems"
   , Option ['3'] ["3SAT"]
-     (ReqArg (\v c -> c { threeSATSet = True, rangeTo = read v, rangeFrom = read v}) (show (rangeTo defaultConfigration)))
+     (ReqArg (\v c -> c { threeSATSet = True, rangeTo = read v}) (show (rangeTo defaultConfigration)))
      ("run on 3-SAT problems upto " ++ show (rangeTo defaultConfigration))
   , Option ['s'] ["structured"]
      (NoArg (\c -> c { structuredSATSet = True }))
