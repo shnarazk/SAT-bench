@@ -1,15 +1,15 @@
 #!/bin/sh
-version="0.46"
+version="0.47"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios15"
 LogNumber=1
-Benchsuit="SR17s100"
+Benchsuit="SC17m54" # SR15easy, SR15m131, SR17s100, SC17m54
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
-timeout=1260
+timeout=810
 timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
 upload=`which syncCloud > /dev/null 2>&1; if [ $? = 0 ] ; then echo "syncCloud" ; else echo; fi`
 SkipCompile=0
