@@ -13,7 +13,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.10.1"
+version = "sat-benchmark 0.11.0"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -185,7 +185,7 @@ main = do
       let extraMessage = if message conf == "" then "" else ", " ++ message conf
       when singleSolver $ do
         let solver = head (solvers conf)
-        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\)/T\\1/'); echo -n ' ; '; %s --version" solver solver
+        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version" solver solver solver
         return ()
       unless (skipTitle conf) . void . system $ printf "echo \"# p='%s', t=%d on `hostname` @ `date -Iseconds`%s\"" (solverOptions conf) (timeout conf) extraMessage
       let opts = solverOptions conf
