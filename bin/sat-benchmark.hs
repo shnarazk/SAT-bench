@@ -13,7 +13,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.12.0"
+version = "sat-benchmark 0.12.1"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -194,7 +194,7 @@ main = do
         val <- system $ "which " ++ solver ++ " > /dev/null"
         when (val == ExitSuccess) $ do
           unless singleSolver $ do
-            unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\)/T\\1/'); echo -n ' ; '; %s --version" solver solver
+            unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version" solver solver solver
             return ()
           let
             threes = [rangeFrom conf, rangeFrom conf + 25 .. rangeTo conf]
