@@ -3,7 +3,6 @@
 {-# LANGUAGE ViewPatterns #-}
 
 import Control.Monad
-import Data.Maybe (maybeToList)
 import System.Console.GetOpt
 import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
