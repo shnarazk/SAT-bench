@@ -253,15 +253,15 @@ PATH="${PATH}:."
 case "$Benchsuit" in
     "SC17m54")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus2015-SC17m54-${RUNS}.png
+	uploadSlack livestream cactus-SC17m54-${RUNS}.png
 	;;
     "SR15easy")
 	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R ${RUNS}
-        uploadSlack livestream cactus2015-SR15easy-${RUNS}.png
+        uploadSlack livestream cactus-SR15easy-${RUNS}.png
 	;;
     "SR15m131")
 	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R ${RUNS}
-	uploadSlack livestream cactus2015-SR15m131-${RUNS}.png
+	uploadSlack livestream cactus-SR15m131-${RUNS}.png
 	;;
     "*")
 	;;

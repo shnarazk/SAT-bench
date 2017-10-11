@@ -40,12 +40,12 @@ merged = NULL
 args <- commandArgs(trailingOnly=TRUE)
 if (0 < length(args)){
     exps = args[1]
-    targetPDF=paste("cactus2015-SR15Esay-", exps, ".pdf", sep="")
-    targetPNG=paste("cactus2015-SR15Easy-", exps, ".png", sep="")
+    targetPDF=paste("cactus-SR15Easy-", exps, ".pdf", sep="")
+    targetPNG=paste("cactus-SR15Esay-", exps, ".png", sep="")
   } else {
      exps = "runs"
-     targetPDF="cactus2015-SR15Easy.pdf"
-     targetpng="cactus2015-SR15Easy.png"
+     targetPDF="cactus-SR15Easy.pdf"
+     targetpng="cactus-SR15Easy.png"
   }
 runs <- read.csv(exps", comment="#", sep=",", header=F)
 withTag <- 1 < ncol(runs)
