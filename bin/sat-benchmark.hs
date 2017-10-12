@@ -12,7 +12,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.12.1"
+version = "sat-benchmark 0.13.1"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -24,7 +24,7 @@ data ConfigurationOption = ConfigurationOption
                      , structuredSATSet :: Bool
                      , solvers :: [String]
                      , timeout :: Int
-                     , inParallel :: Bool
+                     , inParallel :: Int
                      , dumpAll :: Bool
                      , terminateHook :: String
                      , solverOptions :: String
@@ -48,7 +48,7 @@ defaultConfigration = ConfigurationOption
   , structuredSATSet = False
   , solvers = []
   , timeout = 1260
-  , inParallel = False
+  , inParallel = 1
   , dumpAll = False
   , terminateHook = "finished"
   , solverOptions = "" -- "-X" or "+RTS -K20M -RTS -X"
@@ -88,8 +88,8 @@ options =
   , Option ['T'] ["timeout"]
      (ReqArg (\v c -> c { timeout = read v }) (show (timeout defaultConfigration)))
      "set timeout [second]"
-  , Option ['P'] ["parallel"]
-     (NoArg (\c -> c { inParallel = True }))
+  , Option ['j'] ["parallel"]
+     (ReqArg (\v c -> c { inParallel = read v }) (show (inParallel defaultConfigration)))
      "execute in parallel"
   , Option ['A'] ["dump-all", "all"]
      (NoArg (\c -> c { dumpAll = True }))
@@ -214,7 +214,7 @@ main = do
 -- | for SAT-RACE benchmark
 executeTargets conf solver options files = do
   hFlush stdout
-  let flagJ = if inParallel conf then "-j -1" else "-j1"
+  let flagJ = "-j " ++ show (inParallel conf)
   let solverName = solver ++ auxKey conf
   if devNull conf
     then system $ printf "%s; (parallel --joblog satbench.log %s \"echo -n '\\\"%s\\\", {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} > /dev/null \" ::: %s ; ) 2>&1" setEnv flagJ solverName (timeout conf) (timeout conf) solver options files
@@ -224,7 +224,7 @@ executeTargets conf solver options files = do
 -- |
 execute3SATs conf@(dumpAll -> True) solver options dir (num, targets) = do
   hFlush stdout
-  let flagJ = if inParallel conf then "-j -1" else "-j1"
+  let flagJ = "-j " ++ show (inParallel conf)
   let solverName = solver ++ auxKey conf
   if devNull conf
      then system $ printf "%s; (parallel %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} > /dev/null\" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1" setEnv flagJ solverName num (timeout conf) (timeout conf) solver options dir (show targets)
@@ -233,7 +233,7 @@ execute3SATs conf@(dumpAll -> True) solver options dir (num, targets) = do
 execute3SATs conf solver options dir (num, targets) = do
   let q s = "\"" ++ s ++ "\""
   let solverName = solver ++ auxKey conf
-  let flagJ = if inParallel conf then "-j -1" else "-j1"
+  let flagJ = "-j " ++ show (inParallel conf)
   putStr $ q solverName ++ ", " ++ show num ++ ", " ++ show targets ++ ",\t"
   hFlush stdout
   if devNull conf
@@ -243,7 +243,7 @@ execute3SATs conf solver options dir (num, targets) = do
 -- |
 execute conf@(dumpAll -> True) solver options dir (num, (key, target)) = do
   hFlush stdout
-  let flagJ = if inParallel conf then "-j -1" else "-j1"
+  let flagJ = "-j " ++ show (inParallel conf)
   let solverName = solver ++ auxKey conf
   if devNull conf
     then system $ printf "%s; (parallel %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} > /dev/null \" ::: %s/%s ; ) 2>&1" setEnv flagJ solverName num (timeout conf) (timeout conf) solver options dir target
@@ -252,7 +252,7 @@ execute conf@(dumpAll -> True) solver options dir (num, (key, target)) = do
 
 execute conf solver options dir (num, (key, target)) = do
   let q s = "\"" ++ s ++ "\""
-  let flagJ = if inParallel conf then "-j -1" else "-j1"
+  let flagJ = "-j " ++ show (inParallel conf)
   let solverName = solver ++ auxKey conf
   putStr $ q solverName ++ ", " ++ show num ++ ", " ++ q key ++ ",\t"
   hFlush stdout

@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.49"
+version="0.50"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -10,6 +10,7 @@ Benchsuit="SC17MT" # SR15easy, SR15m131, SR17s100, SC17m54
 timeout=410         # for SC17MT
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
+jobs="1"
 timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
 upload=`which syncCloud > /dev/null 2>&1; if [ $? = 0 ] ; then echo "syncCloud" ; else echo; fi`
 SkipCompile=0
@@ -23,6 +24,7 @@ help () {
     echo " ${cmd} -r            - Run the bencmark suit"
     echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${Benchsuit}')"
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
+    echo " ${cmd} -r -j n       - Number of jobs in parallel"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
     echo " ${cmd} -r -E EXE     - Use the executable name to EXE without compilation"
@@ -50,7 +52,7 @@ showLog () {
 
 mode="unknown"
 forceSync=0
-while getopts brcgsSTkhuli::n:e:E:o:P:t:B:D:G: OPT
+while getopts brcgsSTkhuli::n:e:E:o:j:P:t:B:D:G: OPT
 do
     case $OPT in
 	b) mode="build"
@@ -72,6 +74,8 @@ do
 	   esac
 	   ;;
 	o) MiosOptions=$OPTARG
+	   ;;
+	j) jobs=$OPTARG
 	   ;;
 	t) timeout=$OPTARG
 	   ;;
@@ -251,8 +255,8 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
 fi
 
-echo "cd $BENCHDIR; sat-benchmark -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
-sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
+echo "cd $BENCHDIR; sat-benchmark -j ${jobs} -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
+sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
 
 # build the report
 cd ${DUMPDIR};

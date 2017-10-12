@@ -27,13 +27,15 @@ merged = list()
 
 args <- commandArgs(trailingOnly=TRUE)
 if (0 < length(args)){
-    exps = args[1]
-    targetPDF=paste("cactus-SC17MT-", exps, ".pdf", sep="")
-    targetPNG=paste("cactus-SC17MT-", exps, ".png", sep="")
+    exps <- args[1]
+    name <_ gsub("\\.[^.]+$", "", exps)
+    targetPDF <- paste("cactus-", name, ".pdf", sep="")
+    targetPNG <- paste("cactus-", name, ".png", sep="")
   } else {
-     exps = "runs"
-     targetPDF="cactus-SC17MT.pdf"
-     targetPNG="cactus-SC17MT.png"
+     exps <- "runs"
+     name <- "runs"
+     targetPDF <- "cactus-SC17MT.pdf"
+     targetPNG <- "cactus-SC17MT.png"
   }
 runs <- read.csv(exps, comment="#", sep=",", header=F)
 withTag <- 1 < ncol(runs)
