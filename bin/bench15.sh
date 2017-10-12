@@ -44,7 +44,7 @@ help () {
 
 showLog () {
     if [ ! -f ${log} ] ; then
-	log="${DUMPDIR}/bench-${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv"
+	log="${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv"
     fi
     cat ${log}
     echo "# end of $log"
@@ -185,7 +185,7 @@ else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
     MiosWithId="${MiosExecutable}-${id}"
 fi
-log="${DUMPDIR}/bench-${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
 
 # echo "mode=${mode}"
 
@@ -248,7 +248,7 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
 fi
 
-RUNS=${Benchsuit}-${timeout}-$(hostname)
+RUNS=${Benchsuit}-${timeout}-$(hostname).runs
 echo "\"`basename ${log}`\"" >> ${DUMPDIR}/${RUNS}
 
 if [ ${forceSync} == 1 ] ; then
@@ -264,19 +264,19 @@ PATH="${PATH}:."
 case "$Benchsuit" in
     "SC17MT")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus-SC17MT-${RUNS}.png
+	uploadSlack livestream cactus-SC17MT-$(basename ${RUNS}).png
 	;;
     "SC17m54")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus-SC17m54-${RUNS}.png
+	uploadSlack livestream cactus-SC17m54-$(basename {RUNS}).png
 	;;
     "SR15easy")
 	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R ${RUNS}
-        uploadSlack livestream cactus-SR15easy-${RUNS}.png
+        uploadSlack livestream cactus-SR15easy-$(basename {RUNS}).png
 	;;
     "SR15m131")
 	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R ${RUNS}
-	uploadSlack livestream cactus-SR15m131-${RUNS}.png
+	uploadSlack livestream cactus-SR15m131-$(basename {RUNS}).png
 	;;
     "*")
 	;;
