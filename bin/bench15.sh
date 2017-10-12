@@ -1,13 +1,13 @@
 #!/bin/sh
-version="0.48"
+version="0.49"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios15"
 LogNumber=1
-Benchsuit="SC17m54" # SR15easy, SR15m131, SR17s100, SC17m54
-timeout=810         # for SC17m54
+Benchsuit="SC17MT" # SR15easy, SR15m131, SR17s100, SC17m54
+timeout=410         # for SC17MT
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
 timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
@@ -21,7 +21,7 @@ help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
     echo " ${cmd} -r            - Run the bencmark suit"
-    echo " ${cmd} -r -P SET     - Select dataset: 'SR15easy' or 'SR15m131' (default: '${Benchsuit}')"
+    echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${Benchsuit}')"
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
@@ -42,7 +42,7 @@ help () {
 
 showLog () {
     if [ ! -f ${log} ] ; then
-	log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv"
+	log="${DUMPDIR}/bench-${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv"
     fi
     cat ${log}
     echo "# end of $log"
@@ -181,7 +181,7 @@ else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
     MiosWithId="${MiosExecutable}-${id}"
 fi
-log="${DUMPDIR}/bench-${Benchsuit}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/bench-${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
 
 # echo "mode=${mode}"
 
@@ -244,7 +244,7 @@ if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
 fi
 
-RUNS=runs-${Benchsuit}-$(hostname)
+RUNS=${Benchsuit}-${timeout}-$(hostname)
 echo "\"`basename ${log}`\"" >> ${DUMPDIR}/${RUNS}
 
 if [ ${forceSync} == 1 ] ; then
@@ -258,6 +258,10 @@ sat-benchmark -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${Mio
 cd ${DUMPDIR};
 PATH="${PATH}:."
 case "$Benchsuit" in
+    "SC17MT")
+	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
+	uploadSlack livestream cactus-SC17MT-${RUNS}.png
+	;;
     "SC17m54")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
 	uploadSlack livestream cactus-SC17m54-${RUNS}.png

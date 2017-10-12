@@ -17,9 +17,9 @@ graph <- function (d = merged) {
       g <- g + geom_point()
       g <- g + geom_line(data=merged,size=0.6)
       g <- g + theme(legend.position = c(0.88,0.1), legend.justification = c(1,0))
-      g <- g + scale_x_continuous(limits=c(0,55),breaks=seq(0,55,10))
-      g <- g + scale_y_continuous(limits=c(0,810) ,breaks=seq(0,810,100))
-      g <- g + xlab("#solved") + ylab("execution time [sec]") # + ggtitle("Cactus Plot on SAT-Race 2017 main track small subset")
+      g <- g + scale_x_continuous(limits=c(0,355),breaks=seq(0,355,10))
+      g <- g + scale_y_continuous(limits=c(0,410) ,breaks=seq(0,410,100))
+      g <- g + xlab("#solved") + ylab("execution time [sec]") # + ggtitle("Cactus Plot on SAT-Race 2017 Main Track (short timeout)")
       print(g)
 }
 
@@ -28,12 +28,12 @@ merged = list()
 args <- commandArgs(trailingOnly=TRUE)
 if (0 < length(args)){
     exps = args[1]
-    targetPDF=paste("cactus-SC17m54-", exps, ".pdf", sep="")
-    targetPNG=paste("cactus-SC17m54-", exps, ".png", sep="")
+    targetPDF=paste("cactus-SC17MT-", exps, ".pdf", sep="")
+    targetPNG=paste("cactus-SC17MT-", exps, ".png", sep="")
   } else {
-     exps = "runs-s100"
-     targetPDF="cactus-SC17m54-runs-SC17m54.pdf"
-     targetPNG="cactus-SC17m54-runs-SC17m54.png"
+     exps = "runs"
+     targetPDF="cactus-SC17MT.pdf"
+     targetPNG="cactus-SC17MT.png"
   }
 runs <- read.csv(exps, comment="#", sep=",", header=F)
 withTag <- 1 < ncol(runs)
