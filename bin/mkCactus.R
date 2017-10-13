@@ -28,7 +28,7 @@ merged = list()
 args <- commandArgs(trailingOnly=TRUE)
 if (0 < length(args)){
     exps <- args[1]
-    name <_ gsub("\\.[^.]+$", "", exps)
+    name <- gsub("\\.[^.]+$", "", exps)
     targetPDF <- paste("cactus-", name, ".pdf", sep="")
     targetPNG <- paste("cactus-", name, ".png", sep="")
   } else {
