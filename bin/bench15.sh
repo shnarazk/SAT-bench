@@ -4,7 +4,7 @@ version="0.51"
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
-GITDIR="$HOME/Repositories/mios15"
+GITDIR="$HOME/Repositories/mios"
 LogNumber=1
 Benchsuit="SC17main" # SR15easy, SR15m131, SR17s100, SC17m54
 timeout=410         # for SC17main
