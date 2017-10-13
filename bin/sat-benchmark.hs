@@ -12,7 +12,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.13.1"
+version = "sat-benchmark 0.13.2"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -187,7 +187,7 @@ main = do
         let solver = head (solvers conf)
         unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version" solver solver solver
         return ()
-      unless (skipTitle conf) . void . system $ printf "echo \"# p='%s', t=%d on `hostname` @ `date -Iseconds`%s\"" (solverOptions conf) (timeout conf) extraMessage
+      unless (skipTitle conf) . void . system $ printf "echo \"# %s, j=%d, t=%d, p='%s' on `hostname` @ `date -Iseconds`%s\"" version (inParallel conf) (timeout conf) (solverOptions conf) extraMessage
       let opts = solverOptions conf
       forM_ (solvers conf) $ \solver -> do
         val <- system $ "which " ++ solver ++ " > /dev/null"
