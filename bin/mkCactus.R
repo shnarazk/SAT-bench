@@ -34,8 +34,8 @@ if (0 < length(args)){
   } else {
      exps <- "runs"
      name <- "runs"
-     targetPDF <- "cactus-SC17Main.pdf"
-     targetPNG <- "cactus-SC17Main.png"
+     targetPDF <- "cactus-SC17main.pdf"
+     targetPNG <- "cactus-SC17main.png"
   }
 runs <- read.csv(exps, comment="#", sep=",", header=F)
 withTag <- 1 < ncol(runs)

@@ -6,8 +6,8 @@ BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios15"
 LogNumber=1
-Benchsuit="SC17Main" # SR15easy, SR15m131, SR17s100, SC17m54
-timeout=410         # for SC17Main
+Benchsuit="SC17main" # SR15easy, SR15m131, SR17s100, SC17m54
+timeout=410         # for SC17main
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
 jobs="1"
@@ -262,9 +262,9 @@ sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout
 cd ${DUMPDIR};
 PATH="${PATH}:."
 case "$Benchsuit" in
-    "SC17Main")
+    "SC17main")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus-SC17Main-$(basename ${RUNS}).png
+	uploadSlack livestream cactus-SC17main-$(basename ${RUNS}).png
 	;;
     "SC17m54")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
