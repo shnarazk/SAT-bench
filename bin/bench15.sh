@@ -1,12 +1,12 @@
 #!/bin/sh
-version="0.51"
+version="0.52"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios"
 LogNumber=1
-Benchsuit="SC17main" # SR15easy, SR15m131, SR17s100, SC17m54
+Benchsuit="SC17main" # SR15m131, SC17m54
 timeout=410         # for SC17main
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
@@ -67,9 +67,7 @@ do
 	P) Benchsuit=$OPTARG
 	   case ${Benchsuit} in
 	       SC17m54)  timeout="810"  ;;
-	       SR15easy) timeout="200"  ;;
 	       SR15m131) timeout="1260" ;;
-	       SR17s100) timeout="810"  ;;
 	       *) ;;
 	   esac
 	   ;;
@@ -260,23 +258,10 @@ sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout
 
 # build the report
 cd ${DUMPDIR};
-PATH="${PATH}:."
 case "$Benchsuit" in
     "SC17main")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
 	uploadSlack livestream cactus-SC17main-$(basename ${RUNS}).png
-	;;
-    "SC17m54")
-	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus-SC17m54-$(basename {RUNS}).png
-	;;
-    "SR15easy")
-	which mkCactusEasy.R > /dev/null 2>&1 && mkcactusEasy.R ${RUNS}
-        uploadSlack livestream cactus-SR15easy-$(basename {RUNS}).png
-	;;
-    "SR15m131")
-	which mkCactus131.R > /dev/null 2>&1 && mkCactus131.R ${RUNS}
-	uploadSlack livestream cactus-SR15m131-$(basename {RUNS}).png
 	;;
     "*")
 	;;
