@@ -14,7 +14,7 @@ getData <- function (t, p) {
 
 graph <- function (d = merged) {
       g <- ggplot(merged, aes(num, time, color=solver))
-      g <- g + geom_point()
+      g <- g + geom_point(size=0.5)
       g <- g + geom_line(data=merged,size=0.6)
       g <- g + theme(legend.position = c(0.88,0.1), legend.justification = c(1,0))
       g <- g + scale_x_continuous(limits=c(0,355),breaks=seq(0,355,10))
