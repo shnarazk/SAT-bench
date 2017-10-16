@@ -19,6 +19,8 @@ args <- commandArgs(trailingOnly=TRUE)
 if (2 <= length(args)){
     dataX <- read.csv(args[1], header=T, sep=",", comment="#")
     dataY <- read.csv(args[2], header=T, sep=",", comment="#")
+    dataX = dataX[order(dataX[,2]),]         	# sort by num
+    dataY = dataY[order(dataY[,2]),]         	# sort by num
     l <- min(nrow(dataX), nrow(dataY))
     dataX <- dataX[seq(1,l),]
     dataY <- dataY[seq(1,l),]
