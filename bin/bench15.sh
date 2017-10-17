@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.52"
+version="0.53"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -32,7 +32,6 @@ help () {
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
     echo " ${cmd} -r -t T       - Set timeout to T (default: ${timeout})"
-    echo " ${cmd} -r -T         - Set timeout to 310"
     echo " ${cmd} -r -n N       - Set log sequence number to N (default: ${LogNumber})"
     echo " ${cmd} -r -S         - Force owncloud syhchronization"
     echo " ${cmd} -c            - Cat the current benchmark's result"
@@ -52,7 +51,7 @@ showLog () {
 
 mode="unknown"
 forceSync=0
-while getopts brcgsSTkhuli::n:e:E:o:j:P:t:B:D:G: OPT
+while getopts brcgsSkhuli::n:e:E:o:j:P:t:B:D:G: OPT
 do
     case $OPT in
 	b) mode="build"
@@ -66,6 +65,7 @@ do
 	    ;;
 	P) Benchsuit=$OPTARG
 	   case ${Benchsuit} in
+	       SC17main) timeout="410"  ;;
 	       SC17m54)  timeout="810"  ;;
 	       SR15m131) timeout="1260" ;;
 	       *) ;;
@@ -76,8 +76,6 @@ do
 	j) jobs=$OPTARG
 	   ;;
 	t) timeout=$OPTARG
-	   ;;
-	T) timeout="310"
 	   ;;
 	n) LogNumber=$OPTARG
 	   ;;
