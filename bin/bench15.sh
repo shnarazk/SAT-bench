@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.53"
+version="0.54"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -253,6 +253,10 @@ fi
 
 echo "cd $BENCHDIR; sat-benchmark -j ${jobs} -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
 sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
+
+if [ ${forceSync} == 1 ] ; then
+    eval ${upload} > /dev/null 2>&1
+fi
 
 # build the report
 cd ${DUMPDIR};
