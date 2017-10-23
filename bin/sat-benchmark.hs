@@ -211,7 +211,7 @@ main = do
               when (structuredSATSet conf) $ mapM_ (execute conf solver opts base) $ withNum 2 structuredProblems
       unless (null (terminateHook conf)) $ void (system (terminateHook conf))
 
--- | for SAT-RACE benchmark
+-- | target is a list of files (for SAT-RACE benchmark)
 executeTargets conf solver options files = do
   hFlush stdout
   let flagJ = "-j " ++ show (inParallel conf)
@@ -221,7 +221,7 @@ executeTargets conf solver options files = do
     else system $ printf "%s; (parallel --keep-order --joblog satbench.log %s \"echo -n '\\\"%s\\\", {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} \" ::: %s ; ) 2>&1" setEnv flagJ solverName (timeout conf) (timeout conf) solver options files
   hFlush stdout
 
--- |
+-- | [dump for DEBUG] target is a list of files (for SAT-RACE benchmark)
 execute3SATs conf@(dumpAll -> True) solver options dir (num, targets) = do
   hFlush stdout
   let flagJ = "-j " ++ show (inParallel conf)
@@ -230,6 +230,7 @@ execute3SATs conf@(dumpAll -> True) solver options dir (num, targets) = do
      then system $ printf "%s; (parallel --keep-order %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} > /dev/null\" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1" setEnv flagJ solverName num (timeout conf) (timeout conf) solver options dir (show targets)
      else system $ printf "%s; (parallel --keep-order %s \"echo -n '\\\"%s\\\", %d {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} \" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1" setEnv flagJ solverName num (timeout conf) (timeout conf) solver options dir (show targets)
 
+-- | only show the average or total result of targets (for 3-SAT problems)
 execute3SATs conf solver options dir (num, targets) = do
   let q s = "\"" ++ s ++ "\""
   let solverName = solver ++ auxKey conf
@@ -240,7 +241,7 @@ execute3SATs conf solver options dir (num, targets) = do
      then system $ printf "%s; (time timeout -k %d %d parallel --keep-order %s \"%s %s {} > /dev/null\" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1" setEnv (timeout conf) (timeout conf) flagJ solver options dir (show targets)
      else system $ printf "%s; (time timeout -k %d %d parallel --keep-order %s \"%s %s {} \" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1" setEnv (timeout conf) (timeout conf) flagJ solver options dir (show targets)
 
--- |
+-- | [dump for DEBUG] only show the average or total result of targets (for 3-SAT problems)
 execute conf@(dumpAll -> True) solver options dir (num, (key, target)) = do
   hFlush stdout
   let flagJ = "-j " ++ show (inParallel conf)
@@ -250,6 +251,7 @@ execute conf@(dumpAll -> True) solver options dir (num, (key, target)) = do
     else system $ printf "%s; (parallel --keep-order %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout -k %d %d %s %s {} \" ::: %s/%s ; ) 2>&1" setEnv flagJ solverName num (timeout conf) (timeout conf) solver options dir target
   hFlush stdout
 
+-- | target is one of defined problem sets: fundamentalProblems, structuredProblems
 execute conf solver options dir (num, (key, target)) = do
   let q s = "\"" ++ s ++ "\""
   let flagJ = "-j " ++ show (inParallel conf)
