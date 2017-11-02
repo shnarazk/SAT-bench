@@ -162,7 +162,7 @@ structuredProblems =
   [ ("itox", "SR2015/itox_vc1130.cnf")
   , ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf")
   , ("38b", "SR2015/38bits_10.dimacs.cnf")
-  , ("48b", "SR2015/44bits_11.dimacs.cnf")
+  , ("44b", "SR2015/44bits_11.dimacs.cnf")
   -- , "logistics/logistics.c.cnf"
   ]
 
