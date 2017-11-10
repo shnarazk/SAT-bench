@@ -13,9 +13,13 @@ getData <- function (t, p) {
 	}
 
 graph <- function (d = merged) {
-      g <- ggplot(merged, aes(num, time, color=solver))
+      g <- ggplot(merged, aes(num, time, color=solver, size=solver, alpha=solver))
       g <- g + geom_point(size=0.5)
-      g <- g + geom_line(data=merged,size=0.6)
+      g <- g + geom_line(data=merged)
+      g <- g + scale_size_manual(values=rep(0.6, times=nrow(d)))
+      g <- g + scale_alpha_manual(values=rep(1.0, times=nrow(d)))
+#     g <- g + scale_size_manual(values=c(0.7,0.7,0.7,0.7,0.3,0.3,0.3))  -- by aes(size=solver)
+#     g <- g + scale_alpha_manual(values=c(1.0,1.0,1.0,1.0,0.5,0.5,0.5)) -- by aes(alpha=solver)
       g <- g + theme(legend.position = c(0.88,0.1), legend.justification = c(1,0))
       g <- g + scale_x_continuous(limits=c(0,350), breaks=seq(00,350,10), expand=c(0,4))
       g <- g + scale_y_continuous(expand=c(0,4))
