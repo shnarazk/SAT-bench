@@ -12,10 +12,10 @@ getData <- function (t, p) {
 	df2
 	}
 
-graph <- function (d = merged) {
-      g <- ggplot(merged, aes(num, time, color=solver, size=solver, alpha=solver))
+graph <- function (d, subt) {
+      g <- ggplot(d, aes(num, time, color=solver, size=solver, alpha=solver))
       g <- g + geom_point(size=0.5)
-      g <- g + geom_line(data=merged)
+      g <- g + geom_line(data=d)
       g <- g + scale_size_manual(values=rep(0.6, times=nrow(d)))
       g <- g + scale_alpha_manual(values=rep(1.0, times=nrow(d)))
 #     g <- g + scale_size_manual(values=c(0.7,0.7,0.7,0.7,0.3,0.3,0.3))  -- by aes(size=solver)
@@ -24,18 +24,26 @@ graph <- function (d = merged) {
       g <- g + scale_x_continuous(limits=c(0,350), breaks=seq(00,350,10), expand=c(0,4))
       g <- g + scale_y_continuous(expand=c(0,4))
 #      g <- g + scale_y_continuous(limits=c(0,410) ,breaks=seq(0,410,100))
-      g <- g + xlab("#solved") + ylab("execution time [sec]") + ggtitle("Cactus plot on SAT-Race 2017 Main track (a short timeout)")
+      if (subt == "") {
+         g <- g + labs(title="Cactus plot on SAT-Race 2017 Main track (a short timeout)"
+	      	       , x="#solved", y="execution time [sec]") }
+      else {
+         g <- g + labs(title="Cactus plot on SAT-Race 2017 Main track (a short timeout)"
+	               , subtitle=subt
+	      	       , x="#solved", y="execution time [sec]") }
       print(g)
 }
 
 merged = list()
 
 args <- commandArgs(trailingOnly=TRUE)
+subt <- ""
 if (0 < length(args)){
     exps <- args[1]
     name <- gsub("\\.[^.]+$", "", exps)
     targetPDF <- paste("cactus-", name, ".pdf", sep="")
     targetPNG <- paste("cactus-", name, ".png", sep="")
+    if (1 < length(args)) { subt <- args[2] }
   } else {
      exps <- "runs"
      name <- "runs"
