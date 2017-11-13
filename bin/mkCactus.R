@@ -55,7 +55,7 @@ withTag <- 1 < ncol(runs)
 for (i in seq(nrow(runs))) { merged = rbind(merged, getData(runs[i,], withTag)); }
 
 cairo_pdf(filename=targetPDF,antialias="subpixel", onefile=TRUE)
-graph(merged)
+graph(merged, subt)
 ggsave(targetPDF, width=10, height=7, dpi=200)
 ggsave(targetPNG, width=9, height=6, dpi=200)
 dev.off()
