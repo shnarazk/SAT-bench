@@ -263,7 +263,7 @@ cd ${DUMPDIR};
 case "$Benchsuit" in
     "SC17main")
 	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus-SC17main-$(basename ${RUNS}).png
+	uploadSlack livestream cactus-$(basename ${RUNS}).png
 	;;
     "*")
 	;;
