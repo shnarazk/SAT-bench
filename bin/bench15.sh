@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.54"
+version="0.55"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -7,7 +7,7 @@ DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios"
 LogNumber=1
 Benchsuit="SC17main" # SR15m131, SC17m54
-timeout=410         # for SC17main
+timeout=510         # for SC17main
 MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
 MiosOptions=""
 jobs="1"
@@ -49,6 +49,24 @@ showLog () {
     echo "# end of $log"
 }
 
+makeCactus () {
+    cd ${DUMPDIR};
+    case "$Benchsuit" in
+	"SC17main")
+	    which mkCactus.R # > /dev/null 2>&1 && mkCactus.R ${RUNS}
+	    which uploadSlack > /dev/null 2>&1 && uploadSlack livestream cactus-$(basename ${RUNS} .runs).png
+	    ;;
+	"*")
+	    ;;
+    esac
+}
+
+makeSync () {
+    if [ ${forceSync} == 1 ] ; then
+	eval ${upload} > /dev/null 2>&1
+    fi
+}
+
 mode="unknown"
 forceSync=0
 while getopts brcgsSkhuli::n:e:E:o:j:P:t:B:D:G: OPT
@@ -65,7 +83,7 @@ do
 	    ;;
 	P) Benchsuit=$OPTARG
 	   case ${Benchsuit} in
-	       SC17main) timeout="410"  ;;
+	       SC17main) timeout="510"  ;;
 	       SC17m54)  timeout="810"  ;;
 	       SR15m131) timeout="1260" ;;
 	       *) ;;
@@ -117,6 +135,35 @@ do
 done
 shift $((OPTIND - 1))
 
+# update variables
+if [ ! -d "${GITDIR}" ] ;
+then
+    echo "No git directory: ${GITDIR}"
+    exit -1
+fi
+
+if [ $(cd ${GITDIR}; git status | grep -q modified; echo $?) == "0" ] ; then
+    if [ "${SkipCompile}" == "0" ] ; then
+	echo "ABORT: the mios repository is not clean. Please commit before benchmark."
+	exit 0
+    fi
+fi
+if [ $SkipCompile == "1" ] ;
+then
+    id=''
+    MiosWithId="${MiosExecutable}"
+else
+    id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
+    MiosWithId="${MiosExecutable}-${id}"
+fi
+log="${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
+if [ -f ${log} ] ;
+then
+    echo "Abort: ${log} exists now"
+    exit 255
+fi
+RUNS=${Benchsuit}-${timeout}-$(hostname).runs
+
 case ${mode} in
     "build")
 	;;
@@ -124,17 +171,14 @@ case ${mode} in
 	;;
     "sync")
 	echo -n "sync dir..."
-	eval ${upload} > /dev/null 2>&1
+	makeSync
 	echo "done."
 	exit 0
 	;;
     "graph")
 	echo -n "make a graph..."
-	eval "(cd ${DUMPDIR}; mkCactus131.R)"
-	eval "(cd ${DUMPDIR}; mkCactusSU131.R)"
-	if [ ${forceSync} == 1 ] ; then
-	    eval ${upload} > /dev/null 2>&1
-	fi
+	makeCactus
+	makeSync
 	exit 0
 	;;
     "unknown")
@@ -152,39 +196,12 @@ case ${mode} in
 	;;
     "log")
 	showLog
-	if [ ${forceSync} == 1 ] ; then
-	    eval ${upload} > /dev/null 2>&1
-	fi
+	makeSync
 	exit 0
 	;;
 esac
 
-if [ ! -d "${GITDIR}" ] ;
-then
-    echo "No git directory: ${GITDIR}"
-    exit -1
-fi
-
-if [ $(cd ${GITDIR}; git status | grep -q modified; echo $?) == "0" ] ; then
-    if [ "${SkipCompile}" == "0" ] ; then
-	echo "ABORT: the mios repository is not clean. Please commit before benchmark."
-	exit 0
-    fi
-fi
-
-# update variables
-if [ $SkipCompile == "1" ] ;
-then
-    id=''
-    MiosWithId="${MiosExecutable}"
-else
-    id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
-    MiosWithId="${MiosExecutable}-${id}"
-fi
-log="${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
-
-# echo "mode=${mode}"
-
+# build phase
 if [ $mode = "build" ] ;
 then
     if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
@@ -197,26 +214,20 @@ then
     exit 0;
 fi
 
-# if there is no exectable, install
+# install phase if there is no exectable
 if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
     (cd ${GITDIR}; stack clean; stack install $INSTALLOPTS)
     # set unique name
     mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
 fi
 
-# run benchmark
-if [ -f ${log} ] ;
-then
-    echo "Abort: ${log} exists now"
-    exit 255
-fi
 
 # display configuration
 echo "# Benchmark configuration:"
 echo " * solver: `ls -l $HOME/.local/bin/${MiosWithId}`"
 echo " * result: ${log}"
 
-# run the benchmark
+# status update
 cd $BENCHDIR
 if [ ${forceSync} == 1 ] ; then
     eval ${upload} > /dev/null 2>&1
@@ -240,38 +251,15 @@ else
     upload=""
 fi
 
-if [ ${forceSync} == 1 ] ; then
-    eval ${upload} > /dev/null 2>&1
-fi
-
-RUNS=${Benchsuit}-${timeout}-$(hostname).runs
+makeSync
 echo "\"`basename ${log}`\"" >> ${DUMPDIR}/${RUNS}
-
-if [ ${forceSync} == 1 ] ; then
-    eval ${upload} > /dev/null 2>&1
-fi
-
+makeSync
 echo "cd $BENCHDIR; sat-benchmark -j ${jobs} -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
 sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
-
-if [ ${forceSync} == 1 ] ; then
-    eval ${upload} > /dev/null 2>&1
-fi
+makeSync
 
 # build the report
-cd ${DUMPDIR};
-case "$Benchsuit" in
-    "SC17main")
-	which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	uploadSlack livestream cactus-$(basename ${RUNS}).png
-	;;
-    "*")
-	;;
-esac
-
-if [ ${forceSync} == 1 ] ; then
-    eval ${upload} > /dev/null 2>&1
-fi
-
+makeCactus
+makeSync
 postSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
 echo "done."
