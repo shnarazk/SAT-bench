@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# USAGE:
+# USAGE: mkCactus runs [subtitle]
 # R_LIBS_USER=~/Sources/R
 # cat mkSATgraph.R | R --vanilla
 library("ggplot2")
@@ -37,7 +37,7 @@ graph <- function (d, subt) {
 merged = list()
 
 args <- commandArgs(trailingOnly=TRUE)
-subt <- ""
+subt <- "Don't trust over 450."
 if (0 < length(args)){
     exps <- args[1]
     name <- gsub("\\.[^.]+$", "", exps)
