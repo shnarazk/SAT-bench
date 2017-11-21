@@ -53,7 +53,7 @@ makeCactus () {
     cd ${DUMPDIR};
     case "$Benchsuit" in
 	"SC17main")
-	    which mkCactus.R # > /dev/null 2>&1 && mkCactus.R ${RUNS}
+	    which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
 	    which uploadSlack > /dev/null 2>&1 && uploadSlack livestream cactus-$(basename ${RUNS} .runs).png
 	    ;;
 	"*")
