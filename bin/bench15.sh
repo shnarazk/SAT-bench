@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.55"
+version="0.61"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -14,10 +14,9 @@ jobs="1"
 timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
 upload=`which syncCloud > /dev/null 2>&1; if [ $? = 0 ] ; then echo "syncCloud" ; else echo; fi`
 SkipCompile=0
+INSTALLOPTS="" # "--flag mios:devel"
 
-INSTALLOPTS=""
-# INSTALLOPTS="--flag mios:devel"
-
+# help()
 help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
@@ -34,6 +33,7 @@ help () {
     echo " ${cmd} -r -t T       - Set timeout to T (default: ${timeout})"
     echo " ${cmd} -r -n N       - Set log sequence number to N (default: ${LogNumber})"
     echo " ${cmd} -r -S         - Force owncloud syhchronization"
+    echo " ${cmd} -r -m         - Use a strict benchmark environment for mios"
     echo " ${cmd} -c            - Cat the current benchmark's result"
     echo " ${cmd} -g            - run mkCactus.R to make a graph"
     echo " ${cmd} -s            - sync the owncloud directory"
@@ -41,26 +41,34 @@ help () {
     echo " ${cmd} -h            - Display this message"
  }
 
+# showLog (logfile)
 showLog () {
-    if [ ! -f ${log} ] ; then
-	log="${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv"
-    fi
+    log=${1:-${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv}
     cat ${log}
     echo "# end of $log"
 }
 
+# makeCactus(dir, runfile)
 makeCactus () {
-    cd ${DUMPDIR};
+    cd $1;
     case "$Benchsuit" in
 	"SC17main")
-	    which mkCactus.R > /dev/null 2>&1 && mkCactus.R ${RUNS}
-	    which uploadSlack > /dev/null 2>&1 && uploadSlack livestream cactus-$(basename ${RUNS} .runs).png
+	    cactus=cactus-$(basename $2 .runs).png
+	    which mkCactus.R > /dev/null 2>&1 && mkCactus.R $2 > /dev/null 2>&1
+	    which uploadSlack > /dev/null 2>&1 && uploadSlack livestream ${cactus} > /dev/null 2>&1
+	    echo " - cactus plot: $1/${cactus}"
 	    ;;
 	"*")
 	    ;;
     esac
 }
 
+# postToSlack(channel, post, message)
+postToSlack () {
+    which postSlack > /dev/null 2>&1 && postSlack $1 $2 > /dev/null 2>&1 && echo $3
+}
+
+# makeSync()
 makeSync () {
     if [ ${forceSync} == 1 ] ; then
 	eval ${upload} > /dev/null 2>&1
@@ -68,13 +76,16 @@ makeSync () {
 }
 
 mode="unknown"
+useMiosBench=0
 forceSync=0
-while getopts brcgsSkhuli::n:e:E:o:j:P:t:B:D:G: OPT
+while getopts brcgsSkhuli::n:e:E:o:j:P:t:B:D:G:m OPT
 do
     case $OPT in
 	b) mode="build"
 	   ;;
 	r) mode="run"
+	   ;;
+	m) useMiosBench="1"
 	   ;;
 	i)
 	    id=$OPTARG
@@ -177,14 +188,14 @@ case ${mode} in
 	;;
     "graph")
 	echo -n "make a graph..."
-	makeCactus
+	makeCactus ${DUMPDIR} ${RUNS}
 	makeSync
 	exit 0
 	;;
     "unknown")
 	echo "?"
 	if [ -f ${log} ] ; then
-	    showLog
+	    showLog ${log}
 	else
 	    help
 	fi
@@ -195,7 +206,7 @@ case ${mode} in
 	exit 0
 	;;
     "log")
-	showLog
+	showLog ${log}
 	makeSync
 	exit 0
 	;;
@@ -221,11 +232,11 @@ if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
     mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
 fi
 
-
 # display configuration
-echo "# Benchmark configuration:"
-echo " * solver: `ls -l $HOME/.local/bin/${MiosWithId}`"
-echo " * result: ${log}"
+echo "# SAT-Solver Benchmark (version $version) configuration:"
+echo " - solver: `ls -l $HOME/.local/bin/${MiosWithId}`"
+echo " - options: -j=${jobs} -T ${timeout} -o '${MiosOptions}'"
+echo " - log file: ${log}"
 
 # status update
 cd $BENCHDIR
@@ -254,12 +265,20 @@ fi
 makeSync
 echo "\"`basename ${log}`\"" >> ${DUMPDIR}/${RUNS}
 makeSync
-echo "cd $BENCHDIR; sat-benchmark -j ${jobs} -K '@${timestamp}' -t "${Benchsuit}/*.cnf" -T ${timeout} -o '${MiosOptions}' ${MiosWithId} > ${log}"
-sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
-makeSync
+
+if [ $useMiosBench == "1" ]
+then
+    echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
+    echo "# bench15.sh ${version}, j=${jobs}, t=${timeout}, ${MiosOptions} on $(hostname) @ ${timestamp}" >> ${log}
+    echo "solver, num, target, time, valid" >> ${log}
+    (cd $BENCHDIR; parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${MiosOptions} {}" ::: ${Benchsuit}/*.cnf >> ${log})
+else
+    sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
+fi
 
 # build the report
-makeCactus
 makeSync
-postSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
+postToSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!" " - post to your slack"
+makeCactus ${DUMPDIR} ${RUNS}
+makeSync
 echo "done."
