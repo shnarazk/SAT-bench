@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.62"
+version="0.63"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -60,7 +60,7 @@ makeCactus () {
 	    else
 		subtitle="${jobs} parallel execution with a ${timeout} second timeout"
 	    fi
-	    which mkCactus.R > /dev/null 2>&1 && mkCactus.R $2 '$subtitle' > /dev/null 2>&1
+	    which mkCactus.R > /dev/null 2>&1 && mkCactus.R $2 "${subtitle}" > /dev/null 2>&1
 	    which uploadSlack > /dev/null 2>&1 && uploadSlack livestream ${cactus} > /dev/null 2>&1
 	    echo " - cactus  : $1/${cactus}"
 	    ;;
@@ -71,7 +71,7 @@ makeCactus () {
 
 # postToSlack(channel, post, message)
 postToSlack () {
-    which postSlack > /dev/null 2>&1 && postSlack $1 "$2" > /dev/null 2>&1 && echo "$3"
+    which postSlack > /dev/null 2>&1 && postSlack $1 "$2" > /dev/null 2>&1
 }
 
 # makeSync()
@@ -268,8 +268,14 @@ else
     upload=""
 fi
 
+# update the RUNS file
 makeSync
-echo "\"`basename ${log}`\"" >> ${DUMPDIR}/${RUNS}
+if [ ${LogNumber} == 1 ] ;
+then
+    echo "\"`basename ${log}`\",\"${MiosWithId}\"" >> ${DUMPDIR}/${RUNS}
+else
+    echo "\"`basename ${log}`\",\"${MiosWithId}(${LogNumber})\"" >> ${DUMPDIR}/${RUNS}
+fi
 makeSync
 
 if [ $useMiosBench == "1" ]
@@ -284,7 +290,7 @@ fi
 
 # build the report
 makeSync
-postToSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!" " - post to your slack"
+postToSlack livestream "MIOS Research Project: the ${MiosWithId} benchmark has just done!"
 makeCactus ${DUMPDIR} ${RUNS}
 makeSync
 echo "done."
