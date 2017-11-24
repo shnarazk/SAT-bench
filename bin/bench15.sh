@@ -65,7 +65,7 @@ makeCactus () {
 
 # postToSlack(channel, post, message)
 postToSlack () {
-    which postSlack > /dev/null 2>&1 && postSlack $1 $2 > /dev/null 2>&1 && echo $3
+    which postSlack > /dev/null 2>&1 && postSlack $1 '$2' > /dev/null 2>&1 && echo $3
 }
 
 # makeSync()
