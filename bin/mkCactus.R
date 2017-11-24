@@ -5,10 +5,15 @@
 library("ggplot2")
 
 getData <- function (t, p) {
-	df1 = read.csv(as.character(t[[1]]), header=T, sep=",", comment="#")
-	df2 = df1[order(df1[,4]),]         	# sort by time (the 4th column)
-	if (p && t[[2]] != "") { df2[1] = sub("^ +", "", as.character(t[[2]])) }
-	df2[[2]] = 1:nrow(df2)            	# reassign rownumbers
+	df1 <- read.csv(as.character(t[[1]]), header=T, sep=",", comment="#")
+	df2 <- data.frame(solver=df1[["solver"]],num=df1[["num"]],target=df1[["target"]],time=df1[["time"]])
+	if (ncol(df1) == 5) {
+	   df2[["valid"]] <- df1[["valid"]] }
+	else {
+	   df2[["valid"]] <- numeric(nrow(df2)) }
+	df2 <- df2[order(df2[["time"]]),]         	# sort by time
+	if (p && t[[2]] != "") { df2[["solver"]] = sub("^ +", "", as.character(t[[2]])) }
+	df2[["num"]] = 1:nrow(df2)            	# reassign rownumbers
 	df2
 	}
 
@@ -31,7 +36,7 @@ graph <- function (d, subt) {
          g <- g + labs(title="Cactus plot on SAT-Race 2017 Main track (a short timeout)"
 	               , subtitle=subt
 	      	       , x="#solved", y="execution time [sec]") }
-      print(g)
+       g
 }
 
 merged = list()
@@ -58,4 +63,4 @@ cairo_pdf(filename=targetPDF,antialias="subpixel", onefile=TRUE)
 graph(merged, subt)
 ggsave(targetPDF, width=10, height=7, dpi=200)
 ggsave(targetPNG, width=9, height=6, dpi=200)
-dev.off()
+# dev.off()
