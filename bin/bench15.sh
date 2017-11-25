@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.63"
+version="0.64"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -238,52 +238,44 @@ if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
     mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
 fi
 
+##############################################################################
+cd $BENCHDIR
+makeSync
+
 # display configuration
 echo "# SAT-Solver Benchmark (version $version) configuration:"
 echo " - solver  : `ls -l $HOME/.local/bin/${MiosWithId}`"
-echo " - options : jobs=${jobs}, timeout=${timeout}, option='${MiosOptions}'"
+echo " - options : jobs=${jobs}, timeout=${timeout}, option='${MiosOptions}', m=$useMiosBench"
 echo " - log file: ${log}"
 
-# status update
-cd $BENCHDIR
-if [ ${forceSync} == 1 ] ; then
-    eval ${upload} > /dev/null 2>&1
-    (sleep  3600; ${upload} > /dev/null 2>&1) &
-    (sleep  7200; ${upload} > /dev/null 2>&1) &
-    (sleep 10800; ${upload} > /dev/null 2>&1) &
-    (sleep 14400; ${upload} > /dev/null 2>&1) &
-    (sleep 18000; ${upload} > /dev/null 2>&1) &
-    (sleep 21600; ${upload} > /dev/null 2>&1) &
-    (sleep 25200; ${upload} > /dev/null 2>&1) &
-    (sleep 28800; ${upload} > /dev/null 2>&1) &
-    (sleep 32400; ${upload} > /dev/null 2>&1) &
-    (sleep 36000; ${upload} > /dev/null 2>&1) &
-    (sleep 39600; ${upload} > /dev/null 2>&1) &
-    (sleep 43200; ${upload} > /dev/null 2>&1) &
-    (sleep 46800; ${upload} > /dev/null 2>&1) &
-    (sleep 50400; ${upload} > /dev/null 2>&1) &
-    (sleep 54000; ${upload} > /dev/null 2>&1) &
-    (sleep 57600; ${upload} > /dev/null 2>&1) &
-else
-    upload=""
-fi
-
 # update the RUNS file
-makeSync
 if [ ${LogNumber} == 1 ] ;
 then
     echo "\"`basename ${log}`\",\"${MiosWithId}\"" >> ${DUMPDIR}/${RUNS}
 else
     echo "\"`basename ${log}`\",\"${MiosWithId}(${LogNumber})\"" >> ${DUMPDIR}/${RUNS}
 fi
-makeSync
 
+# run monitor
+monitor () {
+    sleep 2200
+    while ps guax | fgrep -q '${MiosExecutable}' ;
+    do makeSync
+       sleep 2200;
+    done
+}
+
+if [ ${forceSync} == 1 ] ;then
+    monitor &
+fi
+
+makeSync
 if [ $useMiosBench == "1" ]
 then
     echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
     echo "# bench15.sh ${version}, m=1, j=${jobs}, t=${timeout}, ${MiosOptions} on $(hostname) @ ${timestamp}" >> ${log}
     echo "solver, num, target, time, valid" >> ${log}
-    (cd $BENCHDIR; parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${MiosOptions} {}" ::: ${Benchsuit}/*.cnf >> ${log})
+    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${MiosOptions} {}" ::: ${Benchsuit}/*.cnf >> ${log}
 else
     sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
 fi
