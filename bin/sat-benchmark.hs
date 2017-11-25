@@ -1,5 +1,20 @@
--- |A simple benchmarker to dump a result of testrun(s)
+-- | A simple benchmarker to dump a result of testrun(s)
+-- Requirement: GNU parallel installed in your PATH
 -- Usage: sat-benchmark [OPTIONS] [solvers]
+-- examples:
+--   - sat-benchmark -3 250 minisat             # 3-SAT from 150 (default) to 250 vars
+--   - sat-benchmark -3 250 -s mios             # 3-SATs and your set of structured problems
+--   - sat-benchmark -o "-cla-decay 0.9" -s glucose     # options to solver
+--   - sat-benchmark -t ./g2-ACG-15-10p1.cnf -s glucose # -t for a CNF file
+--   - sat-benchmark -t '../test/*.cnf' -s glucose      # -t for CNF files
+--
+-- Note: edit @baseDir@ by yourself before compile
+--
+-- cabal settings
+-- executable sat-benchmark
+--   main-is:             sat-benchmark.hs
+--   build-depends:       base >=4.7, unix >= 2.7, process >= 1.2
+--   default-language:    Haskell2010
 {-# LANGUAGE ViewPatterns #-}
 
 import Control.Monad
@@ -12,7 +27,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.13.3"
+version = "sat-benchmark 0.13.4"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -144,13 +159,16 @@ undecodeNewline [a] = [a]
 undecodeNewline ('\\' : 'n' : x) = '\n' : undecodeNewline x
 undecodeNewline (a : x) = a : undecodeNewline x
 
+setEnv :: String
 setEnv = "export LC_ALL=C; export TIMEFORMAT=\" %2U\""
+
+-- | returns an absolute path to your repository, given your $HOME
+baseDir :: String -> String
 baseDir = (++ "/Repositories/SATbench")
 
 fundamentalProblems =
   let
     dir = "fundamental/"
-    -- range = ["1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000"]
     range = ["1000", "2000", "4000", "6000", "8000"]
     series key l = [(key ++ n, dir ++ key ++ "-" ++ n ++ ".cnf") | n <- l]
   in
@@ -158,12 +176,13 @@ fundamentalProblems =
    ++ series "zero" range
    ++ series "triangle" range
 
+structuredProblems :: [(String, String)] -- pair of label and filname
 structuredProblems =
-  [ ("itox", "SR2015/itox_vc1130.cnf")
+  [ -- something like this
+    ("itox", "SR2015/itox_vc1130.cnf")
   , ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf")
   , ("38b", "SR2015/38bits_10.dimacs.cnf")
   , ("44b", "SR2015/44bits_11.dimacs.cnf")
-  -- , "logistics/logistics.c.cnf"
   ]
 
 main :: IO ()
