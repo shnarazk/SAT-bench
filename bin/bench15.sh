@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.64"
+version="0.65"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -258,18 +258,16 @@ fi
 
 # run monitor
 monitor () {
-    sleep 2200
-    while ps guax | fgrep -q '${MiosExecutable}' ;
+    while ps | fgrep -q $1 ;
     do makeSync
        sleep 2200;
     done
 }
 
 if [ ${forceSync} == 1 ] ;then
-    monitor &
+    monitor $$ &
 fi
 
-makeSync
 if [ $useMiosBench == "1" ]
 then
     echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
