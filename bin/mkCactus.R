@@ -34,21 +34,15 @@ graph = function (d, subt) {
     g <- g + scale_x_continuous(limits=c(0,350), breaks=seq(00,350,10), expand=c(0,4))
     g <- g + scale_y_continuous(expand=c(0,4))
     # g <- g + scale_y_continuous(limits=c(0,410) ,breaks=seq(0,410,100))
-    if (subt == "") {
-        g <- g + labs(title="Cactus plot on SAT-Race 2017 Main track (a short timeout)",
-                      x="#solved", y="execution time [sec]")
-    } else {
-        g <- g + labs(title="Cactus plot on SAT-Race 2017 Main track (a short timeout)",
-                      subtitle=subt,
-                      x="#solved", y="execution time [sec]")
-    }
+    g <- g + labs(title="Cactus plot on SAT-Race 2017 Main track (a short timeout)", subtitle=subt,
+                  x="#solved", y="execution time [sec]")
     print(g)
 }
 
 (function() {
     merged <- list()
     args <- commandArgs(trailingOnly=TRUE)
-    subt <- "Don't trust over 450."
+    subt <- paste("# drawn with mkCactus.R (ver. ", version, ")", sep="")
     if (0 < length(args)){
         exps <- args[1]
         name <- gsub("\\.[^.]+$", "", exps)
