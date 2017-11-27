@@ -1,48 +1,58 @@
 #!/bin/sh
-version="0.66"
+version="0.67"
 
-# default vaules
+#################### variables ####################
+## directory and external commands settings [uppercase]
 BENCHDIR="$HOME/Documents/SAT-RACE"
 DUMPDIR="$HOME/Documents/ownCloud/mios-exp"
 GITDIR="$HOME/Repositories/mios"
+MAKECACTUS="mkCactus.R"
+POSTSLACK="postSlack"
+UPLOAD="syncCloud"
+UPLOADSLACK="uploadSlack"
+## internal settings [captilized sytle]
+ForceSync=0
 LogNumber=1
-Benchsuit="SC17main" # SR15m131, SC17m54
-timeout=510         # for SC17main
-MiosExecutable="mios" # set if the name of executable is something like 'mios-1.3.0'
-MiosOptions=""
-jobs="1"
-timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
-upload=`which syncCloud > /dev/null 2>&1; if [ $? = 0 ] ; then echo "syncCloud" ; else echo; fi`
+Mode="unknown"
 SkipCompile=0
-INSTALLOPTS="" # "--flag mios:devel"
+StackInstallOpts=""		# "--flag mios:devel" used in 'stack install'
+Timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
+UseMiosBench=0
+## for sat-benchmark [lowercase]
+benchmarkSuit="SC17main"	# SR15m131, SC17m54
+timeout=510			# for SC17main
+miosExecutable="mios"		# set if the name of executable is something like 'mios-1.3.0'
+miosOptions=""
+Jobs="1"
 
+#################### functions ####################
 # help()
 help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
     echo " ${cmd} -s            - Force owncloud syhchronization"
     echo " ${cmd} -r            - Run the bencmark suit"
-    echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${Benchsuit}')"
+    echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${benchmarkSuit}')"
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
     echo " ${cmd} -r -j n       - Number of jobs in parallel"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -t T       - Set timeout to T (default: ${timeout})"
     echo " ${cmd} -r -n N       - Set log sequence number to N (default: ${LogNumber})"
     echo " ${cmd} -r -m         - Use a strict benchmark environment for mios"
-    echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${MiosExecutable}')"
+    echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${miosExecutable}')"
     echo " ${cmd} -r -E EXE     - Use the executable name to EXE without compilation"
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
     echo " ${cmd} -c            - Cat the current benchmark's result"
-    echo " ${cmd} -g            - run mkCactus.R to make a graph"
+    echo " ${cmd} -g            - run ${MAKECACTUS} to make a graph"
     echo " ${cmd} -k            - Kill the current benchmark"
     echo " ${cmd} -h            - Display this message"
  }
 
 # showLog (logfile)
 showLog () {
-    log=${1:-${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv}
+    log=${1:-${DUMPDIR}/${benchmarkSuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv}
     cat ${log}
     echo "# end of $log"
 }
@@ -50,17 +60,17 @@ showLog () {
 # makeCactus(dir, runfile)
 makeCactus () {
     cd $1;
-    case "$Benchsuit" in
+    case "$benchmarkSuit" in
 	"SC17main")
 	    cactus=cactus-$(basename $2 .runs).png
-	    if [ "jobs"==1 ] ;
+	    if [ "$jobs"==1 ] ;
 	    then
 		subtitle="Sequential execution with a ${timeout} second timeout"
 	    else
 		subtitle="${jobs} parallel execution with a ${timeout} second timeout"
 	    fi
-	    which mkCactus.R > /dev/null 2>&1 && mkCactus.R $2 "${subtitle}" > /dev/null 2>&1
-	    which uploadSlack > /dev/null 2>&1 && uploadSlack livestream ${cactus} > /dev/null 2>&1
+	    which ${MAKECACTUS} > /dev/null 2>&1 && ${MAKECACTUS} $2 "${subtitle}" > /dev/null 2>&1
+	    which ${UPLOADSLACK} > /dev/null 2>&1 && ${UPLOADSLACK} livestream ${cactus} > /dev/null 2>&1
 	    echo " - cactus  : $1/${cactus}"
 	    ;;
 	"*")
@@ -70,42 +80,40 @@ makeCactus () {
 
 # postToSlack(channel, post, message)
 postToSlack () {
-    which postSlack > /dev/null 2>&1 && postSlack $1 "$2" > /dev/null 2>&1
+    which ${POSTSLACK} > /dev/null 2>&1 && ${POSTSLACK} $1 "$2" > /dev/null 2>&1
 }
 
 # makeSync()
 makeSync () {
-    if [ ${forceSync} == 1 ] ; then
-	eval ${upload} > /dev/null 2>&1
+    if [ ${ForceSync} == 1 ] ; then
+	which ${UPLOAD} > /dev/null 2>&1 && ${UPLOAD} > /dev/null 2>&1
     fi
 }
 
-mode="unknown"
-useMiosBench=0
-forceSync=0
+#################### parse options ####################
 while getopts brcgskhli::n:e:E:o:j:P:t:B:D:G:m OPT
 do
     case $OPT in
-	b) mode="build"
+	b) Mode="build"
 	   ;;
-	r) mode="run"
+	r) Mode="run"
 	   ;;
-	m) useMiosBench="1"
+	m) UseMiosBench="1"
 	   ;;
 	i)
 	    id=$OPTARG
  	    mios="mios-${id}"
 	    MiosWithId="mios-${id}"
 	    ;;
-	P) Benchsuit=$OPTARG
-	   case ${Benchsuit} in
+	P) benchmarkSuit=$OPTARG
+	   case ${benchmarkSuit} in
 	       SC17main) timeout="510"  ;;
 	       SC17m54)  timeout="810"  ;;
 	       SR15m131) timeout="1260" ;;
 	       *) ;;
 	   esac
 	   ;;
-	o) MiosOptions=$OPTARG
+	o) miosOptions=$OPTARG
 	   ;;
 	j) jobs=$OPTARG
 	   ;;
@@ -121,30 +129,31 @@ do
 	   ;;
 	G) GITDIR="$OPTARG"
 	   ;;
-	e) MiosExecutable="$OPTARG"
+	e) miosExecutable="$OPTARG"
 	   ;;
-	E) MiosExecutable="$OPTARG"
-	   mode="run"
+	E) miosExecutable="$OPTARG"
+	   Mode="run"
 	   SkipCompile=1
 	   ;;
-	c) mode="log"
+	c) Mode="log"
 	   ;;
-	s) forceSync=1
+	s) ForceSync=1
 	   ;;
-	g) mode="graph"
+	g) Mode="graph"
 	   ;;
 	k) echo "kill benchmark"
 	   parallel -j1 "echo {} > /dev/null; pkill -9 mios" ::: `seq 1 300`
 	   exit 0
 	   ;;
-	h) mode="help"
+	h) Mode="help"
 	   ;;
-	*) mode="unknown"
+	*) Mode="unknown"
 	   ;;
     esac
 done
 shift $((OPTIND - 1))
 
+#################### let's start ####################
 # update variables
 if [ ! -d "${GITDIR}" ] ;
 then
@@ -161,20 +170,20 @@ fi
 if [ $SkipCompile == "1" ] ;
 then
     id=''
-    MiosWithId="${MiosExecutable}"
+    MiosWithId="${miosExecutable}"
 else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
-    MiosWithId="${MiosExecutable}-${id}"
+    MiosWithId="${miosExecutable}-${id}"
 fi
-log="${DUMPDIR}/${Benchsuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/${benchmarkSuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
 if [ -f ${log} ] ;
 then
     echo "Abort: ${log} exists now"
     exit 255
 fi
-RUNS=${Benchsuit}-${timeout}-$(hostname).runs
+RUNS=${benchmarkSuit}-${timeout}-$(hostname).runs
 
-case ${mode} in
+case ${Mode} in
     "build")
 	;;
     "run")
@@ -192,7 +201,7 @@ case ${mode} in
 	exit 0
 	;;
     "unknown")
-	if [ ${forceSync}=1 ] ;	then
+	if [ ${ForceSync}=1 ] ;	then
 	    makeSync
 	elif [ -f ${log} ] ; then
 	    showLog ${log}
@@ -213,12 +222,12 @@ case ${mode} in
 esac
 
 # build phase
-if [ $mode = "build" ] ;
+if [ $Mode = "build" ] ;
 then
     if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
 	echo "building ${MiosWithId} ..."
-	(cd ${GITDIR}; stack clean; stack install $INSTALLOPTS)
-	mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
+	(cd ${GITDIR}; stack clean; stack install $StackInstallOpts)
+	mv $HOME/.local/bin/${miosExecutable} $HOME/.local/bin/${MiosWithId}
 	echo "done"
     fi
     ls -l $HOME/.local/bin/${MiosWithId}
@@ -227,9 +236,9 @@ fi
 
 # install phase if there is no exectable
 if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
-    (cd ${GITDIR}; stack clean; stack install $INSTALLOPTS)
+    (cd ${GITDIR}; stack clean; stack install $StackInstallOpts)
     # set unique name
-    mv $HOME/.local/bin/${MiosExecutable} $HOME/.local/bin/${MiosWithId}
+    mv $HOME/.local/bin/${miosExecutable} $HOME/.local/bin/${MiosWithId}
 fi
 
 ##############################################################################
@@ -239,7 +248,7 @@ makeSync
 # display configuration
 echo "# SAT-Solver Benchmark (version $version) configuration:"
 echo " - solver  : `ls -l $HOME/.local/bin/${MiosWithId}`"
-echo " - options : jobs=${jobs}, timeout=${timeout}, option='${MiosOptions}', m=$useMiosBench"
+echo " - options : jobs=${jobs}, timeout=${timeout}, option='${miosOptions}', m=$UseMiosBench"
 echo " - log file: ${log}"
 
 # update the RUNS file
@@ -258,18 +267,18 @@ monitor () {
     done
 }
 
-if [ ${forceSync} == 1 ] ;then
+if [ ${ForceSync} == 1 ] ;then
     monitor $$ &
 fi
 
-if [ $useMiosBench == "1" ]
+if [ $UseMiosBench == "1" ]
 then
     echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
-    echo "# bench15.sh ${version}, m=1, j=${jobs}, t=${timeout}, ${MiosOptions} on $(hostname) @ ${timestamp}" >> ${log}
+    echo "# bench15.sh ${version}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
     echo "solver, num, target, time, valid" >> ${log}
-    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${MiosOptions} {}" ::: ${Benchsuit}/*.cnf >> ${log}
+    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuit}/*.cnf >> ${log}
 else
-    sat-benchmark -j ${jobs} -K "@${timestamp}" -t "${Benchsuit}/*.cnf" -T ${timeout} -o "${MiosOptions}" ${MiosWithId} > ${log}
+    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuit}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} > ${log}
 fi
 
 # build the report
