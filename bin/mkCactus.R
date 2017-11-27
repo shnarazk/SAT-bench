@@ -42,7 +42,7 @@ graph = function (d, subt) {
 (function() {
     merged <- list()
     args <- commandArgs(trailingOnly=TRUE)
-    subt <- paste("# drawn with mkCactus.R (ver. ", version, ")", sep="")
+    subt <- paste(" - drawn with mkCactus.R (ver. ", version, ")", sep="")
     if (0 < length(args)){
         exps <- args[1]
         name <- gsub("\\.[^.]+$", "", exps)
