@@ -5,7 +5,7 @@ version="0.1"
 
 drawGraph = function (d, lx, ly, subt) {
     names <- colnames(d)
-    title <- paste("Scatter comparison", " with mkScatter (version ", version, ")", sep="")
+    title <- "Scatter plot"
     g <- ggplot(d, aes(X, Y))
     g <- g + geom_point()
     g <- g + stat_function(fun = function(x) x)
@@ -36,7 +36,7 @@ drawGraph = function (d, lx, ly, subt) {
     } else {
         print("USAGE: scatter.R data1.csv data2.csv [graphName]")
     }
-    subt <- paste(" X : ", data1, "\n Y : ", data2, sep="")
+    subt <- paste(" X : ", data1, "\n Y : ", data2, "\n - drawn with mkScatter.R (ver. ", version, ")", sep="")
     if (3 <= length(args)){
         name <- args[3]
         subt <- name
