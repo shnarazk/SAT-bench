@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # USAGE: R_LIBS_USER=~/Sources/R scatter.R data1.csv data2.csv [graphName]")
 library("ggplot2")
-version="0.1"
+version="0.1.1"
 
 drawGraph = function (d, lx, ly, subt) {
     names <- colnames(d)
@@ -15,7 +15,9 @@ drawGraph = function (d, lx, ly, subt) {
 #   g <- g + scale_y_continuous(limits=c(0,810) ,breaks=seq(0,810,100))
 #   g <- g + xlab("#solved") + ylab("execution time [sec]") # + ggtitle("Comparison of two results of the benchmark")
     g <- g + labs(title=title, subtitle=subt, x=lx, y=ly)
-#    g <- g + xlab(lx) + ylab(ly)
+    g <- g + annotate("text",x=0.75*max(d$X), y=-0.01*max(d$Y),
+                      label=paste(format(as.POSIXlt(Sys.time()), "%Y-%m-%dT%H:%M:%S"), " ", "drawn with mkScatter.R (ver. ", version, ")", sep=""),
+                      color="darkgray", size=2.6)
     print(g)
 }
 
@@ -36,7 +38,7 @@ drawGraph = function (d, lx, ly, subt) {
     } else {
         print("USAGE: scatter.R data1.csv data2.csv [graphName]")
     }
-    subt <- paste(" X : ", data1, "\n Y : ", data2, "\n - drawn with mkScatter.R (ver. ", version, ")", sep="")
+    subt <- paste(" X : ", data1, "\n Y : ", data2, sep="")
     if (3 <= length(args)){
         name <- args[3]
         subt <- name
