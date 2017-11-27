@@ -9,6 +9,7 @@ drawGraph = function (d, lx, ly, subt) {
     g <- ggplot(d, aes(X, Y))
     g <- g + geom_point()
     g <- g + stat_function(fun = function(x) x)
+    g <- g + coord_fixed()
 #   g <- g + theme(legend.position = c(0.88,0.1), legend.justification = c(1,0))
 #   g <- g + scale_x_continuous(limits=c(0,1000),breaks=seq(0,1100,100))
 #   g <- g + scale_y_continuous(limits=c(0,810) ,breaks=seq(0,810,100))
@@ -45,8 +46,8 @@ drawGraph = function (d, lx, ly, subt) {
         targetPDF <- "scatter.pdf"
         targetPNG <- "scatter.png"
     }
-    cairo_pdf(filename=targetPDF, width=10, height=8, antialias="subpixel", onefile=TRUE)
+    cairo_pdf(filename=targetPDF, width=7, height=7, antialias="subpixel", onefile=TRUE)
     drawGraph(data, data1, data2, subt)
-    ggsave(filename=targetPDF, width=10, height=8)
-    ggsave(filename=targetPNG, width=10, height=8, dpi=200)
+    ggsave(filename=targetPDF, width=7, height=7)
+    ggsave(filename=targetPNG, width=7, height=7, dpi=200)
 })()
