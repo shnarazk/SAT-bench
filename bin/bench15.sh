@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.65"
+version="0.66"
 
 # default vaules
 BENCHDIR="$HOME/Documents/SAT-RACE"
@@ -20,6 +20,7 @@ INSTALLOPTS="" # "--flag mios:devel"
 help () {
     cmd=`basename $0`
     echo "Usage of ${cmd} (version ${version}): "
+    echo " ${cmd} -s            - Force owncloud syhchronization"
     echo " ${cmd} -r            - Run the bencmark suit"
     echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${Benchsuit}')"
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
@@ -33,10 +34,8 @@ help () {
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
-    echo " ${cmd} -r -S         - Force owncloud syhchronization"
     echo " ${cmd} -c            - Cat the current benchmark's result"
     echo " ${cmd} -g            - run mkCactus.R to make a graph"
-    echo " ${cmd} -s            - sync the owncloud directory"
     echo " ${cmd} -k            - Kill the current benchmark"
     echo " ${cmd} -h            - Display this message"
  }
@@ -84,7 +83,7 @@ makeSync () {
 mode="unknown"
 useMiosBench=0
 forceSync=0
-while getopts brcgsSkhuli::n:e:E:o:j:P:t:B:D:G:m OPT
+while getopts brcgskhli::n:e:E:o:j:P:t:B:D:G:m OPT
 do
     case $OPT in
 	b) mode="build"
@@ -128,15 +127,9 @@ do
 	   mode="run"
 	   SkipCompile=1
 	   ;;
-	S) forceSync=1
-	   ;;
 	c) mode="log"
 	   ;;
-	s) mode="sync"
-	   forceSync=1
-	   ;;
-	u) mode="sync"
-	   forceSync=1
+	s) forceSync=1
 	   ;;
 	g) mode="graph"
 	   ;;
@@ -199,8 +192,9 @@ case ${mode} in
 	exit 0
 	;;
     "unknown")
-	echo "?"
-	if [ -f ${log} ] ; then
+	if [ ${forceSync}=1 ] ;	then
+	    makeSync
+	elif [ -f ${log} ] ; then
 	    showLog ${log}
 	else
 	    help
