@@ -19,7 +19,7 @@ StackInstallOpts=""		# "--flag mios:devel" used in 'stack install'
 Timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
 UseMiosBench=0
 ## for sat-benchmark [lowercase]
-benchmarkSuit="SC17main"	# SR15m131, SC17m54
+benchmarkSuite="SC17main"	# SR15m131, SC17m54
 timeout=510			# for SC17main
 miosExecutable="mios"		# set if the name of executable is something like 'mios-1.3.0'
 miosOptions=""
@@ -32,7 +32,7 @@ help () {
     echo "Usage of ${cmd} (version ${version}): "
     echo " ${cmd} -s            - Force owncloud syhchronization"
     echo " ${cmd} -r            - Run the bencmark suit"
-    echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${benchmarkSuit}')"
+    echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${benchmarkSuite}')"
     echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
     echo " ${cmd} -r -j n       - Number of jobs in parallel"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
@@ -52,7 +52,7 @@ help () {
 
 # showLog (logfile)
 showLog () {
-    log=${1:-${DUMPDIR}/${benchmarkSuit}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv}
+    log=${1:-${DUMPDIR}/${benchmarkSuite}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv}
     cat ${log}
     echo "# end of $log"
 }
@@ -60,7 +60,7 @@ showLog () {
 # makeCactus(dir, runfile)
 makeCactus () {
     cd $1;
-    case "$benchmarkSuit" in
+    case "$benchmarkSuite" in
 	"SC17main")
 	    cactus=cactus-$(basename $2 .runs).png
 	    if [ "$jobs"==1 ] ;
@@ -105,8 +105,8 @@ do
  	    mios="mios-${id}"
 	    MiosWithId="mios-${id}"
 	    ;;
-	P) benchmarkSuit=$OPTARG
-	   case ${benchmarkSuit} in
+	P) benchmarkSuite=$OPTARG
+	   case ${benchmarkSuite} in
 	       SC17main) timeout="510"  ;;
 	       SC17m54)  timeout="810"  ;;
 	       SR15m131) timeout="1260" ;;
@@ -175,13 +175,13 @@ else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
     MiosWithId="${miosExecutable}-${id}"
 fi
-log="${DUMPDIR}/${benchmarkSuit}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/${benchmarkSuite}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
 if [ -f ${log} ] ;
 then
     echo "Abort: ${log} exists now"
     exit 255
 fi
-RUNS=${benchmarkSuit}-${timeout}-$(hostname).runs
+RUNS=${benchmarkSuite}-${timeout}-$(hostname).runs
 
 case ${Mode} in
     "build")
@@ -276,9 +276,9 @@ then
     echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
     echo "# bench15.sh ${version}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
     echo "solver, num, target, time, valid" >> ${log}
-    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuit}/*.cnf >> ${log}
+    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
-    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuit}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} > ${log}
+    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} > ${log}
 fi
 
 # build the report
