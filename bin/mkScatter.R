@@ -48,6 +48,6 @@ drawGraph = function (d, lx, ly, subt) {
     }
     cairo_pdf(filename=targetPDF, width=7, height=7, antialias="subpixel", onefile=TRUE)
     drawGraph(data, data1, data2, subt)
-    ggsave(filename=targetPDF, width=7, height=7)
+    ggsave(filename=targetPDF, width=7, height=7, dpi=400)
     ggsave(filename=targetPNG, width=7, height=7, dpi=200)
 })()
