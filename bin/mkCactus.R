@@ -59,9 +59,9 @@ graph = function (d, subt) {
     withTag <- 1 < ncol(runs)
     for (i in seq(nrow(runs))) { merged = rbind(merged, getData(runs[i,], withTag)); }
 
-    cairo_pdf(filename=targetPDF, width=11, height=7, antialias="subpixel", onefile=TRUE)
+    cairo_pdf(filename=targetPDF, width=10, height=6, antialias="subpixel", onefile=TRUE)
     graph(merged, subt)
-    ggsave(filename=targetPDF, width=11, height=7)
-    ggsave(filename=targetPNG, width=11, height=7, dpi=200)
+    ggsave(filename=targetPDF, width=10, height=6)
+    ggsave(filename=targetPNG, width=10, height=6, dpi=200)
     # dev.off()
 })()
