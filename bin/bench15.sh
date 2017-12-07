@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.69"
+version="0.70"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -283,7 +283,7 @@ fi
 
 # build the report
 makeSync
-postToSlack livestream "@shn the ${MiosWithId} benchmark has just done!"
+postToSlack livestream "<@U02HB72U2> the ${MiosWithId} benchmark has just done!"
 makeCactus ${DUMPDIR} ${RUNS}
 makeSync
 echo "done."
