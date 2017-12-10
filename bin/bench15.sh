@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.71"
+version="0.72"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -63,9 +63,9 @@ makeCactus () {
     case "$benchmarkSuite" in
 	"SC17main")
 	    cactus=cactus-$(basename $2 .runs).png
-	    if [ "$jobs"==1 ] ;
+	    if [ ${jobs} == 1 ] ;
 	    then
-		subtitle="Sequential execution with a ${timeout} second timeout"
+		subtitle="A sequential execution with a ${timeout} second timeout"
 	    else
 		subtitle="${jobs} parallel execution with a ${timeout} second timeout"
 	    fi
