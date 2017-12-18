@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.72"
+version="0.73"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -276,7 +276,7 @@ then
     echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
     echo "# bench15.sh ${version}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
     echo "solver, num, target, time, valid" >> ${log}
-    echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4= InternalInconsistent" >> ${log}
+    echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log}
     parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
     sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} > ${log}
