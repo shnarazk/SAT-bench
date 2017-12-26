@@ -27,7 +27,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.13.5"
+version = "sat-benchmark 0.13.6"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -56,7 +56,7 @@ data ConfigurationOption = ConfigurationOption
 defaultConfigration = ConfigurationOption
   {
     targets = Nothing
-  , rangeFrom = 200
+  , rangeFrom = 250
   , rangeTo = 250
   , fundamentalExamSet = False
   , threeSATSet = False
