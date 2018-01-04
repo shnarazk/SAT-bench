@@ -236,6 +236,11 @@ fi
 
 # install phase if there is no exectable
 if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
+    if [ "$SkipCompile" == "1" ] ;
+    then
+	echo "ABORT: the $HOME/.local/bin/${MiosWithId} does not exist."
+	exit 0
+    fi
     (cd ${GITDIR}; stack clean; stack install $StackInstallOpts)
     # set unique name
     mv $HOME/.local/bin/${miosExecutable} $HOME/.local/bin/${MiosWithId}
