@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.73"
+version="0.74"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -23,7 +23,7 @@ benchmarkSuite="SC17main"	# SR15m131, SC17m54
 timeout=510			# for SC17main
 miosExecutable="mios"		# set if the name of executable is something like 'mios-1.3.0'
 miosOptions=""
-Jobs="1"
+jobs="1"
 
 #################### functions ####################
 # help()
