@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.75"
+version="0.76"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -276,15 +276,18 @@ if [ ${ForceSync} == 1 ] ;then
     monitor $$ &
 fi
 
+# build log header and start a benchmark
+echo "# $(date --iso-8601=seconds), ${log}" > ${log}
+echo "# bench15.sh ${version}, ${MiosWithId}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
 if [ $UseMiosBench == "1" ]
 then
-    echo "# $(date --iso-8601=seconds), ${MiosWithId}" > ${log}
-    echo "# bench15.sh ${version}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
     echo "solver, num, target, time, valid" >> ${log}
     echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log}
     parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
-    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} > ${log}
+    echo "solver, num, target, time" >> ${log}
+    echo "# " >> ${log}
+    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} >> ${log}
 fi
 
 # build the report
