@@ -7,6 +7,7 @@ version = "0.10.1"
 
 getData = function (t, p, c) {
     df1 <- read.csv(as.character(t[[1]]), header=T, sep=",", comment="#")
+    if (nrow(df1) == 0) { return(NULL) }
     df2 <- data.frame(solver=df1[["solver"]],
                       num=df1[["num"]],
                       target=df1[["target"]],
