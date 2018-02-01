@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.77"
+version="0.78"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -277,7 +277,7 @@ if [ ${ForceSync} == 1 ] ;then
 fi
 
 # build log header and start a benchmark
-echo "# $(date --iso-8601=seconds), ${log}" > ${log}
+echo "# $(date --iso-8601=seconds), `basename ${log}`" > ${log}
 echo "# bench15.sh ${version}, ${MiosWithId}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
 if [ $UseMiosBench == "1" ]
 then
