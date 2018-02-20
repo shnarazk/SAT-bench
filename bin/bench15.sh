@@ -52,7 +52,7 @@ help () {
 
 # showLog (logfile)
 showLog () {
-    log=${1:-${DUMPDIR}/${benchmarkSuite}-${timeout}-${MiosWithId}--${HOSTNAME}-*-${LogNumber}.csv}
+    log=${1:-${DUMPDIR}/${benchmarkSuite}-${timeout}-$(basename {MiosWithId})--${HOSTNAME}-*-${LogNumber}.csv}
     cat ${log}
     echo "# end of $log"
 }
@@ -175,7 +175,7 @@ else
     id=`cd ${GITDIR}; git log -1 --format="%h" HEAD`
     MiosWithId="${miosExecutable}-${id}"
 fi
-log="${DUMPDIR}/${benchmarkSuite}-${timeout}-${MiosWithId}--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
+log="${DUMPDIR}/${benchmarkSuite}-${timeout}-$(basename ${MiosWithId})--${HOSTNAME}-`date --iso-8601`-${LogNumber}.csv"
 if [ -f ${log} ] ;
 then
     echo "Abort: ${log} exists now"
