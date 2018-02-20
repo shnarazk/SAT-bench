@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.79"
+version="0.80"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -235,15 +235,19 @@ then
 fi
 
 # install phase if there is no exectable
-if [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
+if [ -f ${MiosWithId} ] ; then
+    echo use ${MiosWithId} ;
+elif [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
     if [ "$SkipCompile" == "1" ] ;
     then
 	echo "ABORT: the $HOME/.local/bin/${MiosWithId} does not exist."
-	exit 0
+	exit 0 ;
+    else
+	(cd ${GITDIR}; stack clean; stack install $StackInstallOpts)
+	# set unique name
+	mv $HOME/.local/bin/${miosExecutable} $HOME/.local/bin/${MiosWithId}
+	MiosWithId=$HOME/.local/bin/${MiosWithId}
     fi
-    (cd ${GITDIR}; stack clean; stack install $StackInstallOpts)
-    # set unique name
-    mv $HOME/.local/bin/${miosExecutable} $HOME/.local/bin/${MiosWithId}
 fi
 
 ##############################################################################
@@ -252,16 +256,16 @@ makeSync
 
 # display configuration
 echo "# SAT-Solver Benchmark (version $version) configuration:"
-echo " - solver  : `ls -l $HOME/.local/bin/${MiosWithId}`"
+echo " - solver  : `ls -l ${MiosWithId}`"
 echo " - options : jobs=${jobs}, timeout=${timeout}, option='${miosOptions}', m=$UseMiosBench"
 echo " - log file: ${log}"
 
 # update the RUNS file
 if [ ${LogNumber} == 1 ] ;
 then
-    echo "\"`basename ${log}`\",\"${MiosWithId}\"" >> ${DUMPDIR}/${RUNS}
+    echo "\"`basename ${log}`\",\"$(basename ${MiosWithId})\"" >> ${DUMPDIR}/${RUNS}
 else
-    echo "\"`basename ${log}`\",\"${MiosWithId}(${LogNumber})\"" >> ${DUMPDIR}/${RUNS}
+    echo "\"`basename ${log}`\",\"$(basename ${MiosWithId})(${LogNumber})\"" >> ${DUMPDIR}/${RUNS}
 fi
 
 # run monitor
@@ -278,7 +282,7 @@ fi
 
 # build log header and start a benchmark
 echo "# $(date --iso-8601=seconds), `basename ${log}`" > ${log}
-echo "# bench15.sh ${version}, ${MiosWithId}, m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
+echo "# bench15.sh ${version}, $(basename ${MiosWithId}), m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
 if [ $UseMiosBench == "1" ]
 then
     echo "solver, num, target, time, valid" >> ${log}
@@ -295,7 +299,7 @@ makeSync
 #postToSlack livestream "<@U02HB72U2> the ${MiosWithId} benchmark on $(hostname) has just done!"
 # makeCactus ${DUMPDIR} ${RUNS}
 # makeSync
-postToDiscord  "The ${MiosWithId} benchmark on $(hostname) has just done!"
+postToDiscord  "The $(basename ${MiosWithId}) benchmark on $(hostname) has just done!"
 (cd ${DUMPDIR}; make)
 
 echo "done."
