@@ -237,7 +237,9 @@ fi
 # install phase if there is no exectable
 if [ -f ${MiosWithId} ] ; then
     echo use ${MiosWithId} ;
-elif [ ! -f $HOME/.local/bin/${MiosWithId} ] ; then
+elif [ -f $HOME/.local/bin/${MiosWithId} ] ; then
+    MiosWithId=$HOME/.local/bin/${MiosWithId}
+else
     if [ "$SkipCompile" == "1" ] ;
     then
 	echo "ABORT: the $HOME/.local/bin/${MiosWithId} does not exist."
