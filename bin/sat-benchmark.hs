@@ -27,7 +27,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.13.6"
+version = "sat-benchmark 0.14.0"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -204,7 +204,7 @@ main = do
       let extraMessage = if message conf == "" then "" else ", " ++ message conf
       when singleSolver $ do
         let solver = head (solvers conf)
-        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version" solver solver solver
+        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version | sed -e 's/^c.*/# &/'" solver solver solver
         return ()
       unless (skipTitle conf) . void . system $ printf "echo \"# %s, j=%d, t=%d, p='%s' on `hostname` @ `date -Iseconds`%s\"" version (inParallel conf) (timeout conf) (solverOptions conf) extraMessage
       let opts = solverOptions conf
@@ -212,7 +212,7 @@ main = do
         val <- system $ "which " ++ solver ++ " > /dev/null"
         when (val == ExitSuccess) $ do
           unless singleSolver $ do
-            unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version" solver solver solver
+            unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version | sed -e 's/^c.*/# &/'" solver solver solver
             return ()
           let
             threes = [rangeFrom conf, rangeFrom conf + 25 .. rangeTo conf]
