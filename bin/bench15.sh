@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.80"
+version="0.81"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -291,8 +291,8 @@ then
     echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log}
     parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
-    echo "solver, num, target, time" >> ${log}
-    echo "# " >> ${log}
+#    echo "solver, num, target, time" >> ${log}
+#    echo "# " >> ${log}
     sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} >> ${log}
 fi
 
