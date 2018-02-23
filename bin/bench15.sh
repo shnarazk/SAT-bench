@@ -287,6 +287,8 @@ echo "# $(date --iso-8601=seconds), `basename ${log}`" > ${log}
 echo "# bench15.sh ${version}, $(basename ${MiosWithId}), m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
 if [ $UseMiosBench == "1" ]
 then
+    echo -n "# " >> ${log}
+    ${MiosWithId} --version >> ${log}
     echo "solver, num, target, time, valid" >> ${log}
     echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log}
     parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
