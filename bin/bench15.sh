@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.82"
+version="0.83"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -289,8 +289,8 @@ if [ $UseMiosBench == "1" ]
 then
     echo -n "# " >> ${log}
     ${MiosWithId} --version >> ${log}
-    echo "solver, num, target, time, valid" >> ${log}
     echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log}
+    echo "solver, num, target, time, valid" >> ${log}
     parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
 #    echo "solver, num, target, time" >> ${log}
