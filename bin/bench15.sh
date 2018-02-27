@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.83"
+version="0.84"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -287,10 +287,10 @@ echo "# $(date --iso-8601=seconds), `basename ${log}`" > ${log}
 echo "# bench15.sh ${version}, $(basename ${MiosWithId}), m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
 if [ $UseMiosBench == "1" ]
 then
-    echo -n "# " >> ${log}
+    echo -n "# " >> ${log}	# L.3
     ${MiosWithId} --version >> ${log}
-    echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log}
-    echo "solver, num, target, time, valid" >> ${log}
+    echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log} # L.4
+    echo "solver, num, target, time, valid" >> ${log}		       # L.5
     parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
 #    echo "solver, num, target, time" >> ${log}
@@ -303,7 +303,7 @@ makeSync
 #postToSlack livestream "<@U02HB72U2> the ${MiosWithId} benchmark on $(hostname) has just done!"
 # makeCactus ${DUMPDIR} ${RUNS}
 # makeSync
-postToDiscord  "The $(basename ${MiosWithId}) benchmark on $(hostname) has just done!"
+postToDiscord  "The $(basename ${MiosWithId}) benchmark on $(hostname) has just done!" "Mios Benchmark"
 (cd ${DUMPDIR}; make)
 
 echo "done."
