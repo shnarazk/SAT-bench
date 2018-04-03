@@ -27,7 +27,7 @@ import System.Process (system)
 import Text.Printf
 
 version :: String
-version = "sat-benchmark 0.14.1"
+version = "sat-benchmark 0.14.2"
 
 data ConfigurationOption = ConfigurationOption
                      {
@@ -197,22 +197,22 @@ main = do
     _ | showID conf -> putStrLn $ version
     _ | null (solvers conf) -> putStrLn $ usageInfo usage options
     _ ->  do
+      let extraMessage = if message conf == "" then "" else ", " ++ message conf
+      unless (skipTitle conf) . void . system $ printf "echo \"# %s, j=%d, t=%d, p='%s' on `hostname` @ `date -Iseconds`%s\"" version (inParallel conf) (timeout conf) (solverOptions conf) extraMessage
       case header conf of
         Just h                 -> putStr h
         Nothing | dumpAll conf -> putStrLn "solver, num, seq, target, time"
         _                      -> putStrLn "solver, num, target, time"
-      let extraMessage = if message conf == "" then "" else ", " ++ message conf
       when singleSolver $ do
         let solver = head (solvers conf)
-        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version 2> /dev/null | egrep -v '^.$' | head | sed -e 's/^.*/# &/'" solver solver solver
+        unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version 2> /dev/null | egrep -v '^.$' | head" solver solver solver
         return ()
-      unless (skipTitle conf) . void . system $ printf "echo \"# %s, j=%d, t=%d, p='%s' on `hostname` @ `date -Iseconds`%s\"" version (inParallel conf) (timeout conf) (solverOptions conf) extraMessage
       let opts = solverOptions conf
       forM_ (solvers conf) $ \solver -> do
         val <- system $ "which " ++ solver ++ " > /dev/null"
         when (val == ExitSuccess) $ do
           unless singleSolver $ do
-            unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version 2> /dev/null | egrep -v '^.$' | head | sed -e 's/^.*/# &/'" solver solver solver
+            unless (skipTitle conf) . void . system $ printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's/ \\([0-9][0-9]:[0-9][0-9]\\).*/T\\1/') '%s; '; %s --version 2> /dev/null | egrep -v '^.$' | head" solver solver solver
             return ()
           let
             threes = [rangeFrom conf, rangeFrom conf + 25 .. rangeTo conf]
