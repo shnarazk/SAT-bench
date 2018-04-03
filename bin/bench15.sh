@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.84"
+version="0.85"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -284,7 +284,7 @@ fi
 
 # build log header and start a benchmark
 echo "# $(date --iso-8601=seconds), `basename ${log}`" > ${log}
-echo "# bench15.sh ${version}, $(basename ${MiosWithId}), m=1, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
+echo "# bench15.sh ${version}, $(basename ${MiosWithId}), m=${UseMiosBench}, j=${jobs}, t=${timeout}, ${miosOptions} on $(hostname) @ ${Timestamp}" >> ${log}
 if [ $UseMiosBench == "1" ]
 then
     echo -n "# " >> ${log}	# L.3
