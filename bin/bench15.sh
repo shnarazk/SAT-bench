@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.85"
+version="0.86"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -17,7 +17,7 @@ Mode="unknown"
 SkipCompile=0
 StackInstallOpts=""		# "--flag mios:devel" used in 'stack install'
 Timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
-UseMiosBench=0
+UseMiosBench=1
 ## for sat-benchmark [lowercase]
 benchmarkSuite="SC17main"	# SR15m131, SC17m54
 timeout=510			# for SC17main
@@ -38,7 +38,7 @@ help () {
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -t T       - Set timeout to T (default: ${timeout})"
     echo " ${cmd} -r -n N       - Set log sequence number to N (default: ${LogNumber})"
-    echo " ${cmd} -r -m         - Use a strict benchmark environment for mios"
+    echo " ${cmd} -r -M         - Don't use a strict benchmark environment for mios"
     echo " ${cmd} -r -e EXE     - Set the executable name to EXE (defualt: '${miosExecutable}')"
     echo " ${cmd} -r -E EXE     - Use the executable name to EXE without compilation"
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
@@ -91,14 +91,14 @@ makeSync () {
 }
 
 #################### parse options ####################
-while getopts brcgskhli::n:e:E:o:j:P:t:B:D:G:m OPT
+while getopts brcgskhli::n:e:E:o:j:P:t:B:D:G:M OPT
 do
     case $OPT in
 	b) Mode="build"
 	   ;;
 	r) Mode="run"
 	   ;;
-	m) UseMiosBench="1"
+	M) UseMiosBench="0"
 	   ;;
 	i)
 	    id=$OPTARG
