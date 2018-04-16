@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.87"
+version="0.88"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -23,6 +23,7 @@ benchmarkSuite="SC17main"	# SR15m131, SC17m54
 timeout=510			# for SC17main
 miosExecutable="mios"		# set if the name of executable is something like 'mios-1.3.0'
 miosOptions=""
+outputPattern=""
 jobs="1"
 
 #################### functions ####################
@@ -44,6 +45,7 @@ help () {
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
+    echo " ${cmd} -r -O PATTERN - A magical pattern for solver's output: \" {-o} {/.}-by-XXX.cnf\""
     echo " ${cmd} -c            - Cat the current benchmark's result"
     echo " ${cmd} -g            - run ${MAKECACTUS} to make a graph"
     echo " ${cmd} -k            - Kill the current benchmark"
@@ -91,7 +93,7 @@ makeSync () {
 }
 
 #################### parse options ####################
-while getopts brcgskhli::n:e:E:o:j:P:t:B:D:G:M OPT
+while getopts brcgskhliM::n:e:E:o:j:P:t:B:D:G:O: OPT
 do
     case $OPT in
 	b) Mode="build"
@@ -112,6 +114,8 @@ do
 	       SR15m131) timeout="1260" ;;
 	       *) ;;
 	   esac
+	   ;;
+	O) outputPattern=$OPTARG
 	   ;;
 	o) miosOptions=$OPTARG
 	   ;;
@@ -291,11 +295,11 @@ then
     ${MiosWithId} --version >> ${log}
     echo "# 0=UNSAT, 1=SAT, 2=OutOfMemory, 3=TimeOut, 4=Bug" >> ${log} # L.4
     echo "solver, num, target, time, valid" >> ${log}		       # L.5
-    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {}" ::: ${benchmarkSuite}/*.cnf >> ${log}
+    parallel -k -j ${jobs} "${MiosWithId} --benchmark=${timeout} --sequence={#} ${miosOptions} {} ${outputPattern}" ::: ${benchmarkSuite}/*.cnf >> ${log}
 else
 #    echo "solver, num, target, time" >> ${log}
 #    echo "# " >> ${log}
-    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${MiosWithId} >> ${log}
+    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} -o "${miosOptions}" ${outputPattern} ${MiosWithId} >> ${log}
 fi
 
 # build the report
