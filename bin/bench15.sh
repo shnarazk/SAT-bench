@@ -93,7 +93,7 @@ makeSync () {
 }
 
 #################### parse options ####################
-while getopts brcgskhliM::n:e:E:o:j:P:t:B:D:G:O: OPT
+while getopts brcgskhlMi:n:e:E:o:j:P:t:B:D:G:O: OPT
 do
     case $OPT in
 	b) Mode="build"
