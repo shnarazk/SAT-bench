@@ -305,7 +305,7 @@ else
     if [ "${outputPattern}" != "" ] ; then
 	outputPattern="-O \"${outputPattern}\""
     fi
-    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} ${miosOptions} ${outputPattern} ${MiosWithId} # >> ${log}
+    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} ${miosOptions} ${outputPattern} ${MiosWithId} >> ${log}
 fi
 
 # build the report
