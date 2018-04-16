@@ -45,7 +45,7 @@ help () {
     echo " ${cmd} -r -B DIR     - Set the benchmark dir to DIR (default: '${BENCHDIR}')"
     echo " ${cmd} -r -D DIR     - Set the dump dir to DIR (default: '${DUMPDIR}')"
     echo " ${cmd} -r -G DIR     - Set the repository dir to DIR (default: '${GITDIR}')"
-    echo " ${cmd} -r -O PATTERN - A magical pattern for solver's output: \" {-o} {/.}-by-XXX.cnf\""
+    echo " ${cmd} -r -O PATTERN - A magical pattern for solver's output: \" [-O|-o] {/.}-by-XXX.cnf\""
     echo " ${cmd} -c            - Cat the current benchmark's result"
     echo " ${cmd} -g            - run ${MAKECACTUS} to make a graph"
     echo " ${cmd} -k            - Kill the current benchmark"
