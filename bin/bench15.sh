@@ -285,6 +285,9 @@ monitor () {
 if [ ${ForceSync} == 1 ] ;then
     monitor $$ &
 fi
+if [ "${outputPattern}" != "" ] ; then
+    outputPattern="${DUMPDIR}/${outputPattern}"
+fi
 
 # build log header and start a benchmark
 echo "# $(date --iso-8601=seconds), `basename ${log}`" > ${log}
