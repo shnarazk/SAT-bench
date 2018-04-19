@@ -32,6 +32,7 @@ graph = function (d, subt) {
     g <- g + geom_line(data=d)
     g <- g + scale_size_manual(values=rep(0.6, times=nrow(d)))
     g <- g + scale_alpha_manual(values=rep(1.0, times=nrow(d)))
+    g <- g + geom_point(data=subset(d, valid==3),size=2,shape=4)
     # g <- g + scale_size_manual(values=c(0.7,0.7,0.7,0.7,0.3,0.3,0.3))  -- by aes(size=solver)
     # g <- g + scale_alpha_manual(values=c(1.0,1.0,1.0,1.0,0.5,0.5,0.5)) -- by aes(alpha=solver)
     g <- g + theme(legend.position = c(0.85,0.2), legend.justification = c(1,0))
