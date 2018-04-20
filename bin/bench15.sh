@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.89"
+version="0.90"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -34,7 +34,7 @@ help () {
     echo " ${cmd} -s            - Force owncloud syhchronization"
     echo " ${cmd} -r            - Run the bencmark suit"
     echo " ${cmd} -r -P SET     - Select dataset: 'SC17m54' or 'SR15m131' (default: '${benchmarkSuite}')"
-    echo " ${cmd} -r -o 'OPTS'  - Set solver's options"
+    echo " ${cmd} -r -o 'OPTS'  - Set solver's options (default: ${jobs})"
     echo " ${cmd} -r -j n       - Number of jobs in parallel"
     echo " ${cmd} -r -i ID      - Select solver by commit id (skip the build phase)"
     echo " ${cmd} -r -t T       - Set timeout to T (default: ${timeout})"
