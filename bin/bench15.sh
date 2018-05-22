@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.90"
+version="0.91"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -20,7 +20,7 @@ Timestamp=`date --iso-8601 | sed -re 's/^[0-9]+-//'`
 UseMiosBench=1
 ## for sat-benchmark [lowercase]
 benchmarkSuite="SC17main"	# SR15m131, SC17m54
-timeout=510			# for SC17main
+timeout=2010			# for SC17main
 miosExecutable="mios"		# set if the name of executable is something like 'mios-1.3.0'
 miosOptions=""
 outputPattern=""
