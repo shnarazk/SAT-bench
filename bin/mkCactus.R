@@ -56,13 +56,13 @@ graph = function (d, subt) {
         exps <- args[1]
         name <- gsub("\\.[^.]+$", "", exps)
         targetPDF <- paste("cactus-", name, ".pdf", sep="")
-        # targetPNG <- paste("cactus-", name, ".png", sep="")
+        targetPNG <- paste("cactus-", name, ".png", sep="")
         if (1 < length(args) && args[2] != "") { subt <- args[2] }
     } else {
         exps <- "runs"
         name <- "runs"
         targetPDF <- "cactus-SC17main.pdf"
-        # targetPNG <- "cactus-SC17main.png"
+        targetPNG <- "cactus-SC17main.png"
     }
     cut <- -1
     if (2 < length(args)) {
@@ -75,5 +75,5 @@ graph = function (d, subt) {
     cairo_pdf(filename=targetPDF, width=10, height=6, antialias="subpixel", onefile=TRUE)
     graph(merged, subt)
     ggsave(filename=targetPDF, width=10, height=6, scale=1.0, dpi=400)
-    # ggsave(filename=targetPNG, width=10, height=6, scale=1.0, dpi=200)
+    ggsave(filename=targetPNG, width=10, height=6, scale=1.0, dpi=200)
 })()
