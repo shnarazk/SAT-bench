@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.91"
+version="0.92"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -146,7 +146,7 @@ do
 	g) Mode="graph"
 	   ;;
 	k) echo "kill benchmark"
-	   parallel -j1 "echo {} > /dev/null; pkill -9 mios" ::: `seq 1 300`
+	   parallel -j1 "echo {} > /dev/null; pkill -9 ${miosExecutable}" ::: `seq 1 300`
 	   exit 0
 	   ;;
 	h) Mode="help"
