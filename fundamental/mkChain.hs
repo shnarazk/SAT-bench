@@ -1,5 +1,5 @@
 module Main where
-import SAT.CNFIO
+import SAT.DIMACS
 import System.Environment (getArgs)
 import System.IO (hFlush, stdout)
 
