@@ -6,10 +6,11 @@ version="0.1.1"
 drawGraph = function (d, lx, ly, subt) {
     names <- colnames(d)
     title <- "Scatter plot"
+    lim <- max(d[2], d[3])
     g <- ggplot(d, aes(X, Y))
     g <- g + geom_point()
     g <- g + stat_function(fun = function(x) x)
-    g <- g + coord_fixed()
+    g <- g + coord_fixed() + xlim(0,lim) + ylim(0,lim)
 #   g <- g + theme(legend.position = c(0.88,0.1), legend.justification = c(1,0))
 #   g <- g + scale_x_continuous(limits=c(0,1000),breaks=seq(0,1100,100))
 #   g <- g + scale_y_continuous(limits=c(0,810) ,breaks=seq(0,810,100))
