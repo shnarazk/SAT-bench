@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.92"
+version="0.93"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
