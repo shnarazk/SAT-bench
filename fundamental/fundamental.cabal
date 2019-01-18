@@ -17,27 +17,27 @@ cabal-version:       >=1.10
 executable mkSATchain
   main-is:             mkChain.hs
   buildable:	       True
-  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2, CNFIO
+  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2
   hs-source-dirs:      .
   default-language:    Haskell2010
 
 executable mkSATtriangle
   main-is:             mkTriangle.hs
   buildable:	       True
-  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2, CNFIO
+  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2
   -- hs-source-dirs:
   default-language:    Haskell2010
 
 executable mkSATuso
   main-is:             uso-chain.hs
   buildable:	       False
-  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2, CNFIO
+  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2
   -- hs-source-dirs:
   default-language:    Haskell2010
 
 executable mkSATzero
   main-is:             mkZero.hs
   buildable:	       True
-  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2, CNFIO
+  build-depends:       base >=4.7, unix >= 2.7, process >= 1.2
   -- hs-source-dirs:
   default-language:    Haskell2010

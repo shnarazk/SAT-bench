@@ -1,8 +1,10 @@
--- This file has been generated from package.yaml by hpack version 0.27.0.
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d4122703ee6d3e3ad3538b16fc0928a5aebb1c428018ecff729fb494fab04757
+-- hash: 3d6ad720e8fcd882980438d94a03866885ffdc2370f4f6a2609b4b4b3cf3d3b1
 
 name:           SATbench
 version:        0.1.2.0
@@ -12,7 +14,6 @@ copyright:      2018 Shuji Narazaki
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-cabal-version:  >= 1.10
 
 library
   other-modules:
