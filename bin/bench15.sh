@@ -278,7 +278,7 @@ fi
 monitor () {
     while ps | fgrep -q $1 ;
     do makeSync
-       sleep 2200;
+       sleep 2000;
     done
 }
 
