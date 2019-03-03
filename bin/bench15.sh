@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.93"
+version="0.94"
 
 #################### variables ####################
 ## directory and external commands settings [uppercase]
@@ -308,7 +308,8 @@ else
     if [ "${outputPattern}" != "" ] ; then
 	outputPattern="-O \"${outputPattern}\""
     fi
-    sat-benchmark -j ${jobs} -K "@${Timestamp}" -t "${benchmarkSuite}/*.cnf" -T ${timeout} ${miosOptions} ${outputPattern} ${MiosWithId} >> ${log}
+    echo ${miosOptions}
+    eval "sat-benchmark -j ${jobs} -K \"@${Timestamp}\" -t \"${benchmarkSuite}/*.cnf\" -T ${timeout} ${miosOptions} ${outputPattern} ${MiosWithId} >> ${log}"
 fi
 
 # build the report
