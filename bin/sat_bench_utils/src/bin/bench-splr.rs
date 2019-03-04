@@ -25,9 +25,10 @@ fn main() -> std::io::Result<()> {
                     if None != hash.get(key) {
                         panic!("duplicated {}", cnf);
                     }
-                    let t = read_time(f.path()).unwrap();
-                    hash.insert(key, t);
-                    break;
+                    if let Some(t) = read_time(f.path()) {
+                        hash.insert(key, t);
+                        break;
+                    }
                 }
             }
         } else {
@@ -44,18 +45,30 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn read_time(fname: PathBuf) -> Result<f64> {
-    let mut input = BufReader::new(File::open(fname)?);
-    let re = Regex::new(r"time: +([.0-9]+)").expect("wrong regex");
+fn read_time(fname: PathBuf) -> Option<f64> {
+    let f;
+    match File::open(fname) {
+        Ok(fin) => f = fin,
+        Err(_) => return None,
+        }
+    let mut input = BufReader::new(f);
+    let splr = Regex::new(r"time: +([.0-9]+)").expect("wrong regex");
+    let glucose = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
     let mut buf = String::new();
     while let Ok(k) = input.read_line(&mut buf) {
         if k == 0 {
             break;
         }
-        if let Some(c) = re.captures(&buf) {
-            return Ok(c[1].parse::<f64>().unwrap());
+        if let Some(c) = splr.captures(&buf) {
+            if let Ok(v) = c[1].parse() {
+                return Some(v)
+            }
+        } else if let Some(c) = glucose.captures(&buf) {
+            if let Ok(v) = c[1].parse() {
+                return Some(v)
+            }
         }
         buf.clear();
     }
-    Ok(0.0)
+    None
 }
