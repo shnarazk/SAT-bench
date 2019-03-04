@@ -1,5 +1,5 @@
 [package]
-name = "sat-bench-utils"
+name = "sat_bench_utils"
 version = "0.1.0"
 authors = ["shujinarazaki <shujinarazaki@protonmail.com>"]
 edition = "2018"

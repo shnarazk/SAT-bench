@@ -1,0 +1,61 @@
+use sat_bench_utils::bench::SCB;
+use std::fs;
+use std::collections::HashMap;
+use regex::Regex;
+use std::fs::File;
+use std::io::*;
+use std::path::PathBuf;
+
+const HEADER: &str = "splr";
+const TIMEOUT: f64 = 2100.0;
+
+fn main() -> std::io::Result<()> {
+    println!("Hello, world!");
+    let mut hash: HashMap<&str, f64> = HashMap::new();
+    for e in fs::read_dir(".")? {
+        let f = e?;
+        if !f.file_type()?.is_file() {
+            continue;
+        }
+        let fname = f.file_name().to_string_lossy().to_string();
+        if fname.starts_with(".ans_") {
+            let cnf = &fname[5..];
+            for key in SCB.iter() {
+                if *key == cnf {
+                    if None != hash.get(key) {
+                        panic!("duplicated {}", cnf);
+                    }
+                    let t = read_time(f.path()).unwrap();
+                    hash.insert(key, t);
+                    break;
+                }
+            }
+        } else {
+            println!("ignore {:?}", f);
+        }
+    }
+    for (i, key) in SCB.iter().enumerate() {
+        if let Some(v) = hash.get(key) {
+            println!("\"{}\",{},\"SC17main/{}\",{:>8.2}", HEADER, i, key, *v);
+        } else {
+            println!("\"{}\",{},\"SC17main/{}\",{:>5}", HEADER, i, key, TIMEOUT as usize);
+        }
+    }
+    Ok(())
+}
+
+fn read_time(fname: PathBuf) -> Result<f64> {
+    let mut input = BufReader::new(File::open(fname)?);
+    let re = Regex::new(r"time: +([.0-9]+)").expect("wrong regex");
+    let mut buf = String::new();
+    while let Ok(k) = input.read_line(&mut buf) {
+        if k == 0 {
+            break;
+        }
+        if let Some(c) = re.captures(&buf) {
+            return Ok(c[1].parse::<f64>().unwrap());
+        }
+        buf.clear();
+    }
+    Ok(0.0)
+}

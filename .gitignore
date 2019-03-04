@@ -24,4 +24,3 @@ stack.yaml
 .cabal-sandbox
 cabal.sandbox.config
 dist
-bin/sat-bench-utils/target
