@@ -1,8 +1,9 @@
 [package]
 name = "sat_bench_utils"
 version = "0.1.0"
-authors = ["shujinarazaki <shujinarazaki@protonmail.com>"]
+authors = ["Shuji Narazaki <shujinarazaki@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
 regex = "1.1.0"
+structopt = "0.2.14"

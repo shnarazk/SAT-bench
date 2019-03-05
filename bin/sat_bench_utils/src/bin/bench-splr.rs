@@ -5,12 +5,25 @@ use regex::Regex;
 use std::fs::File;
 use std::io::*;
 use std::path::PathBuf;
+use structopt::StructOpt;
 
-const HEADER: &str = "splr";
-const TIMEOUT: f64 = 2100.0;
+/// Configuration built from command line options
+#[derive(Debug, StructOpt)]
+#[structopt(
+    name = "bench-splr",
+    about = "make a csv from benchmark results"
+)]
+pub struct Config {
+    /// solver identifier, used in the 1st column
+    #[structopt(long = "solver", default_value = "splr")]
+    pub solver: String,
+    /// value for instances timed out
+    #[structopt(long = "timeout", default_value = "2100")]
+    pub timeout: usize,
+}
 
 fn main() -> std::io::Result<()> {
-    println!("Hello, world!");
+    let config = Config::from_args();
     let mut hash: HashMap<&str, f64> = HashMap::new();
     for e in fs::read_dir(".")? {
         let f = e?;
@@ -31,15 +44,13 @@ fn main() -> std::io::Result<()> {
                     }
                 }
             }
-        } else {
-            println!("ignore {:?}", f);
         }
     }
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"SC17main/{}\",{:>8.2}", HEADER, i, key, *v);
+            println!("\"{}\",{},\"SC17main/{}\",{:>8.2}", config.solver, i, key, *v);
         } else {
-            println!("\"{}\",{},\"SC17main/{}\",{:>5}", HEADER, i, key, TIMEOUT as usize);
+            println!("\"{}\",{},\"SC17main/{}\",{:>5}", config.solver, i, key, config.timeout);
         }
     }
     Ok(())
