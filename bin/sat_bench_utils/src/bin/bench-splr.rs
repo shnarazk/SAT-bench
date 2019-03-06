@@ -48,9 +48,9 @@ fn main() -> std::io::Result<()> {
     }
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"SC17main/{}\",{:>8.2}", config.solver, i, key, *v);
+            println!("\"{}\",{},\"SC17main/{}\",{:>8.2}", config.solver, i + 1, key, *v);
         } else {
-            println!("\"{}\",{},\"SC17main/{}\",{:>5}", config.solver, i, key, config.timeout);
+            println!("\"{}\",{},\"SC17main/{}\",{:>5}", config.solver, i + 1, key, config.timeout);
         }
     }
     Ok(())
