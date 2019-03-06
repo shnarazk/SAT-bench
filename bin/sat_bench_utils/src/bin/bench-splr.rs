@@ -18,7 +18,7 @@ pub struct Config {
     #[structopt(long = "solver", default_value = "splr")]
     pub solver: String,
     /// value for instances timed out
-    #[structopt(long = "timeout", default_value = "2100")]
+    #[structopt(long = "timeout", default_value = "2500")]
     pub timeout: usize,
 }
 
