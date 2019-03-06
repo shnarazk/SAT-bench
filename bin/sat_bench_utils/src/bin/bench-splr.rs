@@ -1,4 +1,4 @@
-use sat_bench_utils::bench::SCB;
+use sat_bench_utils::bench18::SCB;
 use std::fs;
 use std::collections::HashMap;
 use regex::Regex;
@@ -18,7 +18,7 @@ pub struct Config {
     #[structopt(long = "solver", default_value = "splr")]
     pub solver: String,
     /// value for instances timed out
-    #[structopt(long = "timeout", default_value = "2100")]
+    #[structopt(long = "timeout", default_value = "2500")]
     pub timeout: usize,
     /// Name for the target set, ending with a delimitor
     #[structopt(long = "target", default_value = "SC18main/")]
@@ -51,9 +51,9 @@ fn main() -> std::io::Result<()> {
     }
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"{}{}\",{:>8.2}", config.solver, i, config.target, key, *v);
+            println!("\"{}\",{},\"{}{}\",{:>8.2}", config.solver, i + 1, config.target, key, *v);
         } else {
-            println!("\"{}\",{},\"{}{}\",{:>5}", config.solver, i, config.target, key, config.timeout);
+            println!("\"{}\",{},\"{}{}\",{:>5}", config.solver, i + 1, config.target, key, config.timeout);
         }
     }
     Ok(())
