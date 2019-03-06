@@ -10,8 +10,8 @@ use structopt::StructOpt;
 /// Configuration built from command line options
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "bench-splr",
-    about = "make a csv from benchmark results"
+    name = "scb2csv",
+    about = "Convert SAT Competition Benchmark results to a CSV file"
 )]
 pub struct Config {
     /// solver identifier, used in the 1st column
