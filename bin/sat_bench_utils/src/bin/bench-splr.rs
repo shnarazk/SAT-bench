@@ -49,6 +49,7 @@ fn main() -> std::io::Result<()> {
             }
         }
     }
+    println!("solver, num, target, time");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
             println!("\"{}\",{},\"{}{}\",{:>8.2}", config.solver, i + 1, config.target, key, *v);
