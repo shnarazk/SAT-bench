@@ -1,4 +1,4 @@
-use sat_bench_utils::bench::SCB;
+use sat_bench_utils::bench18::SCB;
 use std::fs;
 use std::collections::HashMap;
 use regex::Regex;
