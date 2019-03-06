@@ -20,6 +20,9 @@ pub struct Config {
     /// value for instances timed out
     #[structopt(long = "timeout", default_value = "2100")]
     pub timeout: usize,
+    /// Name for the target set, ending with a delimitor
+    #[structopt(long = "target", default_value = "SC18main/")]
+    pub target: String,
 }
 
 fn main() -> std::io::Result<()> {
@@ -48,9 +51,9 @@ fn main() -> std::io::Result<()> {
     }
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"SC17main/{}\",{:>8.2}", config.solver, i, key, *v);
+            println!("\"{}\",{},\"{}{}\",{:>8.2}", config.solver, i, config.target, key, *v);
         } else {
-            println!("\"{}\",{},\"SC17main/{}\",{:>5}", config.solver, i, key, config.timeout);
+            println!("\"{}\",{},\"{}{}\",{:>5}", config.solver, i, config.target, key, config.timeout);
         }
     }
     Ok(())
