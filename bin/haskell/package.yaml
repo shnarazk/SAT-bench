@@ -2,7 +2,7 @@ name:                SATbench
 version:             0.1.2.0
 license:             BSD3
 author:              "Shuji Narazaki"
-maintainer:          "shuji.narazaki@gmail.com"
+maintainer:          "shujinarazaki@protonmail.com"
 copyright:           "2018 Shuji Narazaki"
 
 # Metadata used when publishing your package

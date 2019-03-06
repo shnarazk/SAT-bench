@@ -9,7 +9,7 @@ cabal-version: 1.12
 name:           SATbench
 version:        0.1.2.0
 author:         Shuji Narazaki
-maintainer:     shuji.narazaki@gmail.com
+maintainer:     shujinarazaki@protonmail.com
 copyright:      2018 Shuji Narazaki
 license:        BSD3
 license-file:   LICENSE
