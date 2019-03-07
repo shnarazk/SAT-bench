@@ -1,4 +1,4 @@
-use sat_bench_utils::bench18::SCB;
+use satbench2csv::bench18::SCB;
 use std::fs;
 use std::collections::HashMap;
 use regex::Regex;
@@ -23,12 +23,15 @@ pub struct Config {
     /// Name for the target set, ending with a delimitor
     #[structopt(long = "target", default_value = "SC18main/")]
     pub target: String,
+    /// directory to scan
+    #[structopt(long = "dir", default_value = "./")]
+    pub dir: String,
 }
 
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
     let mut hash: HashMap<&str, f64> = HashMap::new();
-    for e in fs::read_dir(".")? {
+    for e in fs::read_dir(config.dir)? {
         let f = e?;
         if !f.file_type()?.is_file() {
             continue;
