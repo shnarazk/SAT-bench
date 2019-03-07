@@ -18,7 +18,7 @@ pub struct Config {
     #[structopt(long = "from", default_value = "splr")]
     pub from: String,
     /// value for instances timed out
-    #[structopt(long = "timeout", default_value = "2500")]
+    #[structopt(long = "timeout", default_value = "3000")]
     pub timeout: usize,
     /// Name for the target set, ending with a delimitor
     #[structopt(long = "target", default_value = "SC18main/")]
