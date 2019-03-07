@@ -10,28 +10,25 @@ use structopt::StructOpt;
 /// Configuration built from command line options
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "scb2csv",
+    name = "satbench2csv",
     about = "Convert SAT Competition Benchmark results to a CSV file"
 )]
 pub struct Config {
-    /// solver identifier, used in the 1st column
-    #[structopt(long = "solver", default_value = "splr")]
-    pub solver: String,
+    /// directory to scan
+    #[structopt(long = "from", default_value = "splr")]
+    pub from: String,
     /// value for instances timed out
     #[structopt(long = "timeout", default_value = "2500")]
     pub timeout: usize,
     /// Name for the target set, ending with a delimitor
     #[structopt(long = "target", default_value = "SC18main/")]
     pub target: String,
-    /// directory to scan
-    #[structopt(long = "dir", default_value = "./")]
-    pub dir: String,
 }
 
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
     let mut hash: HashMap<&str, f64> = HashMap::new();
-    for e in fs::read_dir(config.dir)? {
+    for e in fs::read_dir(&config.from)? {
         let f = e?;
         if !f.file_type()?.is_file() {
             continue;
@@ -55,9 +52,9 @@ fn main() -> std::io::Result<()> {
     println!("solver, num, target, time");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"{}{}\",{:>8.2}", config.solver, i + 1, config.target, key, *v);
+            println!("\"{}\",{},\"{}{}\",{:>8.2}", config.from, i + 1, config.target, key, *v);
         } else {
-            println!("\"{}\",{},\"{}{}\",{:>5}", config.solver, i + 1, config.target, key, config.timeout);
+            println!("\"{}\",{},\"{}{}\",{:>5}", config.from, i + 1, config.target, key, config.timeout);
         }
     }
     Ok(())
