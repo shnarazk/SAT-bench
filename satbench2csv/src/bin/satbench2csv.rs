@@ -1,7 +1,7 @@
-use satbench2csv::bench18::SCB;
-use std::fs;
-use std::collections::HashMap;
 use regex::Regex;
+use satbench2csv::bench18::SCB;
+use std::collections::HashMap;
+use std::fs;
 use std::fs::File;
 use std::io::*;
 use std::path::PathBuf;
@@ -28,8 +28,8 @@ pub struct Config {
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
     let mut hash: HashMap<&str, f64> = HashMap::new();
-    let tag: &str = if config.from.ends_with("/") {
-        &config.from[..config.from.len() -1]
+    let tag: &str = if config.from.ends_with('/') {
+        &config.from[..config.from.len() - 1]
     } else {
         &config.from
     };
@@ -57,9 +57,23 @@ fn main() -> std::io::Result<()> {
     println!("solver, num, target, time");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"{}{}\",{:>8.2}", tag, i + 1, config.target, key, *v);
+            println!(
+                "\"{}\",{},\"{}{}\",{:>8.2}",
+                tag,
+                i + 1,
+                config.target,
+                key,
+                *v
+            );
         } else {
-            println!("\"{}\",{},\"{}{}\",{:>5}", tag, i + 1, config.target, key, config.timeout);
+            println!(
+                "\"{}\",{},\"{}{}\",{:>5}",
+                tag,
+                i + 1,
+                config.target,
+                key,
+                config.timeout
+            );
         }
     }
     Ok(())
@@ -70,7 +84,7 @@ fn read_time(fname: PathBuf) -> Option<f64> {
     match File::open(fname) {
         Ok(fin) => f = fin,
         Err(_) => return None,
-        }
+    }
     let mut input = BufReader::new(f);
     let splr = Regex::new(r"time: +([.0-9]+)").expect("wrong regex");
     let glucose = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
@@ -81,11 +95,11 @@ fn read_time(fname: PathBuf) -> Option<f64> {
         }
         if let Some(c) = splr.captures(&buf) {
             if let Ok(v) = c[1].parse() {
-                return Some(v)
+                return Some(v);
             }
         } else if let Some(c) = glucose.captures(&buf) {
             if let Ok(v) = c[1].parse() {
-                return Some(v)
+                return Some(v);
             }
         }
         buf.clear();
