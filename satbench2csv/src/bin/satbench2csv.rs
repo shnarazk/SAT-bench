@@ -15,8 +15,11 @@ use structopt::StructOpt;
 )]
 pub struct Config {
     /// directory to scan
-    #[structopt(long = "from", default_value = "splr")]
+    #[structopt(long = "from", default_value = ".")]
     pub from: String,
+    /// solver name (use 'from' if this is empty).
+    #[structopt(long = "solver", default_value = "")]
+    pub solver: String,
     /// value for instances timed out
     #[structopt(long = "timeout", default_value = "3000")]
     pub timeout: usize,
@@ -28,10 +31,14 @@ pub struct Config {
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
     let mut hash: HashMap<&str, f64> = HashMap::new();
-    let tag: &str = if config.from.ends_with('/') {
-        &config.from[..config.from.len() - 1]
+    let tag: &str = if config.solver.is_empty() {
+        if config.from.ends_with('/') {
+            &config.from[..config.from.len() - 1]
+        } else {
+            &config.from
+        }
     } else {
-        &config.from
+        &config.solver
     };
     for e in fs::read_dir(&config.from)? {
         let f = e?;
