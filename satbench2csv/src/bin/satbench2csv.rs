@@ -28,6 +28,11 @@ pub struct Config {
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
     let mut hash: HashMap<&str, f64> = HashMap::new();
+    let tag: &str = if config.from.ends_with("/") {
+        &config.from[..config.from.len() -1]
+    } else {
+        &config.from
+    };
     for e in fs::read_dir(&config.from)? {
         let f = e?;
         if !f.file_type()?.is_file() {
@@ -52,9 +57,9 @@ fn main() -> std::io::Result<()> {
     println!("solver, num, target, time");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
-            println!("\"{}\",{},\"{}{}\",{:>8.2}", config.from, i + 1, config.target, key, *v);
+            println!("\"{}\",{},\"{}{}\",{:>8.2}", tag, i + 1, config.target, key, *v);
         } else {
-            println!("\"{}\",{},\"{}{}\",{:>5}", config.from, i + 1, config.target, key, config.timeout);
+            println!("\"{}\",{},\"{}{}\",{:>5}", tag, i + 1, config.target, key, config.timeout);
         }
     }
     Ok(())
