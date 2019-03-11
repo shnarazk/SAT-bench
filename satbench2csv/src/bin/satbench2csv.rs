@@ -40,6 +40,7 @@ fn main() -> std::io::Result<()> {
     } else {
         &config.solver
     };
+    let timeout = config.timeout as f64;
     for e in fs::read_dir(&config.from)? {
         let f = e?;
         if !f.file_type()?.is_file() {
@@ -54,7 +55,7 @@ fn main() -> std::io::Result<()> {
                         panic!("duplicated {}", cnf);
                     }
                     if let Some(t) = read_time(f.path()) {
-                        hash.insert(key, t);
+                        hash.insert(key, timeout.min(t));
                         break;
                     }
                 }
