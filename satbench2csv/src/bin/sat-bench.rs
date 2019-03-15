@@ -1,3 +1,5 @@
+// use std::io::{self, Write};
+use std::process::Command;
 /// A simple benchmarker to dump a result of testrun(s)
 /// Requirement: GNU parallel installed in your PATH
 /// Usage: sat-benchmark [OPTIONS] [solvers]
@@ -7,28 +9,20 @@
 ///   - sat-benchmark -o "-cla-decay 0.9" -s glucose     # options to solver
 ///   - sat-benchmark -t ./g2-ACG-15-10p1.cnf -s glucose # -t for a CNF file
 ///   - sat-benchmark -t '../test / *.cnf' -s glucose      # -t for CNF files
-
 use structopt::StructOpt;
-use std::process::Command;
-use std::io::{self, Write};
 
 const VERSION: &'static str = "sat-benchmark 0.15.0";
 const SET_ENV: &'static str = "export LC_ALL=C; export TIMEFORMAT=\" %2U\"";
 const BASE_DIR: &'static str = "/Repositories/SATbench";
-const STRUCTURED_PROBLEMS: [(&'static str, &'static str); 4] =
-    [
-        ("itox", "SR2015/itox_vc1130.cnf"),
-        ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
-        ("38b", "SR2015/38bits_10.dimacs.cnf"),
-        ("44b", "SR2015/44bits_11.dimacs.cnf"),
-    ];
-
+const STRUCTURED_PROBLEMS: [(&'static str, &'static str); 4] = [
+    ("itox", "SR2015/itox_vc1130.cnf"),
+    ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
+    ("38b", "SR2015/38bits_10.dimacs.cnf"),
+    ("44b", "SR2015/44bits_11.dimacs.cnf"),
+];
 
 #[derive(Debug, StructOpt)]
-#[structopt(
-    name = "sat-bench",
-    about = "Run simple benchmark"
-)]
+#[structopt(name = "sat-bench", about = "Run simple benchmark")]
 struct Config {
     solvers: Vec<String>,
     #[structopt(long = "targets", short = "t", default_value = "")]
@@ -74,27 +68,45 @@ fn main() {
         1 => true,
         _ => false,
     };
-    let extraMessage = if config.message == "" { "".to_string() } else { format!(", {}", config.message) };
-    let date = Command::new("date") .arg("-Iseconds").output().expect("failed to execute process").stdout;
-    let d = String::from_utf8_lossy(&date[..date.len()-1]);
-    let host = Command::new("hostname") .arg("-s").output().expect("failed to execute process").stdout;
-    let h = String::from_utf8_lossy(&host[..host.len()-1]);
+    let extraMessage = if config.message == "" {
+        "".to_string()
+    } else {
+        format!(", {}", config.message)
+    };
+    let date = Command::new("date")
+        .arg("-Iseconds")
+        .output()
+        .expect("failed to execute process")
+        .stdout;
+    let d = String::from_utf8_lossy(&date[..date.len() - 1]);
+    let host = Command::new("hostname")
+        .arg("-s")
+        .output()
+        .expect("failed to execute process")
+        .stdout;
+    let h = String::from_utf8_lossy(&host[..host.len() - 1]);
     // io::stdout().write_all(&output.stdout).unwrap();
-    println!("# {}, j={}, t={}, p='{}' on {} @ {}{}", VERSION, config.inParallel, config.timeout, config.solverOptions, h, d, extraMessage);
-    //system $
-    //    printf "echo \"# %s, j=%d, t=%d, p='%s' on `hostname` @ `date -Iseconds`%s\"" version (inParallel conf) (timeout conf) (solverOptions conf) extraMessage
-    
-    //case header conf of
-    //  Just h                 -> putStr h
-    //  Nothing | dumpAll conf -> putStrLn "solver, num, seq, target, time"
-    //  _                      -> putStrLn "solver, num, target, time"
-    //when singleSolver $ do
-    //  let solver = head (solvers conf)
-    //  system $
-    //      printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s`|sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's| \\([0-9][0-9]:[0-9][0-9]\\).*|T\\1|') '%s; '; %s --version 2>/dev/null|egrep -v '^.$'|head"
-    //             solver solver solver
-    //  return ()
-    //let opts = solverOptions conf
+    println!(
+        "# {}, j={}, t={}, p='{}' on {} @ {}{}",
+        VERSION, config.inParallel, config.timeout, config.solverOptions, h, d, extraMessage
+    );
+    match config.header.as_ref() {
+        "" if config.dumpAll => println!("solver, num, seq, target, time"),
+        "" => println!("solver, num, target, time"),
+        _ => println!("{}", config.header),
+    }
+    if singleSolver {
+        if let Some(solver) = &config.solvers.get(0) {
+            // echo -n \\# $(ls -g -G --time-style=long-iso `which %s`|sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's| \\([0-9][0-9]:[0-9][0-9]\\).*|T\\1|') '%s; '; %s --version 2>/dev/null|egrep -v '^.$'|head
+            // solver,
+            // solver,
+            // solver,
+        }
+    }
+    let opts = &config.solverOptions;
+    for solver in &config.solvers {
+
+    }
     //forM_ (solvers conf) $ \solver -> do
     //  val <- system $ "which " ++ solver ++ " > /dev/null"
     //  when (val == ExitSuccess) $ do
@@ -120,7 +132,7 @@ fn main() {
 }
 
 // \\nが出てきたら改行文字に置き換え：正規表現がよさそう
-fn undecode_newline (from: &str) -> String {
+fn undecode_newline(from: &str) -> String {
     from.to_string()
 }
 
@@ -186,4 +198,3 @@ fn undecode_newline (from: &str) -> String {
 //     else system $ printf "%s; (parallel -k %s \"time timeout %d %s %s {} \" ::: %s/%s ; ) 2>&1"
 //                          setEnv flagJ (timeout conf) solver options dir target
 //   hFlush stdout
-
