@@ -69,7 +69,12 @@ fn main() -> std::io::Result<()> {
             }
         }
     }
-    println!("# SAT: {}, UNSAT: {}, total: {} so far", nsat, nunsat, nsat + nunsat);
+    println!(
+        "# SAT: {}, UNSAT: {}, total: {} so far",
+        nsat,
+        nunsat,
+        nsat + nunsat
+    );
     println!("solver, num, target, time");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
