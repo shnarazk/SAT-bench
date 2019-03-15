@@ -41,6 +41,8 @@ fn main() -> std::io::Result<()> {
         &config.solver
     };
     let timeout = config.timeout as f64;
+    let mut nsat = 0;
+    let mut nunsat = 0;
     for e in fs::read_dir(&config.from)? {
         let f = e?;
         if !f.file_type()?.is_file() {
@@ -54,14 +56,20 @@ fn main() -> std::io::Result<()> {
                     if None != hash.get(key) {
                         panic!("duplicated {}", cnf);
                     }
-                    if let Some(t) = read_time(f.path()) {
+                    if let Some((t, s)) = read_time(f.path()) {
                         hash.insert(key, timeout.min(t));
+                        if s {
+                            nsat += 1;
+                        } else {
+                            nunsat += 1;
+                        }
                         break;
                     }
                 }
             }
         }
     }
+    println!("# SAT: {}, UNSAT: {}, total: {} so far", nsat, nunsat, nsat + nunsat);
     println!("solver, num, target, time");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
@@ -87,30 +95,43 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn read_time(fname: PathBuf) -> Option<f64> {
+fn read_time(fname: PathBuf) -> Option<(f64, bool)> {
     let f;
     match File::open(fname) {
         Ok(fin) => f = fin,
         Err(_) => return None,
     }
     let mut input = BufReader::new(f);
+    let sat = Regex::new(r"\bSATISFIABLE\b").expect("wrong regex");
+    let unsat = Regex::new(r"\bUNSATISFIABLE\b").expect("wrong regex");
     let splr = Regex::new(r"time: +([.0-9]+)").expect("wrong regex");
     let glucose = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
     let mut buf = String::new();
+    let mut time: Option<f64> = None;
+    let mut found: Option<bool> = None;
     while let Ok(k) = input.read_line(&mut buf) {
         if k == 0 {
             break;
         }
-        if let Some(c) = splr.captures(&buf) {
+        if sat.is_match(&buf) {
+            assert_eq!(found, None);
+            found = Some(true);
+        } else if unsat.is_match(&buf) {
+            assert_eq!(found, None);
+            found = Some(false);
+        } else if let Some(c) = splr.captures(&buf) {
             if let Ok(v) = c[1].parse() {
-                return Some(v);
+                time = Some(v);
             }
         } else if let Some(c) = glucose.captures(&buf) {
             if let Ok(v) = c[1].parse() {
-                return Some(v);
+                time = Some(v);
             }
         }
         buf.clear();
     }
-    None
+    match (time, found) {
+        (Some(t), Some(f)) => Some((t, f)),
+        _ => None,
+    }
 }
