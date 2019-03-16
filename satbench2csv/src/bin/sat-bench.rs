@@ -61,7 +61,7 @@ fn main() {
     println!("{}", VERSION);
     let config = Config::from_args();
     let _home = "$HOME";
-    let _base = "$HOME".to_owned() + BASE_DIR;
+    let base = "$HOME".to_owned() + BASE_DIR;
     //   let base = baseDir home
     let singleSolver = match config.solvers.len() {
         0 => panic!("no solver"),
@@ -95,60 +95,75 @@ fn main() {
         "" => println!("solver, num, target, time"),
         _ => println!("{}", config.header),
     }
+    let opts = &config.solverOptions;
     if singleSolver {
-        if let Some(_solver) = &config.solvers.get(0) {
-            // echo -n \\# $(ls -g -G --time-style=long-iso `which %s`|sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's| \\([0-9][0-9]:[0-9][0-9]\\).*|T\\1|') '%s; '; %s --version 2>/dev/null|egrep -v '^.$'|head
-            // solver,
-            // solver,
-            // solver,
-        }
+        print_solver(&config.solvers.get(0).unwrap());
     }
-    let _opts = &config.solverOptions;
     //forM_ (solvers conf) $ \solver -> do
     for solver in &config.solvers {
-        //  val <- system $ "which " ++ solver ++ " > /dev/null"
-        let mut which = match Command::new("which").arg(&solver).output() {
-            Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-            _ => solver.to_string(),
-        };
-        which.pop();
-        // when (val == ExitSuccess) $ do
-        if which != "" {
-            // unless singleSolver $ do
-            if !singleSolver || true {
-                //      system $
-                // printf 更新時刻とフルパス、バージョンのみ表示
-                let version = match Command::new(solver).arg("--version").output() {
-                    Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len()-1]).to_string(),
-                    _ => String::from("???"),
-                };
-                let at = match Command::new("date").arg("--iso-8601=seconds").output() {
-                    Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-                    _ => String::from("???"),
-                };
-                println!("# {} ({}) @ {}", which, version, at);
+        if !singleSolver {
+            print_solver(solver);
+        }
+        let threes:  Vec<usize> = vec![25, 50, 75, 100, 125, 150, 175, 200, 225, 250];
+        let  mut num: usize = 1;
+        if config.targets.is_empty() {
+            if config.threeSATSet {
+                for n in &threes {
+                    if config.rangeFrom <= *n && *n <= config.rangeTo {
+                        execute3SATs(&config, solver, opts, &base, num, *n);
+                        num += 1;
+                    }
+                }
+            }
+            if config.structuredSATSet {
+                for (k, s) in &STRUCTURED_PROBLEMS {
+                    execute(&config, solver, opts, &base, num, k, s);
+                    num += 1;
+                }
+            }
+        } else {
+            for t in config.targets.split_whitespace() {
+                execute(&config, solver, opts, &base, num, t, t);
+                num += 1;
             }
         }
-    //    let
-    //      threes = [rangeFrom conf, rangeFrom conf + 25 .. rangeTo conf]
-    //      nums :: Int -> [Int]
-    //      nums 0 = [ 1 :: Int .. ]
-    //      nums 1 = drop 0 $ nums 0
-    //      nums 2 = drop (if threeSATSet conf then length threes else 0) $ nums 1
-    //      nums _ = nums 0
-    //      withNum n l = zip (nums n) l
-    //    case targets conf of
-    //      Just s -> executeTargets conf solver opts s
-    //      Nothing -> do
-    //        when (threeSATSet conf) $ mapM_ (execute3SATs conf solver opts base) $ withNum 1 threes
-    //        when (structuredSATSet conf) $ mapM_ (execute conf solver opts base) $ withNum 2 structuredProblems
-    //    unless (null (terminateHook conf)) $ void (system (terminateHook co
     }
+    if !config.terminateHook.is_empty() {
+        println!("terminate hook");
+    }
+}
+
+fn print_solver(solver: &str) -> Option<String> {
+    let mut which = match Command::new("which").arg(&solver).output() {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+        _ => return None,
+    };
+    which.pop();
+    //      system $
+    // printf 更新時刻とフルパス、バージョンのみ表示
+    let version = match Command::new(solver).arg("--version").output() {
+        Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len()-1]).to_string(),
+        _ => String::from("???"),
+    };
+    let at = match Command::new("date").arg("--iso-8601=seconds").output() {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+        _ => String::from("???"),
+    };
+    println!("# {} ({}) @ {}", which, version, at);
+    Some(which.to_string())
 }
 
 // \\nが出てきたら改行文字に置き換え：正規表現がよさそう
 fn undecode_newline(from: &str) -> String {
     from.to_string()
+}
+
+#[allow(unused_variables)]
+fn execute3SATs(config: &Config, solver: &str, opts: &str, base: &str, num: usize, n: usize) {
+}
+
+#[allow(unused_variables)]
+fn execute(config: &Config, solver: &str, opts: &str, base: &str, num: usize, name: &str, target: &str) {
 }
 
 // -- | target is a list of files (for SAT-RACE benchmark)
