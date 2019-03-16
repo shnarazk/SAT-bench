@@ -39,8 +39,6 @@ struct Config {
     timeout: usize,
     #[structopt(long = "parallel", short = "j", default_value = "1")]
     inParallel: usize,
-    #[structopt(long = "dump-all", short = "A")]
-    dumpAll: bool,
     #[structopt(long = "terminate-hook", default_value = "finished")]
     terminateHook: String,
     #[structopt(long = "options", default_value = "")]
@@ -91,7 +89,6 @@ fn main() {
         VERSION, config.inParallel, config.timeout, config.solverOptions, h, d, extraMessage
     );
     match config.header.as_ref() {
-        "" if config.dumpAll => println!("solver, num, seq, target, time"),
         "" => println!("solver, num, target, time"),
         _ => println!("{}", config.header),
     }
@@ -158,8 +155,21 @@ fn undecode_newline(from: &str) -> String {
     from.to_string()
 }
 
+/// show the average or total result of SAT problems
 #[allow(unused_variables)]
-fn execute3SATs(config: &Config, solver: &str, opts: &str, base: &str, num: usize, n: usize) {}
+fn execute3SATs(config: &Config, solver: &str, opts: &str, base: &str, num: usize, n: usize) {
+    let solver_name = format!("{}{}", solver, config.auxKey);
+    let flag_j = format!("-j {}", config.inParallel);
+    print!("\"{}\", {}, \"UF{}\",\t", solver_name, num, n);
+    // hFlush stdout
+    if config.devNull {
+        // then system $ printf "%s; (time timeout %d parallel -k %s \"%s %s {} > /dev/null\" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1"
+        //                       setEnv (timeout conf) flagJ solver options dir (show targets)
+    } else {
+        // else system $ printf "%s; (time timeout %d parallel -k %s \"%s %s {} \" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1"
+        //                      setEnv (timeout conf) flagJ solver options dir (show targets)
+    }
+}
 
 #[allow(unused_variables)]
 fn execute(
@@ -184,42 +194,6 @@ fn execute(
 //                          setEnv flagJ solverName (timeout conf) solver options outputPattern files
 //     else system $ printf "%s; (parallel -k --joblog satbench.log %s \"echo -n '\\\"%s\\\", {#}, \\\"{}\\\", '; time timeout %d %s %s {} %s \" ::: %s ;) 2>&1"
 //                          setEnv flagJ solverName (timeout conf) solver options outputPattern files
-//   hFlush stdout
-
-// -- | [dump for DEBUG] target is a list of files (for SAT-RACE benchmark)
-// execute3SATs conf@(dumpAll -> True) solver options dir (num, targets) = do
-//   hFlush stdout
-//   let flagJ = "-j " ++ show (inParallel conf)
-//   let solverName = solver ++ auxKey conf
-//   if devNull conf
-//      then system $ printf "%s; (parallel -k %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout %d %s %s {} > /dev/null\" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1"
-//                           setEnv flagJ solverName num (timeout conf) solver options dir (show targets)
-//      else system $ printf "%s; (parallel -k %s \"echo -n '\\\"%s\\\", %d {#}, \\\"{}\\\", '; time timeout %d %s %s {} \" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1"
-//                           setEnv flagJ solverName num (timeout conf) solver options dir (show targets)
-
-// -- | only show the average or total result of targets (for 3-SAT problems)
-// execute3SATs conf solver options dir (num, targets) = do
-//   let q s = "\"" ++ s ++ "\""
-//   let solverName = solver ++ auxKey conf
-//   let flagJ = "-j " ++ show (inParallel conf)
-//   putStr $ q solverName ++ ", " ++ show num ++ ", " ++ show targets ++ ",\t"
-//   hFlush stdout
-//   if devNull conf
-//      then system $ printf "%s; (time timeout %d parallel -k %s \"%s %s {} > /dev/null\" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1"
-//                           setEnv (timeout conf) flagJ solver options dir (show targets)
-//      else system $ printf "%s; (time timeout %d parallel -k %s \"%s %s {} \" ::: %s/3-SAT/UF%s/uf*.cnf;) 2>&1"
-//                           setEnv (timeout conf) flagJ solver options dir (show targets)
-
-// -- | [dump for DEBUG] only show the average or total result of targets (for 3-SAT problems)
-// execute conf@(dumpAll -> True) solver options dir (num, (key, target)) = do
-//   hFlush stdout
-//   let flagJ = "-j " ++ show (inParallel conf)
-//   let solverName = solver ++ auxKey conf
-//   if devNull conf
-//     then system $ printf "%s; (parallel -k %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout %d %s %s {} > /dev/null \" ::: %s/%s ; ) 2>&1"
-//                          setEnv flagJ solverName num (timeout conf) solver options dir target
-//     else system $ printf "%s; (parallel -k %s \"echo -n '\\\"%s\\\", %d, {#}, \\\"{}\\\", '; time timeout %d %s %s {} \" ::: %s/%s ; ) 2>&1"
-//                          setEnv flagJ solverName num (timeout conf) solver options dir target
 //   hFlush stdout
 
 // -- | target is one of defined problem sets: fundamentalProblems, structuredProblems
