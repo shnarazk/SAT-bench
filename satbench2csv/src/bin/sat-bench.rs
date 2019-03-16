@@ -104,8 +104,8 @@ fn main() {
         if !singleSolver {
             print_solver(solver);
         }
-        let threes:  Vec<usize> = vec![25, 50, 75, 100, 125, 150, 175, 200, 225, 250];
-        let  mut num: usize = 1;
+        let threes: Vec<usize> = vec![25, 50, 75, 100, 125, 150, 175, 200, 225, 250];
+        let mut num: usize = 1;
         if config.targets.is_empty() {
             if config.threeSATSet {
                 for n in &threes {
@@ -142,7 +142,7 @@ fn print_solver(solver: &str) -> Option<String> {
     //      system $
     // printf 更新時刻とフルパス、バージョンのみ表示
     let version = match Command::new(solver).arg("--version").output() {
-        Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len()-1]).to_string(),
+        Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len() - 1]).to_string(),
         _ => String::from("???"),
     };
     let at = match Command::new("date").arg("--iso-8601=seconds").output() {
@@ -159,11 +159,18 @@ fn undecode_newline(from: &str) -> String {
 }
 
 #[allow(unused_variables)]
-fn execute3SATs(config: &Config, solver: &str, opts: &str, base: &str, num: usize, n: usize) {
-}
+fn execute3SATs(config: &Config, solver: &str, opts: &str, base: &str, num: usize, n: usize) {}
 
 #[allow(unused_variables)]
-fn execute(config: &Config, solver: &str, opts: &str, base: &str, num: usize, name: &str, target: &str) {
+fn execute(
+    config: &Config,
+    solver: &str,
+    opts: &str,
+    base: &str,
+    num: usize,
+    name: &str,
+    target: &str,
+) {
 }
 
 // -- | target is a list of files (for SAT-RACE benchmark)
