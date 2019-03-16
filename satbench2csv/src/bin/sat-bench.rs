@@ -60,8 +60,8 @@ struct Config {
 fn main() {
     println!("{}", VERSION);
     let config = Config::from_args();
-    let home = "$HOME";
-    let base = "$HOME".to_owned() + BASE_DIR;
+    let _home = "$HOME";
+    let _base = "$HOME".to_owned() + BASE_DIR;
     //   let base = baseDir home
     let singleSolver = match config.solvers.len() {
         0 => panic!("no solver"),
@@ -96,25 +96,39 @@ fn main() {
         _ => println!("{}", config.header),
     }
     if singleSolver {
-        if let Some(solver) = &config.solvers.get(0) {
+        if let Some(_solver) = &config.solvers.get(0) {
             // echo -n \\# $(ls -g -G --time-style=long-iso `which %s`|sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's| \\([0-9][0-9]:[0-9][0-9]\\).*|T\\1|') '%s; '; %s --version 2>/dev/null|egrep -v '^.$'|head
             // solver,
             // solver,
             // solver,
         }
     }
-    let opts = &config.solverOptions;
-    for solver in &config.solvers {
-
-    }
+    let _opts = &config.solverOptions;
     //forM_ (solvers conf) $ \solver -> do
-    //  val <- system $ "which " ++ solver ++ " > /dev/null"
-    //  when (val == ExitSuccess) $ do
-    //    unless singleSolver $ do
-    //      system $
-    //          printf "echo -n \\# $(ls -g -G --time-style=long-iso `which %s` | sed -e 's/[-rwx]* [1-9] [0-9]* //' -e 's| \\([0-9][0-9]:[0-9][0-9]\\).*|T\\1|') '%s; '; %s --version 2> /dev/null | egrep -v '^.$' | head"
-    //                 solver solver solver
-    //      return ()
+    for solver in &config.solvers {
+        //  val <- system $ "which " ++ solver ++ " > /dev/null"
+        let mut which = match Command::new("which").arg(&solver).output() {
+            Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+            _ => solver.to_string(),
+        };
+        which.pop();
+        // when (val == ExitSuccess) $ do
+        if which != "" {
+            // unless singleSolver $ do
+            if !singleSolver || true {
+                //      system $
+                // printf 更新時刻とフルパス、バージョンのみ表示
+                let version = match Command::new(solver).arg("--version").output() {
+                    Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len()-1]).to_string(),
+                    _ => String::from("???"),
+                };
+                let at = match Command::new("date").arg("--iso-8601=seconds").output() {
+                    Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+                    _ => String::from("???"),
+                };
+                println!("# {} ({}) @ {}", which, version, at);
+            }
+        }
     //    let
     //      threes = [rangeFrom conf, rangeFrom conf + 25 .. rangeTo conf]
     //      nums :: Int -> [Int]
@@ -129,6 +143,7 @@ fn main() {
     //        when (threeSATSet conf) $ mapM_ (execute3SATs conf solver opts base) $ withNum 1 threes
     //        when (structuredSATSet conf) $ mapM_ (execute conf solver opts base) $ withNum 2 structuredProblems
     //    unless (null (terminateHook conf)) $ void (system (terminateHook co
+    }
 }
 
 // \\nが出てきたら改行文字に置き換え：正規表現がよさそう
