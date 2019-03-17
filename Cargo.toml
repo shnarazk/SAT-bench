@@ -1,5 +1,5 @@
 [package]
-name = "satbench2csv"
+name = "sat_bench"
 version = "0.2.4"
 authors = ["Shuji Narazaki <shujinarazaki@protonmail.com>"]
 edition = "2018"

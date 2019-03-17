@@ -15,7 +15,6 @@ use std::time::SystemTime;
 use structopt::StructOpt;
 
 const VERSION: &'static str = "sat-benchmark 0.90.0";
-const BASE_DIR: &'static str = "/Repositories/SATbench";
 const STRUCTURED_PROBLEMS: [(&'static str, &'static str); 4] = [
     ("itox", "SR2015/itox_vc1130.cnf"),
     ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
@@ -50,16 +49,12 @@ struct Config {
     message: String,
     #[structopt(long = "aux-key", short = "K", default_value = "")]
     aux_key: String,
-    #[structopt(long = "output-suffix", short = "O", default_value = "")]
-    output_suffix: String,
 }
 
 fn main() {
     println!("{}", VERSION);
     let config = Config::from_args();
-    let _home = "$HOME";
-    let base = "/home/nash".to_owned() + BASE_DIR;
-    //   let base = baseDir home
+    let base = env!("PWD");
     let single_solver = match config.solvers.len() {
         0 => panic!("no solver"),
         1 => true,
@@ -91,10 +86,9 @@ fn main() {
         print_solver(&config.solvers.get(0).unwrap());
     }
     match config.header.as_ref() {
-        "" => println!("solver, num, target, time"),
+        "" => println!("{:<14}{:>3},{:>16}{:>8}", "solver,", "num", "target,", "time"),
         _ => println!("{}", config.header),
     }
-    let opts = &config.solver_options;
     for solver in &config.solvers {
         if !single_solver {
             print_solver(solver);
@@ -105,20 +99,20 @@ fn main() {
             if config.three_sat_set {
                 for n in &threes {
                     if config.range_from <= *n && *n <= config.range_to {
-                        execute_3_sats(&config, solver, opts, &base, num, *n);
+                        execute_3sats(&config, solver, &base, num, *n);
                         num += 1;
                     }
                 }
             }
             if config.structured_set {
                 for (k, s) in &STRUCTURED_PROBLEMS {
-                    execute(&config, solver, opts, &base, num, k, s);
+                    execute(&config, solver, &base, num, k, s);
                     num += 1;
                 }
             }
         } else {
             for t in config.targets.split_whitespace() {
-                execute(&config, solver, opts, &base, num, t, t);
+                execute(&config, solver, &base, num, t, t);
                 num += 1;
             }
         }
@@ -149,7 +143,7 @@ fn print_solver(solver: &str) -> Option<String> {
 
 /// show the average or total result of SAT problems
 #[allow(unused_variables)]
-fn execute_3_sats(config: &Config, solver: &str, opts: &str, base: &str, num: usize, n: usize) {
+fn execute_3sats(config: &Config, solver: &str, base: &str, num: usize, n: usize) {
     let solver_name = format!("{}{}", solver, config.aux_key);
     print!("\"{}\", {}, \"UF{}\",\t", solver_name, num, n);
     let dir = format!("{}/3-SAT/UF{}", base, n);
@@ -157,58 +151,88 @@ fn execute_3_sats(config: &Config, solver: &str, opts: &str, base: &str, num: us
     let start = SystemTime::now();
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
+            print!(
+                "\x1B[1GRunning on {}...",
+                f.path().file_name().unwrap().to_str().unwrap()
+            );
+            stdout().flush().unwrap();
             let mut run = Command::new("timeout");
             let mut command = run
                 .arg(format!("{}", config.timeout))
                 .arg(solver)
                 .arg("-r")
                 .arg("-");
-            if !config.solver_options.is_empty() {
-                command = command.arg("");
+            for opt in config.solver_options.split_whitespace() {
+                command = command.arg(&opt[opt.starts_with('\\') as usize ..]);
             }
             match command.arg(f.path()).output() {
                 Ok(out) => {
                     if !out.status.success() {
-                        panic!("fail to execute");
+                        let end = match start.elapsed() {
+                            Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
+                            Err(_) => config.timeout as f64,
+                        };
+                        if config.timeout as f64 <= end {
+                            println!("\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{}",
+                                     &format!("\"{}\",", solver_name),
+                                     num,
+                                     &format!("\"UF{}\",", n),
+                                     &format!("TIMEOUT at {} ({:.3})", f.file_name().to_str().unwrap(), end),
+                            );
+                        }
+                        return;
                     }
                 }
                 Err(_) => panic!("timeout"),
             };
         }
     }
-    let end = match start.elapsed() {
+    let end: f64 = match start.elapsed() {
         Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
         Err(_) => 0.0f64,
     };
-    println!("{}", end);
+    println!("\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
+             &format!("\"{}\",", solver_name),
+             num,
+             &format!("\"UF{}\",", n),
+             end,
+    );
 }
 
 #[allow(unused_variables)]
-fn execute(
-    config: &Config,
-    solver: &str,
-    opts: &str,
-    base: &str,
-    num: usize,
-    name: &str,
-    target: &str,
-) {
+fn execute(config: &Config, solver: &str, base: &str, num: usize, name: &str, target: &str) {
     let solver_name = format!("{}{}", solver, config.aux_key);
-    print!("\"{}\", {}, \"UF{}\",\t", solver, num, name);
     for e in target.split_whitespace() {
         let f = PathBuf::from(e);
         if f.is_file() {
-            print!("\"{}\",{}, {}, \t", solver, num, name);
+            print!(
+                "\x1B[1GRunning on {}...",
+                f.file_name().unwrap().to_str().unwrap()
+            );
+            stdout().flush().unwrap();
             let start = SystemTime::now();
             let mut run = Command::new("timeout");
             let mut command = run.arg(format!("{}", config.timeout)).arg(solver);
-            if !config.solver_options.is_empty() {
-                command = command.arg("");
+            command = command.arg("-r").arg("-");
+            for opt in config.solver_options.split_whitespace() {
+                command = command.arg(&opt[opt.starts_with('\\') as usize ..]);
             }
             match command.arg(f.as_os_str()).output() {
                 Ok(out) => {
                     if !out.status.success() {
-                        println!("fail to execute");
+                        let end = match start.elapsed() {
+                            Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
+                            Err(_) => config.timeout as f64,
+                        };
+                        if config.timeout as f64 <= end {
+                            println!("\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8}",
+                                     &format!("\"{}\",", solver_name),
+                                     num,
+                                     &format!("\"{}\",", name),
+                                     "TIMEOUT",
+                            );
+                        }
+                        continue;
                     }
                 }
                 Err(_) => println!("timeout"),
@@ -217,7 +241,12 @@ fn execute(
                 Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
                 Err(_) => 0.0f64,
             };
-            println!("{}", end);
+            println!("\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
+                     &format!("\"{}\",", solver_name),
+                     num,
+                     &format!("\"{}\",", name),
+                     end,
+            );
         }
     }
 }

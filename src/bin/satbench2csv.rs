@@ -1,5 +1,5 @@
 use regex::Regex;
-use satbench2csv::bench18::SCB;
+use sat_bench::bench18::SCB;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
