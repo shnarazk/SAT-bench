@@ -1,20 +1,20 @@
-// use std::io::{self, Write};
 use std::fs;
-use std::path::PathBuf;
-use std::process::Command;
 /// A simple benchmarker to dump a result of testrun(s)
 /// Requirement: GNU parallel installed in your PATH
 /// Usage: sat-benchmark [OPTIONS] [solvers]
 /// # Examples:
-///   - sat-benchmark -3 250 minisat             # 3-SAT from 150 (default) to 250 vars
-///   - sat-benchmark -3 250 -s mios             # 3-SATs and your set of structured problems
-///   - sat-benchmark -o "-cla-decay 0.9" -s glucose     # options to solver
-///   - sat-benchmark -t ./g2-ACG-15-10p1.cnf -s glucose # -t for a CNF file
-///   - sat-benchmark -t '../test / *.cnf' -s glucose      # -t for CNF files
+///   - sat-bench -3 250 minisat             # 3-SAT from 150 (default) to 250 vars
+///   - sat-bench -3 250 -s mios             # 3-SATs and your set of structured problems
+///   - sat-bench -o "-cla-decay 0.9" -s glucose     # options to solver
+///   - sat-bench -t ./g2-ACG-15-10p1.cnf -s glucose # -t for a CNF file
+///   - sat-bench -t '../test / *.cnf' -s glucose      # -t for CNF files
+use std::io::{stdout, Write};
+use std::path::PathBuf;
+use std::process::Command;
+use std::time::SystemTime;
 use structopt::StructOpt;
 
-const VERSION: &'static str = "sat-benchmark 0.15.0";
-// const SET_ENV: &'static str = "export LC_ALL=C; export TIMEFORMAT=\" %2U\"";
+const VERSION: &'static str = "sat-benchmark 0.90.0";
 const BASE_DIR: &'static str = "/Repositories/SATbench";
 const STRUCTURED_PROBLEMS: [(&'static str, &'static str); 4] = [
     ("itox", "SR2015/itox_vc1130.cnf"),
@@ -23,13 +23,14 @@ const STRUCTURED_PROBLEMS: [(&'static str, &'static str); 4] = [
     ("44b", "SR2015/44bits_11.dimacs.cnf"),
 ];
 
-#[derive(Debug, StructOpt)]
+#[derive(Clone, Debug, StructOpt)]
+#[structopt(name = "sat-bench", about = "A SAT benchmarking utility")]
 #[structopt(name = "sat-bench", about = "Run simple benchmark")]
 struct Config {
     solvers: Vec<String>,
     #[structopt(long = "targets", short = "t", default_value = "")]
     targets: String,
-    #[structopt(long = "from", short = "L", default_value = "250")]
+    #[structopt(long = "from", short = "L", default_value = "200")]
     range_from: usize,
     #[structopt(long = "upto", short = "U", default_value = "250")]
     range_to: usize,
@@ -86,15 +87,14 @@ fn main() {
         "# {}, t={}, p='{}' on {} @ {}{}",
         VERSION, config.timeout, config.solver_options, h, d, extra_message
     );
+    if single_solver {
+        print_solver(&config.solvers.get(0).unwrap());
+    }
     match config.header.as_ref() {
         "" => println!("solver, num, target, time"),
         _ => println!("{}", config.header),
     }
     let opts = &config.solver_options;
-    if single_solver {
-        print_solver(&config.solvers.get(0).unwrap());
-    }
-    //forM_ (solvers conf) $ \solver -> do
     for solver in &config.solvers {
         if !single_solver {
             print_solver(solver);
@@ -124,7 +124,7 @@ fn main() {
         }
     }
     if !config.terminate_hook.is_empty() {
-        println!("terminate hook");
+        let _ = Command::new(config.terminate_hook).output();
     }
 }
 
@@ -143,7 +143,7 @@ fn print_solver(solver: &str) -> Option<String> {
         Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
         _ => String::from("???"),
     };
-    println!("# {} ({}) @ {}", which, version, at);
+    println!("# {} ({}) @ {}", which, version, &at[..at.len() - 1]);
     Some(which.to_string())
 }
 
@@ -153,10 +153,16 @@ fn execute_3_sats(config: &Config, solver: &str, opts: &str, base: &str, num: us
     let solver_name = format!("{}{}", solver, config.aux_key);
     print!("\"{}\", {}, \"UF{}\",\t", solver_name, num, n);
     let dir = format!("{}/3-SAT/UF{}", base, n);
+    stdout().flush().unwrap();
+    let start = SystemTime::now();
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
             let mut run = Command::new("timeout");
-            let mut command = run.arg(format!("{}",config.timeout)).arg(solver);
+            let mut command = run
+                .arg(format!("{}", config.timeout))
+                .arg(solver)
+                .arg("-r")
+                .arg("-");
             if !config.solver_options.is_empty() {
                 command = command.arg("");
             }
@@ -170,6 +176,11 @@ fn execute_3_sats(config: &Config, solver: &str, opts: &str, base: &str, num: us
             };
         }
     }
+    let end = match start.elapsed() {
+        Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
+        Err(_) => 0.0f64,
+    };
+    println!("{}", end);
 }
 
 #[allow(unused_variables)]
@@ -188,13 +199,13 @@ fn execute(
         let f = PathBuf::from(e);
         if f.is_file() {
             print!("\"{}\",{}, {}, \t", solver, num, name);
+            let start = SystemTime::now();
             let mut run = Command::new("timeout");
             let mut command = run.arg(format!("{}", config.timeout)).arg(solver);
             if !config.solver_options.is_empty() {
                 command = command.arg("");
             }
-            match command.arg(f.as_os_str()).output()
-            {
+            match command.arg(f.as_os_str()).output() {
                 Ok(out) => {
                     if !out.status.success() {
                         println!("fail to execute");
@@ -202,6 +213,11 @@ fn execute(
                 }
                 Err(_) => println!("timeout"),
             };
+            let end = match start.elapsed() {
+                Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
+                Err(_) => 0.0f64,
+            };
+            println!("{}", end);
         }
     }
 }
