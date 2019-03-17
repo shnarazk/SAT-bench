@@ -172,7 +172,7 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
             print!(
-                "\x1B[1GRunning on {}...",
+                "\x1B[1G\x1B[032mRunning on {}...\x1B[000m",
                 f.path().file_name().unwrap().to_str().unwrap()
             );
             stdout().flush().unwrap();
@@ -233,7 +233,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
         let f = PathBuf::from(e);
         if f.is_file() {
             print!(
-                "\x1B[1GRunning on {}...",
+                "\x1B[1G\x1B[032mRunning on {}...\x1B[000m",
                 f.file_name().unwrap().to_str().unwrap()
             );
             stdout().flush().unwrap();
