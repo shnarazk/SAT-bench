@@ -148,6 +148,7 @@ fn execute_3sats(config: &Config, solver: &str, base: &str, num: usize, n: usize
     print!("\"{}\", {}, \"UF{}\",\t", solver_name, num, n);
     let dir = format!("{}/3-SAT/UF{}", base, n);
     stdout().flush().unwrap();
+    let mut count: usize = 0;
     let start = SystemTime::now();
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
@@ -182,6 +183,7 @@ fn execute_3sats(config: &Config, solver: &str, base: &str, num: usize, n: usize
                         }
                         return;
                     }
+                    count += 1;
                 }
                 Err(_) => panic!("timeout"),
             };
@@ -194,7 +196,7 @@ fn execute_3sats(config: &Config, solver: &str, base: &str, num: usize, n: usize
     println!("\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
              &format!("\"{}\",", solver_name),
              num,
-             &format!("\"UF{}\",", n),
+             &format!("\"UF{}({})\",", n, count),
              end,
     );
 }
