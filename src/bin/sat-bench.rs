@@ -35,7 +35,6 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
 ];
 
 #[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "A SAT benchmarking utility")]
 #[structopt(name = "sat-bench", about = "Run simple benchmark")]
 struct Config {
     solvers: Vec<String>,
@@ -64,7 +63,6 @@ struct Config {
 }
 
 fn main() {
-    println!("{}", VERSION);
     let mut config = Config::from_args();
     let base = env!("PWD");
     let single_solver = match config.solvers.len() {
