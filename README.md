@@ -4,10 +4,10 @@
 
 - Modify the following nix with right values:
    - `rev` is the latest commit id.
-   - the value for `sha256` is provided by `nix-prefetch-url https://gitlab.com/satisfiability01/SATbench/repository/archive.tar.gz?ref=$rev`
-   - the value for `cargoSha256` is provided by a failure install
+   - the value for `sha256` is provided by `nix-prefetch-url https://gitlab.com/satisfiability01/SATbench/repository/archive.tar.gz?ref=$rev` .
+   - the value for `cargoSha256` is provided by a failure install.
    - See: https://nixos.org/nixpkgs/manual/#compiling-rust-applications-with-cargo
--  copy it to ~/.config/nixpkgs/overlay/sat-bench.nix,
+-  Save it as ~/.config/nixpkgs/overlay/sat-bench.nix,
 
 ```nix
 self: super:
