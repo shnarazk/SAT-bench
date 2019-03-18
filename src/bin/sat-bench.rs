@@ -5,10 +5,9 @@
 /// - sat-bench -3 -U 225 mios                  # 3-SAT from 200 to 225 vars
 /// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
-#[macro_use]
-extern crate lazy_static;
 use chrono::offset::TimeZone;
 use chrono::{DateTime, Local};
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::fs;
 use std::io::{stdout, Write};
