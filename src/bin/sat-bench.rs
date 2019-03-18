@@ -35,7 +35,7 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
 ];
 
 #[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "Run simple benchmark")]
+#[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
 struct Config {
     solvers: Vec<String>,
     #[structopt(long = "targets", short = "t", default_value = "")]

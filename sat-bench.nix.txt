@@ -1,0 +1,22 @@
+# https://nixos.org/nixpkgs/manual/#compiling-rust-applications-with-cargo
+# please copy thisto ~/.config/nixpkgs/overlay/sat-bench.nix,
+# after inserting valid values to sha256 and cargoSha256.
+self: super:
+{
+    sat-bench = super.rustPlatform.buildRustPackage rec {
+        name = "satbench-${version}";
+        version = "0.3";
+        src = super.fetchFromGitLab {
+            owner = "satisfiability01";
+            repo = "SATbench";
+            rev = "ff9a49ceaf5cd9a23388a368ec91fd14f34fa633";
+            # nix-prefetch-url https://gitlab.com/satisfiability01/SATbench/repository/archive.tar.gz?ref=a9c7b95499d66a4f50e6dd616c5f791ce0acf637
+            sha256 = "1r9zls68rcyk8cn2xn2587nvavpqqdrrvvyw34w4s608f12k8vk1";
+        };
+        cargoSha256 = "0ans5nwc4j7dgylnvg6qgcp91blcp2gawjx566v5892nr0bzpc5v";
+        meta = with super.stdenv.lib; {
+            descriptin = "An utility set for SAT benchmarking";
+            homepage = "https://gitlab.com/satisfiability01/SATbench";
+        };
+    };
+}
