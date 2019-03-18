@@ -15,7 +15,7 @@ use std::process::Command;
 use std::time::SystemTime;
 use structopt::StructOpt;
 
-const VERSION: &'static str = "sat-benchmark 0.90.0";
+const VERSION: &'static str = "sat-bench 0.90.0";
 const SAT_PROBLEMS: [(usize, &'static str); 7] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -181,32 +181,24 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
             for opt in config.solver_options.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
-            match command.arg(f.path()).output() {
-                Ok(out) => {
-                    if !out.status.success() {
-                        let end = match start.elapsed() {
-                            Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
-                            Err(_) => config.timeout as f64,
-                        };
-                        if config.timeout as f64 <= end {
-                            println!(
-                                "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{}",
-                                &format!("\"{}\",", solver_name),
-                                num,
-                                &format!("\"UF{}\",", n),
-                                &format!(
-                                    "TIMEOUT at {} ({:.3})",
-                                    f.file_name().to_str().unwrap(),
-                                    end
-                                ),
-                            );
-                        }
-                        return;
-                    }
+            match command.arg(f.path()).check_result(solver, &start, config.timeout as f64) {
+                Some(_) => {
                     count += 1;
                 }
-                Err(_) => panic!("timeout"),
-            };
+                None => {
+                    println!(
+                        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{}",
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"UF{}\",", n),
+                        &format!(
+                            "TIMEOUT at {}",
+                            f.file_name().to_str().unwrap(),
+                        ),
+                    );
+                    return;
+                }
+            }
         }
     }
     let end: f64 = match start.elapsed() {
@@ -243,44 +235,33 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             for opt in config.solver_options.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
-            match command.arg(f.as_os_str()).output() {
-                Ok(out) => {
-                    if !out.status.success() {
-                        let end = match start.elapsed() {
-                            Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
-                            Err(_) => config.timeout as f64,
-                        };
-                        if config.timeout as f64 <= end {
-                            println!(
-                                "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8}",
-                                &format!("\"{}\",", solver_name),
-                                num,
-                                &format!("\"{}\",", name),
-                                "TIMEOUT",
-                            );
-                        }
-                        continue;
-                    }
+            match command.arg(f.as_os_str()).check_result(solver, &start, config.timeout as f64) {
+                Some(end) => {
+                    println!(
+                        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}\",", name),
+                        end,
+                    );
                 }
-                Err(_) => println!("timeout"),
+                None => {
+                    println!(
+                        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8}",
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}\",", name),
+                        "TIMEOUT",
+                    );
+                }
             };
-            let end = match start.elapsed() {
-                Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
-                Err(_) => 0.0f64,
-            };
-            println!(
-                "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
-                &format!("\"{}\",", solver_name),
-                num,
-                &format!("\"{}\",", name),
-                end,
-            );
         }
     }
 }
 
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
+    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Option<f64>;
 }
 
 impl SolverHandling for Command {
@@ -305,4 +286,30 @@ impl SolverHandling for Command {
             self.arg(solver)
         }
     }
+    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Option<f64> {
+        let minisat_like = Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
+        let result = self.output();
+        match result {
+            Ok(ref done) => {
+                match done.status.code() {
+                    Some(10)| Some(20) if minisat_like.is_match(solver) => (),
+                    Some(0) => (),
+                    _ => return None,
+                }
+                match start.elapsed() {
+                    Ok(e) => {
+                        let end = e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64;
+                        if end < timeout {
+                            Some(end)
+                        } else {
+                            None
+                        }
+                    }
+                    Err(_) => return None,
+                }
+            }
+            Err(_) => None,
+        }
+    }
 }
+
