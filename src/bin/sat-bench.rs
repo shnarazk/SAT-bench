@@ -1,13 +1,13 @@
-use chrono::offset::TimeZone;
-/// A simple benchmarker to dump a result of testrun(s)
-/// Requirement: GNU parallel installed in your PATH
-/// Usage: sat-benchmark [OPTIONS] [solvers]
+/// A simple SAT benchmarker
+/// Usage: sat-bench [OPTIONS] [solvers]
 /// # Examples:
-///   - sat-bench -3 250 minisat             # 3-SAT from 150 (default) to 250 vars
-///   - sat-bench -3 250 -s mios             # 3-SATs and your set of structured problems
-///   - sat-bench -o "-cla-decay 0.9" -s glucose     # options to solver
-///   - sat-bench -t ./g2-ACG-15-10p1.cnf -s glucose # -t for a CNF file
-///   - sat-bench -t '../test / *.cnf' -s glucose      # -t for CNF files
+/// - sat-bench -s minisat                      # run on structured problems
+/// - sat-bench -3 -U 225 mios                  # 3-SAT from 200 to 225 vars
+/// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
+/// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
+#[macro_use]
+extern crate lazy_static;
+use chrono::offset::TimeZone;
 use chrono::{DateTime, Local};
 use regex::Regex;
 use std::fs;
@@ -17,8 +17,8 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
 
-const VERSION: &'static str = "sat-bench 0.90.0";
-const SAT_PROBLEMS: [(usize, &'static str); 7] = [
+const VERSION: &str = "sat-bench 0.90.1";
+const SAT_PROBLEMS: [(usize, &str); 7] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
     (150, "3-SAT/UF150"),
@@ -27,8 +27,8 @@ const SAT_PROBLEMS: [(usize, &'static str); 7] = [
     (225, "3-SAT/UF225"),
     (250, "3-SAT/UF250"),
 ];
-const UNSAT_PROBLEMS: [(usize, &'static str); 1] = [(250, "3-SAT/UUF250")];
-const STRUCTURED_PROBLEMS: [(&'static str, &'static str); 4] = [
+const UNSAT_PROBLEMS: [(usize, &str); 1] = [(250, "3-SAT/UUF250")];
+const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
     ("itox", "SR2015/itox_vc1130.cnf"),
     ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
     ("38b", "SR2015/38bits_10.dimacs.cnf"),
@@ -66,10 +66,13 @@ struct Config {
 
 fn main() {
     println!("{}", VERSION);
-    let config = Config::from_args();
+    let mut config = Config::from_args();
     let base = env!("PWD");
     let single_solver = match config.solvers.len() {
-        0 => panic!("no solver"),
+        0 => {
+            println!("Abort: no solver");
+            return;
+        }
         1 => true,
         _ => false,
     };
@@ -90,13 +93,12 @@ fn main() {
         .expect("failed to execute process")
         .stdout;
     let h = String::from_utf8_lossy(&host[..host.len() - 1]);
-    // io::stdout().write_all(&output.stdout).unwrap();
     println!(
         "# {}, t={}, p='{}' on {} @ {}{}",
         VERSION, config.timeout, config.solver_options, h, d, extra_message
     );
     if single_solver {
-        print_solver(&config.solvers.get(0).unwrap());
+        print_solver(&config.solvers[0]);
     }
     match config.header.as_ref() {
         "" => println!(
@@ -105,21 +107,17 @@ fn main() {
         ),
         _ => println!("{}", config.header),
     }
+    if !config.three_sat_set && !config.structured_set && config.targets.is_empty() {
+        config.three_sat_set = true;
+    }
     for solver in &config.solvers {
         if !single_solver {
             print_solver(solver);
         }
         let mut num: usize = 1;
-        if config.targets.is_empty() {
-            if config.three_sat_set {
-                for (n, s) in &SAT_PROBLEMS {
-                    if config.range_from <= *n && *n <= config.range_to {
-                        let dir = format!("{}/{}", base, s);
-                        execute_3sats(&config, solver, num, *n, &dir);
-                        num += 1;
-                    }
-                }
-                for (n, s) in &UNSAT_PROBLEMS {
+        if config.three_sat_set {
+            for cat in &[SAT_PROBLEMS.to_vec(), UNSAT_PROBLEMS.to_vec()] {
+                for (n, s) in cat {
                     if config.range_from <= *n && *n <= config.range_to {
                         let dir = format!("{}/{}", base, s);
                         execute_3sats(&config, solver, num, *n, &dir);
@@ -127,18 +125,17 @@ fn main() {
                     }
                 }
             }
-            if config.structured_set {
-                for (k, s) in &STRUCTURED_PROBLEMS {
-                    let cnf = format!("{}/{}", base, s);
-                    execute(&config, solver, num, k, &cnf);
-                    num += 1;
-                }
-            }
-        } else {
-            for t in config.targets.split_whitespace() {
-                execute(&config, solver, num, t, t);
+        }
+        if config.structured_set {
+            for (k, s) in &STRUCTURED_PROBLEMS {
+                let cnf = format!("{}/{}", base, s);
+                execute(&config, solver, num, k, &cnf);
                 num += 1;
             }
+        }
+        for t in config.targets.split_whitespace() {
+            execute(&config, solver, num, t, t);
+            num += 1;
         }
     }
     if !config.terminate_hook.is_empty() {
@@ -252,33 +249,31 @@ trait SolverHandling {
 
 impl SolverHandling for Command {
     fn set_solver(&mut self, solver: &str) -> &mut Command {
-        // FIXME: use lazy-static to reuse compiled regexs
-        let glucose = Regex::new(r"\bglucose").expect("wrong regex");
-        let lingeling = Regex::new(r"\blingeling").expect("wrong regex");
-        let minisat = Regex::new(r"\bminisat").expect("wrong regex");
-        let mios = Regex::new(r"\bmios").expect("wrong regex");
-        let splr = Regex::new(r"\bsplr").expect("wrong regex");
-        if splr.is_match(solver) {
+        lazy_static! {
+            static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
+            // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
+            // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
+            // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
+            static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
+        }
+        if SPLR.is_match(solver) {
             self.args(&[solver, "-r", "-"])
-        } else if glucose.is_match(solver) {
+        } else if GLUCOSE.is_match(solver) {
             self.args(&[solver, "-verb=0"])
-        } else if lingeling.is_match(solver) {
-            self.arg(solver)
-        } else if mios.is_match(solver) {
-            self.arg(solver)
-        } else if minisat.is_match(solver) {
-            self.arg(solver)
         } else {
             self.arg(solver)
         }
     }
     fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Option<f64> {
-        let minisat_like = Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
+        lazy_static! {
+            static ref MINISAT_LIKE: Regex =
+                Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
+        }
         let result = self.output();
         match result {
             Ok(ref done) => {
                 match done.status.code() {
-                    Some(10) | Some(20) if minisat_like.is_match(solver) => (),
+                    Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
                     Some(0) => (),
                     _ => return None,
                 }
@@ -291,7 +286,7 @@ impl SolverHandling for Command {
                             None
                         }
                     }
-                    Err(_) => return None,
+                    Err(_) => None,
                 }
             }
             Err(_) => None,
