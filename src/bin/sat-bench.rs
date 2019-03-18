@@ -78,22 +78,36 @@ fn main() {
     } else {
         format!(", {}", config.message)
     };
-    let date = Command::new("date")
-        .arg("-Iseconds")
-        .output()
-        .expect("failed to execute process")
-        .stdout;
-    let d = String::from_utf8_lossy(&date[..date.len() - 1]);
     let host = Command::new("hostname")
         .arg("-s")
         .output()
         .expect("failed to execute process")
         .stdout;
     let h = String::from_utf8_lossy(&host[..host.len() - 1]);
-    println!(
-        "# {}, t={}, p='{}' on {} @ {}{}",
-        VERSION, config.timeout, config.solver_options, h, d, extra_message
-    );
+    if config.solver_options.is_empty() {
+        println!(
+            "# {}, timeout:{} on {} @ {}{}",
+            VERSION,
+            config.timeout,
+            h,
+            system_time_to_date_time(SystemTime::now())
+                .format("%F-%m-%dT%H:%M:%S")
+                .to_string(),
+            extra_message
+        );
+    } else {
+        println!(
+            "# {}, timeout:{}, options:'{}' on {} @ {}{}",
+            VERSION,
+            config.timeout,
+            config.solver_options,
+            h,
+            system_time_to_date_time(SystemTime::now())
+                .format("%F-%m-%dT%H:%M:%S")
+                .to_string(),
+            extra_message
+        );
+    }
     if single_solver {
         print_solver(&config.solvers[0]);
     }
