@@ -9,6 +9,7 @@ use chrono::offset::TimeZone;
 use chrono::{DateTime, Local};
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::env;
 use std::fs;
 use std::io::{stdout, Write};
 use std::path::PathBuf;
@@ -16,7 +17,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
 
-const VERSION: &str = "sat-bench 0.90.1";
+const VERSION: &str = "sat-bench 0.90.2";
 const SAT_PROBLEMS: [(usize, &str); 7] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -310,14 +311,19 @@ fn print_solver(solver: &str) -> Option<String> {
         Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
         _ => return None,
     };
-    which.pop();
+    which = which.trim_end_matches('\n').to_string();
+    let at = fs::metadata(&which);
+    if let Ok(home) = env::var("HOME") {
+        home.trim_end_matches('/');
+        let hr = Regex::new(&home).expect("wrong regex");
+        which = hr.replace(&which, "~").to_string();
+    }
     // printf 更新時刻とフルパス、バージョンのみ表示
     let version = match Command::new(solver).arg("--version").output() {
         Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len() - 1]).to_string(),
         _ => String::from("???"),
     };
     print!("# {} ({})", which, version);
-    let at = fs::metadata(&which);
     if let Ok(meta) = at {
         if let Ok(time) = meta.modified() {
             println!(
@@ -327,6 +333,8 @@ fn print_solver(solver: &str) -> Option<String> {
                     .to_string()
             );
         }
+    } else {
+        println!();
     }
     Some(which.to_string())
 }
