@@ -1,3 +1,4 @@
+use chrono::offset::TimeZone;
 /// A simple benchmarker to dump a result of testrun(s)
 /// Requirement: GNU parallel installed in your PATH
 /// Usage: sat-benchmark [OPTIONS] [solvers]
@@ -7,12 +8,13 @@
 ///   - sat-bench -o "-cla-decay 0.9" -s glucose     # options to solver
 ///   - sat-bench -t ./g2-ACG-15-10p1.cnf -s glucose # -t for a CNF file
 ///   - sat-bench -t '../test / *.cnf' -s glucose      # -t for CNF files
+use chrono::{DateTime, Local};
 use regex::Regex;
 use std::fs;
 use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::process::Command;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
 
 const VERSION: &'static str = "sat-bench 0.90.0";
@@ -144,25 +146,6 @@ fn main() {
     }
 }
 
-fn print_solver(solver: &str) -> Option<String> {
-    let mut which = match Command::new("which").arg(&solver).output() {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-        _ => return None,
-    };
-    which.pop();
-    // printf 更新時刻とフルパス、バージョンのみ表示
-    let version = match Command::new(solver).arg("--version").output() {
-        Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len() - 1]).to_string(),
-        _ => String::from("???"),
-    };
-    let at = match Command::new("date").arg("--iso-8601=seconds").output() {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-        _ => String::from("???"),
-    };
-    println!("# {} ({}) @ {}", which, version, &at[..at.len() - 1]);
-    Some(which.to_string())
-}
-
 /// show the average or total result of SAT problems
 #[allow(unused_variables)]
 fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str) {
@@ -181,7 +164,10 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
             for opt in config.solver_options.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
-            match command.arg(f.path()).check_result(solver, &start, config.timeout as f64) {
+            match command
+                .arg(f.path())
+                .check_result(solver, &start, config.timeout as f64)
+            {
                 Some(_) => {
                     count += 1;
                 }
@@ -191,10 +177,7 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"UF{}\",", n),
-                        &format!(
-                            "TIMEOUT at {}",
-                            f.file_name().to_str().unwrap(),
-                        ),
+                        &format!("TIMEOUT at {}", f.file_name().to_str().unwrap(),),
                     );
                     return;
                 }
@@ -235,7 +218,10 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             for opt in config.solver_options.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
-            match command.arg(f.as_os_str()).check_result(solver, &start, config.timeout as f64) {
+            match command
+                .arg(f.as_os_str())
+                .check_result(solver, &start, config.timeout as f64)
+            {
                 Some(end) => {
                     println!(
                         "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
@@ -292,7 +278,7 @@ impl SolverHandling for Command {
         match result {
             Ok(ref done) => {
                 match done.status.code() {
-                    Some(10)| Some(20) if minisat_like.is_match(solver) => (),
+                    Some(10) | Some(20) if minisat_like.is_match(solver) => (),
                     Some(0) => (),
                     _ => return None,
                 }
@@ -313,3 +299,46 @@ impl SolverHandling for Command {
     }
 }
 
+fn print_solver(solver: &str) -> Option<String> {
+    let mut which = match Command::new("which").arg(&solver).output() {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+        _ => return None,
+    };
+    which.pop();
+    // printf 更新時刻とフルパス、バージョンのみ表示
+    let version = match Command::new(solver).arg("--version").output() {
+        Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len() - 1]).to_string(),
+        _ => String::from("???"),
+    };
+    print!("# {} ({})", which, version);
+    let at = fs::metadata(&which);
+    if let Ok(meta) = at {
+        if let Ok(time) = meta.modified() {
+            println!(
+                " @ {}",
+                system_time_to_date_time(time)
+                    .format("%F-%m-%dT%H:%M:%S")
+                    .to_string()
+            );
+        }
+    }
+    Some(which.to_string())
+}
+
+// See https://users.rust-lang.org/t/convert-std-time-systemtime-to-chrono-datetime-datetime
+fn system_time_to_date_time(t: SystemTime) -> DateTime<Local> {
+    let (sec, nsec) = match t.duration_since(UNIX_EPOCH) {
+        Ok(dur) => (dur.as_secs() as i64, dur.subsec_nanos()),
+        Err(e) => {
+            // unlikely but should be handled
+            let dur = e.duration();
+            let (sec, nsec) = (dur.as_secs() as i64, dur.subsec_nanos());
+            if nsec == 0 {
+                (-sec, 0)
+            } else {
+                (-sec - 1, 1_000_000_000 - nsec)
+            }
+        }
+    };
+    Local.timestamp(sec, nsec)
+}
