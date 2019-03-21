@@ -93,10 +93,11 @@ struct Config {
 
 fn main() {
     let mut config = Config::from_args();
-    // let base = env!("PWD");
     let base = if config.lib_dir.is_empty() {
-        let static_lib = env!("SATBENCHLIB");
-        static_lib
+        match  option_env!("SATBENCHLIB") {
+            Some(dir) => dir,
+            None => env!("PWD"),
+        }
     } else {
         &config.lib_dir
     };
