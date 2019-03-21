@@ -86,11 +86,21 @@ struct Config {
     message: String,
     #[structopt(long = "aux-key", short = "K", default_value = "")]
     aux_key: String,
+    /// directory holding instances
+    #[structopt(long = "lib", default_value = "")]
+    lib_dir: String
 }
 
 fn main() {
     let mut config = Config::from_args();
-    let base = env!("PWD");
+    // let base = env!("PWD");
+    let base = if config.lib_dir.is_empty() {
+        let static_lib = env!("SATBENCHLIB");
+        println!("{}", static_lib);
+        static_lib
+    } else {
+        &config.lib_dir
+    };
     let single_solver = match config.solvers.len() {
         0 => {
             println!("Abort: no solver");

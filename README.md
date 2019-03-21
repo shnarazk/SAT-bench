@@ -1,5 +1,12 @@
 # SATbench, small utilities about SAT benchmark
 
+## INSTALL
+
+```
+export SATBENCHLIB="..."
+cargo install
+```
+
 ## Nix Overlay
 
 - Modify the following nix with right values:
@@ -12,21 +19,30 @@
 ```nix
 self: super:
 {
-    sat-bench = super.rustPlatform.buildRustPackage rec {
-        name = "satbench-${version}";
-        version = "0.3";
-        src = super.fetchFromGitLab {
-            owner = "satisfiability01";
-            repo = "SATbench";
-            rev = "FIXME";
-            sha256 = "FIXME";
-        };
-        cargoSha256 = "FIXME";
-        meta = with super.stdenv.lib; {
-            description = "Small utilities for SAT benchmark";
-            homepage = "https://gitlab.com/satisfiability01/SATbench";
-        };
+  sat-bench = super.rustPlatform.buildRustPackage rec {
+    name = "satbench-${version}";
+    version = "0.3";
+    src = super.fetchFromGitLab {
+      owner = "satisfiability01";
+      repo = "SATbench";
+      rev = "FIXME";
+      sha256 = "FIXME";
     };
+    cargoSha256 = "FIXME";
+    meta = with super.stdenv.lib; {
+      description = "Small utilities for SAT benchmark";
+      homepage = "https://gitlab.com/satisfiability01/SATbench";
+    };
+    buildPhase = ''
+	  export SATBENCHLIB=$out/lib
+      cargo build
+	'';
+	installPhase = ''
+	  export SATBENCHLIB=$out/lib
+      cargo install --path .
+	  mkdir -p $out/lib
+	  cp -r 3-SAT SAT09 SAT2015 $out/lib/
+	''
+  };
 }
 ```
-
