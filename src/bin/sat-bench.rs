@@ -58,6 +58,7 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
     ("38b", "SR2015/38bits_10.dimacs.cnf"),
     ("44b", "SR2015/44bits_11.dimacs.cnf"),
 ];
+const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
@@ -188,7 +189,8 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
             print!(
-                "\x1B[1G\x1B[032mRunning on {}...\x1B[000m",
+                "{}\x1B[032mRunning on {}...\x1B[000m",
+                CLEAR,
                 f.path().file_name().unwrap().to_str().unwrap()
             );
             stdout().flush().unwrap();
@@ -206,7 +208,8 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
                 }
                 None => {
                     println!(
-                        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{}",
+                        "{}{:<14}{:>3},{:>16}{}",
+                        CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"UF{}\",", n),
@@ -222,7 +225,8 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
         Err(_) => 0.0f64,
     };
     println!(
-        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
+        "{}{:<14}{:>3},{:>16}{:>8.3}",
+        CLEAR,
         &format!("\"{}\",", solver_name),
         num,
         &format!(
@@ -241,7 +245,8 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
         let f = PathBuf::from(e);
         if f.is_file() {
             print!(
-                "\x1B[1G\x1B[032mRunning on {}...\x1B[000m",
+                "{}\x1B[032mRunning on {}...\x1B[000m",
+                CLEAR,
                 f.file_name().unwrap().to_str().unwrap()
             );
             stdout().flush().unwrap();
@@ -257,7 +262,8 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             {
                 Some(end) => {
                     println!(
-                        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8.3}",
+                        "{}{:<14}{:>3},{:>16}{:>8.3}",
+                        CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"{}\",", name),
@@ -266,7 +272,8 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 None => {
                     println!(
-                        "\x1B[1G\x1B[0K{:<14}{:>3},{:>16}{:>8}",
+                        "{}{:<14}{:>3},{:>16}{:>8}",
+                        CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"{}\",", name),
