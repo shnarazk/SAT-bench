@@ -96,7 +96,6 @@ fn main() {
     // let base = env!("PWD");
     let base = if config.lib_dir.is_empty() {
         let static_lib = env!("SATBENCHLIB");
-        println!("{}", static_lib);
         static_lib
     } else {
         &config.lib_dir
