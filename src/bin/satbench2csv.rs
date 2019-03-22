@@ -30,7 +30,7 @@ pub struct Config {
 
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
-    let mut hash: HashMap<&str, f64> = HashMap::new();
+    let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
     let tag: &str = if config.solver.is_empty() {
         if config.from.ends_with('/') {
             &config.from[..config.from.len() - 1]
@@ -56,8 +56,8 @@ fn main() -> std::io::Result<()> {
                     if None != hash.get(key) {
                         panic!("duplicated {}", cnf);
                     }
-                    if let Some((t, s)) = read_time(f.path()) {
-                        hash.insert(key, timeout.min(t));
+                    if let Some((t, s, m)) = parse_result(f.path()) {
+                        hash.insert(key, (timeout.min(t), s, m));
                         if s {
                             nsat += 1;
                         } else {
@@ -75,32 +75,35 @@ fn main() -> std::io::Result<()> {
         nunsat,
         nsat + nunsat
     );
-    println!("solver, num, target, time");
+    println!("solver, num, target, time, satisfiability, strategy");
     for (i, key) in SCB.iter().enumerate() {
         if let Some(v) = hash.get(key) {
             println!(
-                "\"{}\",{},\"{}{}\",{:>8.2}",
+                "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
                 tag,
                 i + 1,
                 config.target,
                 key,
-                *v
+                v.0,
+                v.1,
+                v.2,
             );
         } else {
             println!(
-                "\"{}\",{},\"{}{}\",{:>5}",
+                "\"{}\",{},\"{}{}\",{:>5},{},",
                 tag,
                 i + 1,
                 config.target,
                 key,
-                config.timeout
+                config.timeout,
+                "",
             );
         }
     }
     Ok(())
 }
 
-fn read_time(fname: PathBuf) -> Option<(f64, bool)> {
+fn parse_result(fname: PathBuf) -> Option<(f64, bool, String)> {
     let f;
     match File::open(fname) {
         Ok(fin) => f = fin,
@@ -109,11 +112,12 @@ fn read_time(fname: PathBuf) -> Option<(f64, bool)> {
     let mut input = BufReader::new(f);
     let sat = Regex::new(r"\bSATISFIABLE\b").expect("wrong regex");
     let unsat = Regex::new(r"\bUNSATISFIABLE\b").expect("wrong regex");
-    let splr = Regex::new(r"time: +([.0-9]+)").expect("wrong regex");
+    let splr = Regex::new(r"^c +Strategy\|mode: +([^,]+), time: +([.0-9]+)").expect("wrong regex");
     let glucose = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
     let mut buf = String::new();
     let mut time: Option<f64> = None;
     let mut found: Option<bool> = None;
+    let mut strategy: String = "".to_string();
     while let Ok(k) = input.read_line(&mut buf) {
         if k == 0 {
             break;
@@ -125,7 +129,8 @@ fn read_time(fname: PathBuf) -> Option<(f64, bool)> {
             assert_eq!(found, None);
             found = Some(false);
         } else if let Some(c) = splr.captures(&buf) {
-            if let Ok(v) = c[1].parse() {
+            strategy = c[1].to_string();
+            if let Ok(v) = c[2].parse() {
                 time = Some(v);
             }
         } else if let Some(c) = glucose.captures(&buf) {
@@ -136,7 +141,7 @@ fn read_time(fname: PathBuf) -> Option<(f64, bool)> {
         buf.clear();
     }
     match (time, found) {
-        (Some(t), Some(f)) => Some((t, f)),
+        (Some(t), Some(f)) => Some((t, f, strategy)),
         _ => None,
     }
 }
