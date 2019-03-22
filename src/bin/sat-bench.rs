@@ -194,6 +194,7 @@ fn main() {
 #[allow(unused_variables)]
 fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str) {
     let solver_name = format!("{}{}", solver, config.aux_key);
+    // let spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let mut count: usize = 0;
     let start = SystemTime::now();
     for e in fs::read_dir(dir).unwrap() {
@@ -201,6 +202,7 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
             print!(
                 "{}\x1B[032mRunning on {}...\x1B[000m",
                 CLEAR,
+                // &spinner[count % spinner.len()],
                 f.path().file_name().unwrap().to_str().unwrap()
             );
             stdout().flush().unwrap();
