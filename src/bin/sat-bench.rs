@@ -88,13 +88,13 @@ struct Config {
     aux_key: String,
     /// directory holding instances
     #[structopt(long = "lib", default_value = "")]
-    lib_dir: String
+    lib_dir: String,
 }
 
 fn main() {
     let mut config = Config::from_args();
     let base = if config.lib_dir.is_empty() {
-        match  option_env!("SATBENCHLIB") {
+        match option_env!("SATBENCHLIB") {
             Some(dir) => dir,
             None => env!("PWD"),
         }
