@@ -53,10 +53,10 @@ const UNSAT_PROBLEMS: [(usize, &str); 12] = [
     (560, "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560"),
 ];
 const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
-    ("itox", "SR2015/itox_vc1130.cnf"),
-    ("m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
-    ("38b", "SR2015/38bits_10.dimacs.cnf"),
-    ("44b", "SR2015/44bits_11.dimacs.cnf"),
+    ("SR2015/itox", "SR2015/itox_vc1130.cnf"),
+    ("SR2015/m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
+    ("SR2015/38b", "SR2015/38bits_10.dimacs.cnf"),
+    ("SR2015/44b", "SR2015/44bits_11.dimacs.cnf"),
 ];
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
@@ -149,7 +149,7 @@ fn main() {
     }
     match config.header.as_ref() {
         "" => println!(
-            "{:<14}{:>3},{:>16}{:>8}",
+            "{:<14}{:>3},{:>20}{:>8}",
             "solver,", "num", "target,", "time"
         ),
         _ => println!("{}", config.header),
@@ -220,12 +220,12 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
                 }
                 None => {
                     println!(
-                        "{}{:<14}{:>3},{:>16}{}",
+                        "{}{:<14}{:>3},{:>20} TIMEOUT at {}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"UF{}\",", n),
-                        &format!("TIMEOUT at {}", f.file_name().to_str().unwrap(),),
+                        f.file_name().to_str().unwrap(),
                     );
                     return;
                 }
@@ -237,7 +237,7 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
         Err(_) => 0.0f64,
     };
     println!(
-        "{}{:<14}{:>3},{:>16}{:>8.3}",
+        "{}{:<14}{:>3},{:>20}{:>8.3}",
         CLEAR,
         &format!("\"{}\",", solver_name),
         num,
@@ -274,7 +274,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             {
                 Some(end) => {
                     println!(
-                        "{}{:<14}{:>3},{:>16}{:>8.3}",
+                        "{}{:<14}{:>3},{:>20}{:>8.3}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
@@ -284,7 +284,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 None => {
                     println!(
-                        "{}{:<14}{:>3},{:>16}{:>8}",
+                        "{}{:<14}{:>3},{:>20}{:>8}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
