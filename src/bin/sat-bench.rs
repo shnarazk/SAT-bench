@@ -68,7 +68,7 @@ struct Config {
     targets: String,
     #[structopt(long = "from", short = "L", default_value = "200")]
     range_from: usize,
-    #[structopt(long = "upto", short = "U", default_value = "250")]
+    #[structopt(long = "upto", short = "U", default_value = "360")]
     range_to: usize,
     #[structopt(long = "3SAT", short = "3")]
     three_sat_set: bool,
