@@ -350,6 +350,11 @@ impl SolverHandling for Command {
 fn print_solver(solver: &str) -> Option<String> {
     let mut which = match Command::new("which").arg(&solver).output() {
         Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+        _ if PathBuf::from(solver).exists() => PathBuf::from(solver)
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned(),
         _ => return None,
     };
     which = which.trim_end_matches('\n').to_string();
