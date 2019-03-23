@@ -17,7 +17,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
 
-const VERSION: &str = "sat-bench 0.90.2";
+const VERSION: &str = "sat-bench 0.90.3";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -63,30 +63,39 @@ const CLEAR: &str = "\x1B[1G\x1B[0K";
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
 struct Config {
+    /// solvers names
     solvers: Vec<String>,
+    /// a list of CNF files
     #[structopt(long = "targets", short = "t", default_value = "")]
     targets: String,
+    /// Lower limit of the number of variables of 3-SAT instances
     #[structopt(long = "from", short = "L", default_value = "200")]
     range_from: usize,
+    /// Upper limit of the number of variables of 3-SAT instances
     #[structopt(long = "upto", short = "U", default_value = "360")]
     range_to: usize,
+    /// 3-SAT instances
     #[structopt(long = "3SAT", short = "3")]
     three_sat_set: bool,
+    /// Structured instances
     #[structopt(long = "structured", short = "s")]
     structured_set: bool,
+    /// time out in seconds
     #[structopt(long = "timeout", short = "T", default_value = "510")]
     timeout: usize,
+    /// command to be executed after end of run
     #[structopt(long = "terminate-hook", default_value = "finished")]
     terminate_hook: String,
+    /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
-    #[structopt(long = "header", short = "H", default_value = "")]
-    header: String,
+    ///  additinal string used in header
     #[structopt(long = "message", short = "M", default_value = "")]
     message: String,
+    /// additional string following solver name
     #[structopt(long = "aux-key", short = "K", default_value = "")]
     aux_key: String,
-    /// directory holding instances
+    /// data directory
     #[structopt(long = "lib", default_value = "")]
     lib_dir: String,
 }
@@ -147,13 +156,10 @@ fn main() {
     if single_solver {
         print_solver(&config.solvers[0]);
     }
-    match config.header.as_ref() {
-        "" => println!(
-            "{:<14}{:>3},{:>20}{:>8}",
-            "solver,", "num", "target,", "time"
-        ),
-        _ => println!("{}", config.header),
-    }
+    println!(
+        "{:<14}{:>3},{:>20}{:>8}",
+        "solver,", "num", "target,", "time"
+    );
     if !config.three_sat_set && !config.structured_set && config.targets.is_empty() {
         config.three_sat_set = true;
     }
@@ -163,13 +169,18 @@ fn main() {
         }
         let mut num: usize = 1;
         if config.three_sat_set {
-            for cat in &[SAT_PROBLEMS.to_vec(), UNSAT_PROBLEMS.to_vec()] {
-                for (n, s) in cat {
-                    if config.range_from <= *n && *n <= config.range_to {
-                        let dir = format!("{}/{}", base, s);
-                        execute_3sats(&config, solver, num, *n, &dir);
-                        num += 1;
-                    }
+            for (n, s) in &SAT_PROBLEMS {
+                if config.range_from <= *n && *n <= config.range_to {
+                    let dir = format!("{}/{}", base, s);
+                    execute_3sats(&config, solver, "UF", num, *n, &dir);
+                    num += 1;
+                }
+            }
+            for (n, s) in &UNSAT_PROBLEMS {
+                if config.range_from <= *n && *n <= config.range_to {
+                    let dir = format!("{}/{}", base, s);
+                    execute_3sats(&config, solver, "UUF", num, *n, &dir);
+                    num += 1;
                 }
             }
         }
@@ -192,7 +203,7 @@ fn main() {
 
 /// show the average or total result of SAT problems
 #[allow(unused_variables)]
-fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str) {
+fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize, dir: &str) {
     let solver_name = format!("{}{}", solver, config.aux_key);
     // let spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let mut count: usize = 0;
@@ -224,7 +235,7 @@ fn execute_3sats(config: &Config, solver: &str, num: usize, n: usize, dir: &str)
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
-                        &format!("\"UF{}\",", n),
+                        &format!("\"{}{}\",", name, n),
                         f.file_name().to_str().unwrap(),
                     );
                     return;
