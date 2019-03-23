@@ -3,11 +3,7 @@
 - sat-bench
 - satbench2csv
 
-## INSTALL
-
-`git clone` then `cargo install`
-
-
 ## Nix Overlay
 
-Check https://github.com/shnarazk/SAT-bench/wiki
+https://gitlab.com/shnarazk/SAT/SAT-bench/wikis/home
+
