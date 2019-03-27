@@ -17,7 +17,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
 
-const VERSION: &str = "sat-bench 0.90.3";
+const VERSION: &str = "sat-bench 0.90.4";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -208,6 +208,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
     // let spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let mut count: usize = 0;
     let start = SystemTime::now();
+    let _tag = PathBuf::from(dir).file_name().unwrap().to_string_lossy();
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
             print!(
@@ -235,7 +236,8 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
-                        &format!("\"{}{}\",", name, n),
+                        &format!("\"{}{}({})\",", name, n, count),
+                        // &format!("\"{}({})\",", tag, count),
                         f.file_name().to_str().unwrap(),
                     );
                     return;
@@ -252,11 +254,8 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         CLEAR,
         &format!("\"{}\",", solver_name),
         num,
-        &format!(
-            "\"{}({})\",",
-            PathBuf::from(dir).file_name().unwrap().to_string_lossy(),
-            count
-        ),
+        &format!("\"{}{}({})\",", name, n, count),
+        // &format!("\"{}({})\",", tag, count),
         end,
     );
 }
