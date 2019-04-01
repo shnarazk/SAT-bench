@@ -16,17 +16,17 @@ use serenity::client::{Client, Context, EventHandler};
 use serenity::command;
 use serenity::framework::standard::StandardFramework;
 use serenity::model::channel::Channel;
+use serenity::model::event::TypingStartEvent;
 use serenity::model::gateway::Game;
 use serenity::model::id::{ChannelId, GuildId};
-use serenity::model::prelude::Ready;
-use serenity::model::prelude::{Message, PresenceUpdateEvent};
-// use serenity::framework::standard::Args;
+use serenity::model::prelude::{Message, PresenceUpdateEvent, Ready};
 use std::sync::RwLock;
-use std::{env, thread, time::Duration};
+use std::{env, thread};
 
 lazy_static! {
-    pub static ref M: &'static str = "a";
+    pub static ref M: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
+    pub static ref CHID: RwLock<u64> = RwLock::new(0);
 }
 
 fn main() {
@@ -59,58 +59,30 @@ impl EventHandler for Handler {
             run_cleaner();
         }
     }
+    fn typing_start(&self, ctx: Context, _: TypingStartEvent) {
+        if let Ok(mes) = M.read() {
+        let name = format!("{}", *mes);
+        ctx.set_game(Game::playing(&name));
+        }
+    }
 }
 
 fn run_bot() {
     // Login with a bot token from the environment
+    if let Ok(mut cid) = CHID.write() {
+        *cid = env::var("DISCORD_CHANNEL")
+            .expect("no channel")
+            .parse::<u64>()
+            .unwrap();
+    }
     let mut client = Client::new(&env::var("DISCORD_TOKEN").expect("token"), Handler)
         .expect("Error creating client");
-    thread::spawn(move || {
-        let millis = Duration::from_millis(20 * 1000);
-        loop {
-            // call solver here
-            if let Ok(mut n) = N.write() {
-                *n += 1;
-                println!("ooo {}", *n);
-                if let Ok(channel) = ChannelId(
-                    env::var("DISCORD_CHANNEL")
-                        .expect("no channel")
-                        .parse::<u64>()
-                        .unwrap(),
-                )
-                    .to_channel()
-                {
-                    if let Channel::Guild(gchannel) = &channel {
-                        let ch = gchannel.read();
-                        if *n % 10 == 0 {
-                            ch.broadcast_typing().expect("oo");
-                            // ch.say("#clear").expect("fail");
-                        //} else {
-                          //  ch.say("not yet").expect("failed");
-                        }
-                    }
-                }
-                let _name = format!("Let's give a try {}!", n);
-                // ctx.set_game(Game::playing(&name));
-            }
-            thread::sleep(millis);
-        }
-    });
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.prefix("#"))
-            .cmd("ping", ping)
+            .configure(|c| c.prefix("."))
             .cmd("clear", clean),
     );
-    let shard_manager = client.shard_manager.clone();
-    thread::spawn(move || {
-        loop {
-            println!("Shard count instantiated: {}",
-                     shard_manager.lock().shards_instantiated().len());
-    
-            thread::sleep(Duration::from_millis(5000));
-        }
-    });
+    thread::spawn(move || { main_loop(); } );
     // start listening for events by starting a single shard
     if let Err(why) = client.start() {
         println!("An error occurred while running the client: {:?}", why);
@@ -171,38 +143,20 @@ fn cleaner(channel: &Channel, message: &Message) -> serenity::Result<()> {
     Ok(())
 }
 
-command!(ping(_context, message) {
-    let _ = message.reply("Pong!");
-});
-
-command!(game(ctx, _msg, _args) {
-    let name = "Let's give a try!";
-    ctx.set_game(Game::playing(&name));
-});
-
 command!(clean(context, message) {
-    context.set_game(Game::playing("Hmm"));
-    let test = env::var("BOT_TEST")
-        .unwrap_or_else(|_| "1".to_string())
-        .parse::<usize>()
-        .unwrap_or(1)
-        == 1;
+    context.idle();
     let ch = message.channel_id;
     let retriever = GetMessages::default().before(message.id).limit(100);
     match ch.messages(|_| retriever) {
-        Ok(ref v) if !test => {
+        Ok(ref v) => {
             let len = v.len();
-            let mut _n = 0;
-            for (i, m) in v[len / 2..].iter().enumerate() {
+            let mut n = 0;
+            for (i, m) in v.iter().enumerate() {
                 match m.delete() {
-                    Ok(_) => _n += 1,
-                    Err(why) => println!("{} -> {}", i, why),
+                    Ok(_) => n += 1,
+                    Err(why) => println!("{} ({}/{}): {}", n, i, len, why),
                 }
             }
-            message.delete().unwrap();
-        }
-        Ok(_) => {
-            ch.say("Yay, succeeded to test APIs. Let's switch to real mode.")?;
         }
         Err(e) => {
             ch.say(&format!("Error {}", e))?;
@@ -225,21 +179,12 @@ const CLEAR: &str = "\x1B[1G\x1B[0K";
 struct Config {
     /// solvers names
     solvers: Vec<String>,
-    /// Structured instances
-    #[structopt(long = "structured", short = "s")]
-    structured_set: bool,
     /// time out in seconds
     #[structopt(long = "timeout", short = "T", default_value = "510")]
     timeout: usize,
-    /// command to be executed after end of run
-    #[structopt(long = "terminate-hook", default_value = "finished")]
-    terminate_hook: String,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
-    ///  additinal string used in header
-    #[structopt(long = "message", short = "M", default_value = "")]
-    message: String,
     /// additional string following solver name
     #[structopt(long = "aux-key", short = "K", default_value = "")]
     aux_key: String,
@@ -248,8 +193,9 @@ struct Config {
     lib_dir: String,
 }
 
-pub fn main_exp() {
-    let config = Config::from_args();
+pub fn main_loop() {
+    let mut config = Config::from_args();
+    config.solvers.push("splr-013".to_string());
     let base = if config.lib_dir.is_empty() {
         match option_env!("SATBENCHLIB") {
             Some(dir) => dir,
@@ -257,19 +203,6 @@ pub fn main_exp() {
         }
     } else {
         &config.lib_dir
-    };
-    let single_solver = match config.solvers.len() {
-        0 => {
-            println!("Abort: no solver");
-            return;
-        }
-        1 => true,
-        _ => false,
-    };
-    let extra_message = if config.message == "" {
-        "".to_string()
-    } else {
-        format!(", {}", config.message)
     };
     let host = Command::new("hostname")
         .arg("-s")
@@ -279,18 +212,17 @@ pub fn main_exp() {
     let h = String::from_utf8_lossy(&host[..host.len() - 1]);
     if config.solver_options.is_empty() {
         println!(
-            "# {}, timeout:{} on {} @ {}{}",
+            "# {}, timeout:{} on {} @ {}",
             VERSION,
             config.timeout,
             h,
             system_time_to_date_time(SystemTime::now())
                 .format("%F-%m-%dT%H:%M:%S")
                 .to_string(),
-            extra_message
         );
     } else {
         println!(
-            "# {}, timeout:{}, options:'{}' on {} @ {}{}",
+            "# {}, timeout:{}, options:'{}' on {} @ {}",
             VERSION,
             config.timeout,
             config.solver_options,
@@ -298,79 +230,102 @@ pub fn main_exp() {
             system_time_to_date_time(SystemTime::now())
                 .format("%F-%m-%dT%H:%M:%S")
                 .to_string(),
-            extra_message
         );
     }
-    if single_solver {
-        print_solver(&config.solvers[0]);
-    }
+    print_solver(&config.solvers[0]);
     println!(
         "{:<14}{:>3},{:>20}{:>8}",
         "solver,", "num", "target,", "time"
     );
     for solver in &config.solvers {
-        if !single_solver {
-            print_solver(solver);
-        }
         let mut num: usize = 1;
-        if config.structured_set {
-            for (k, s) in &STRUCTURED_PROBLEMS {
-                let cnf = format!("{}/{}", base, s);
-                execute(&config, solver, num, k, &cnf);
-                num += 1;
-            }
+        for (k, s) in &STRUCTURED_PROBLEMS {
+            let cnf = format!("{}/{}", base, s);
+            execute(&config, solver, num, k, &cnf);
+            num += 1;
         }
-    }
-    if !config.terminate_hook.is_empty() {
-        let _ = Command::new(config.terminate_hook).output();
     }
 }
-
 
 #[allow(unused_variables)]
 fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) {
     let solver_name = format!("{}{}", solver, config.aux_key);
-    for e in target.split_whitespace() {
-        let f = PathBuf::from(e);
-        if f.is_file() {
-            print!(
-                "{}\x1B[032mRunning on {}...\x1B[000m",
-                CLEAR,
-                f.file_name().unwrap().to_str().unwrap()
-            );
-            stdout().flush().unwrap();
-            let start = SystemTime::now();
-            let mut run = Command::new("timeout");
-            let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
-            for opt in config.solver_options.split_whitespace() {
-                command = command.arg(&opt[opt.starts_with('\\') as usize..]);
+    let f = PathBuf::from(target);
+    if f.is_file() {
+        print!(
+            "{}\x1B[032mRunning on {}...\x1B[000m",
+            CLEAR,
+            f.file_name().unwrap().to_str().unwrap()
+        );
+        stdout().flush().unwrap();
+        if let Ok(cid) = CHID.read() {
+            if let Ok(channel) = ChannelId(*cid).to_channel() {
+                if let Channel::Guild(gchannel) = &channel {
+                    if let Ok(mut mes) = M.write() {
+                        *mes = f.file_name().unwrap().to_str().unwrap().to_string();
+                    }
+                    let ch = gchannel.read();
+                    ch.broadcast_typing().expect("typing");
+                }
             }
-            match command
-                .arg(f.as_os_str())
-                .check_result(solver, &start, config.timeout as f64)
-            {
-                Some(end) => {
-                    println!(
-                        "{}{:<14}{:>3},{:>20}{:>8.3}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}\",", name),
-                        end,
-                    );
-                }
-                None => {
-                    println!(
-                        "{}{:<14}{:>3},{:>20}{:>8}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}\",", name),
-                        "TIMEOUT",
-                    );
-                }
-            };
         }
+        let start = SystemTime::now();
+        let mut run = Command::new("timeout");
+        let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
+        for opt in config.solver_options.split_whitespace() {
+            command = command.arg(&opt[opt.starts_with('\\') as usize..]);
+        }
+        match command
+            .arg(f.as_os_str())
+            .check_result(solver, &start, config.timeout as f64)
+        {
+            Some(end) => {
+                let out = format!(
+                    "{:<14}{:>3},{:>20}{:>8.3}",
+                    &format!("\"{}\",", solver_name),
+                    num,
+                    &format!("\"{}\",", name),
+                    end,
+                );
+                println!("{}{}", CLEAR, out);
+                if let Ok(channel) = ChannelId(
+                    env::var("DISCORD_CHANNEL")
+                        .expect("no channel")
+                        .parse::<u64>()
+                        .unwrap(),
+                )
+                    .to_channel()
+                {
+                    if let Channel::Guild(gchannel) = &channel {
+                        let ch = gchannel.read();
+                        ch.say(&out).expect("ignore");
+                    }
+                }
+            }
+            None => {
+                let out = format!(
+                    "{:<14}{:>3},{:>20}{:>8}",
+                    &format!("\"{}\",", solver_name),
+                    num,
+                    &format!("\"{}\",", name),
+                    "TIMEOUT",
+                );
+                println!("{}{}", CLEAR, out);
+                if let Ok(channel) = ChannelId(
+                    env::var("DISCORD_CHANNEL")
+                        .expect("no channel")
+                        .parse::<u64>()
+                        .unwrap(),
+                )
+                    .to_channel()
+                {
+                    if let Channel::Guild(gchannel) = &channel {
+                        let ch = gchannel.read();
+                        ch.say(&out).expect("ignore");
+                    }
+                }
+            }
+        };
     }
 }
 
