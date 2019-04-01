@@ -1,5 +1,4 @@
 /// A simple SAT benchmarker
-#[macro_use]
 use lazy_static::lazy_static;
 use regex::Regex;
 use serenity::builder::GetMessages;
@@ -17,8 +16,12 @@ use structopt::StructOpt;
 use serenity::model::user::OnlineStatus;
 use std::sync::RwLock;
 use std::{env, process, thread};
+use sat_bench::bench18::SCB;
+use std::str;
+use std::fs::create_dir;
 
 lazy_static! {
+    pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
     pub static ref M: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -39,6 +42,39 @@ impl EventHandler for Handler {
 }
 
 fn main() {
+    let home = env::var("HOME").expect("No home");
+    let mut config = Config::from_args();
+    config.solver = "splr-013".to_string();
+    let base: String = if config.lib_dir.is_empty() {
+        match option_env!("SATBENCHLIB") {
+            Some(dir) => dir.to_string(),
+            None => env!("PWD").to_string(),
+        }
+    } else {
+        config.lib_dir.to_string()
+    };
+    let host = {
+        let h = Command::new("hostname")
+            .arg("-s")
+            .output()
+            .expect("failed to execute process")
+            .stdout;
+        String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
+    };
+    let cid_u8 = Command::new("git")
+        .current_dir(format!("{}/Repositories/splr", home))
+        .args(&["log", "-1", "--format=format:%h"])
+        .output()
+        .expect("fail to git")
+        .stdout;
+    let cid = unsafe { String::from_utf8_unchecked(cid_u8) };
+    println!("{}", cid);
+    let target_dir = PathBuf::from(format!("{}-{}", config.solver, cid));
+    if target_dir.exists() {
+        panic!(format!("{} exists.", target_dir.to_string_lossy()));
+    } else {
+        create_dir(&target_dir).expect("fail to mkdir");
+    }
     if let Ok(mut cid) = CHID.write() {
         *cid = env::var("DISCORD_CHANNEL")
             .expect("no channel")
@@ -52,9 +88,21 @@ fn main() {
             .configure(|c| c.prefix("."))
             .cmd("clear", clean),
     );
-    thread::spawn(move || {
-        main_loop();
-    });
+    if let Ok(mut queue) = PQ.write() {
+        for s in SCB.iter().rev() {
+            queue.push(s.to_string());
+        }
+    }
+    post(&format!("Start benchmark @ {} now.", host));
+    for i in 0..=1 {
+        let c = config.clone();
+        let b = base.to_string();
+        let t = target_dir.clone();
+        post(&format!("start worker {}", i));
+        thread::spawn(move || {
+            worker(c, b, t);
+        });
+    }
     if let Err(why) = client.start() {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -82,12 +130,6 @@ command!(clean(context, message) {
 });
 
 const VERSION: &str = "benchbot 0.0.0";
-const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
-    ("SR2015/itox", "SR2015/itox_vc1130.cnf"),
-    ("SR2015/m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
-    ("SR2015/38b", "SR2015/38bits_10.dimacs.cnf"),
-    ("SR2015/44b", "SR2015/44bits_11.dimacs.cnf"),
-];
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
@@ -95,55 +137,48 @@ struct Config {
     /// solver names
     solver: String,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "510")]
+    #[structopt(long = "timeout", short = "T", default_value = "10")]
     timeout: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
-    /// additional string following solver name
-    #[structopt(long = "aux-key", short = "K", default_value = "")]
-    aux_key: String,
     /// data directory
-    #[structopt(long = "lib", default_value = "")]
+    #[structopt(long = "lib", default_value = "/home/narazaki/Documents/SAT-RACE/SC18main")]
     lib_dir: String,
 }
 
-pub fn main_loop() {
-    let mut config = Config::from_args();
-    config.solver = "splr-013".to_string();
-    let base = if config.lib_dir.is_empty() {
-        match option_env!("SATBENCHLIB") {
-            Some(dir) => dir,
-            None => env!("PWD"),
+fn worker(config: Config, base: String, target_dir: PathBuf) {
+    loop {
+        let mut p: String;
+        let num: usize;
+        if let Ok(mut q) = PQ.write() {
+            if let Some(top) = q.pop() {
+                p = format!("{}/{}", base, top);
+                num = q.len();
+            } else {
+                break;
+            }
+        } else {
+            break;
         }
-    } else {
-        &config.lib_dir
-    };
-    let host = Command::new("hostname")
-        .arg("-s")
-        .output()
-        .expect("failed to execute process")
-        .stdout;
-    let h = String::from_utf8_lossy(&host[..host.len() - 1]);
-    post(&format!("Start benchmark @ {} now.", h));
-    let mut num: usize = 1;
-    for (k, s) in &STRUCTURED_PROBLEMS {
-        let cnf = format!("{}/{}", base, s);
-        execute(&config, &config.solver, num, k, &cnf);
-        num += 1;
+        execute(&config, num, &target_dir, &p);
+        if num == 0 {
+            state("");
+            post("Done. Bye.");
+            process::exit(0);
+        } else if (400 - num) % 20 == 0 {
+            post(&format!("The {}-th job is done.", 400 - num));
+        }
     }
-    state("");
-    post("Done. Bye.");
-    process::exit(0);
 }
 
-fn execute(config: &Config, solver: &str, _num: usize, _name: &str, target: &str) {
-    let f = PathBuf::from(target);
+fn execute(config: &Config, _num: usize, target_dir: &PathBuf, cnf: &str) {
+    let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
         println!("\x1B[032mRunning on {}...\x1B[000m", target);
         state(&target);
-        let mut command: Command = solver_command(solver);
+        let mut command: Command = solver_command(&config.solver, config, target_dir);
         for opt in config.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
@@ -153,7 +188,7 @@ fn execute(config: &Config, solver: &str, _num: usize, _name: &str, target: &str
     }
 }
 
-fn solver_command(solver: &str) -> Command {
+fn solver_command(solver: &str, config: &Config, dir: &PathBuf) -> Command {
     lazy_static! {
         static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
         // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
@@ -163,11 +198,11 @@ fn solver_command(solver: &str) -> Command {
     }
     if SPLR.is_match(solver) {
         let mut command = Command::new(&solver);
-        command.args(&["-r", "-", "--to", "5"]);
+        command.args(&["-r", "-", "--to", &format!("{}", config.timeout), "-o", &dir.to_string_lossy()]);
         command
     } else if GLUCOSE.is_match(solver) {
         let mut command = Command::new(&solver);
-        command.args(&["-verb=0", "-cpu-lim=2500"]);
+        command.args(&["-verb=0", &format!("-cpu-lim={}", config.timeout)]);
         command
     } else {
         Command::new(&solver)
