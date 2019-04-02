@@ -13,14 +13,14 @@ use std::path::PathBuf;
 use std::process::Command;
 use structopt::StructOpt;
 // use serenity::model::prelude::Message;
-use serenity::model::user::OnlineStatus;
-use std::sync::RwLock;
-use std::{env, process, thread};
-use sat_bench::{bench18::SCB, utils::parse_result};
 use sat_bench::utils::current_date_time;
+use sat_bench::{bench18::SCB, utils::parse_result};
+use serenity::model::user::OnlineStatus;
 use std::collections::HashMap;
 use std::fs::{create_dir, read_dir};
 use std::str;
+use std::sync::RwLock;
+use std::{env, process, thread};
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -29,6 +29,28 @@ lazy_static! {
     pub static ref M: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
+}
+
+const VERSION: &str = "benchbot 0.0.1";
+
+#[derive(Clone, Debug, StructOpt)]
+#[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
+struct Config {
+    /// solver names
+    #[structopt(long = "solver", short = "s", default_value = "")]
+    solver: String,
+    /// time out in seconds
+    #[structopt(long = "timeout", short = "T", default_value = "2000")]
+    timeout: usize,
+    /// number of workers
+    #[structopt(long = "jobs", short = "j", default_value = "3")]
+    jobs: usize,
+    /// arguments passed to solvers
+    #[structopt(long = "options", default_value = "")]
+    solver_options: String,
+    /// data directory
+    #[structopt(long = "lib", default_value = "")]
+    data_dir: String,
 }
 
 struct Handler;
@@ -46,15 +68,31 @@ impl EventHandler for Handler {
 }
 
 fn main() {
+    let home = env::var("HOME").expect("No home");
     let mut config = Config::from_args();
-    config.solver = "splr-013".to_string();
-    let base: String = if config.lib_dir.is_empty() {
+    if config.solver.is_empty() {
+        config.solver = "splr".to_string();
+        for e in read_dir(format!("{}/Repositories/splr/src/bin", home)).expect("no repo") {
+            if let Ok(f) = e {
+                let splr = f.path().file_stem().unwrap().to_string_lossy().to_string();
+                if splr.contains("splr") {
+                    Command::new("cargo")
+                        .current_dir(format!("{}/Repositories/splr", home))
+                        .args(&["install", "--path", ".", "--force"])
+                        .output()
+                        .expect("fail to compile");
+                    config.solver = splr;
+                }
+            }
+        }
+    }
+    let base: String = if config.data_dir.is_empty() {
         match option_env!("SATBENCHLIB") {
             Some(dir) => dir.to_string(),
-            None => env!("PWD").to_string(),
+            None => format!("{}/Documents/SAT-RACE/SC18main", home),
         }
     } else {
-        config.lib_dir.to_string()
+        config.data_dir.to_string()
     };
     let host = {
         let h = Command::new("hostname")
@@ -65,7 +103,6 @@ fn main() {
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
     let target_dir = {
-        let home = env::var("HOME").expect("No home");
         let commit_id_u8 = Command::new("git")
             .current_dir(format!("{}/Repositories/splr", home))
             .args(&["log", "-1", "--format=format:%h"])
@@ -73,9 +110,7 @@ fn main() {
             .expect("fail to git")
             .stdout;
         let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
-        let timestamp = current_date_time()
-            .format("%F-%m-%dT%H:%M:%S")
-            .to_string();
+        let timestamp = current_date_time().format("%F-%m-%d").to_string();
         PathBuf::from(format!("{}-{}-{}", config.solver, commit_id, timestamp))
     };
     if target_dir.exists() {
@@ -101,16 +136,18 @@ fn main() {
             queue.push(s.to_string());
         }
     }
-    post(&format!("{}: Start benchmark @ {} now.", VERSION, host));
-    for i in 0..config.jobs {
+    for _ in 0..config.jobs {
         let c = config.clone();
         let b = base.to_string();
         let t = target_dir.clone();
-        post(&format!("start worker {}", i));
         thread::spawn(move || {
             worker(c, b, t);
         });
     }
+    post(&format!(
+        "{}: Start {} parallel benchmark @ {} now.",
+        VERSION, config.jobs, host
+    ));
     if let Err(why) = client.start() {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -137,27 +174,6 @@ command!(clean(context, message) {
     }
 });
 
-const VERSION: &str = "benchbot 0.0.1";
-
-#[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
-struct Config {
-    /// solver names
-    solver: String,
-    /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "100")]
-    timeout: usize,
-    /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "3")]    
-    jobs: usize,
-    /// arguments passed to solvers
-    #[structopt(long = "options", default_value = "")]
-    solver_options: String,
-    /// data directory
-    #[structopt(long = "lib", default_value = "/home/narazaki/Documents/SAT-RACE/SC18main")]
-    lib_dir: String,
-}
-
 fn worker(config: Config, base: String, target_dir: PathBuf) {
     loop {
         let mut p: String;
@@ -177,15 +193,44 @@ fn worker(config: Config, base: String, target_dir: PathBuf) {
         }
         execute(&config, num, &target_dir, &p);
         if num == 0 {
+            // I'm the last one.
             state("");
-            post("Done. Bye.");
+            let (s, u) = report(&config, &target_dir).unwrap_or((0, 0));
+            if let Ok(processed) = PROCESSED.read() {
+                if let Ok(mut answered) = ANSWERED.write() {
+                    let sum = s + u;
+                    if *answered < sum {
+                        *answered = sum;
+                        post(&format!(
+                            "{} of {} problems were solved. Bye.",
+                            sum, processed
+                        ));
+                    }
+                }
+            }
+            // TODO: draw a graph
+            // build a tar file
+            Command::new("tar")
+                .args(&[
+                    "cvf",
+                    &format!("{}.tar.xz", target_dir.to_string_lossy()),
+                    &target_dir.to_string_lossy(),
+                ])
+                .output()
+                .expect("fail to tar");
+            // TODO: cp it
             process::exit(0);
         } else if (400 - num) % 20 == 0 {
-            let (s,u) = report(&config, &target_dir).unwrap_or((0, 0));
+            let (s, u) = report(&config, &target_dir).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
-                if *answered < s + u {
-                    *answered = s + u;
-                    post(&format!("The {}-th job is done, answered {} {}.", 400 - num, s, u));
+                let sum = s + u;
+                if *answered < sum {
+                    *answered = sum;
+                    post(&format!(
+                        "The {}-th job is done, answered {}.",
+                        400 - num,
+                        sum
+                    ));
                 }
             }
         }
@@ -220,7 +265,12 @@ fn solver_command(solver: &str, config: &Config, dir: &PathBuf) -> Command {
     }
     if SPLR.is_match(solver) {
         let mut command = Command::new(&solver);
-        command.args(&["--to", &format!("{}", config.timeout), "-o", &dir.to_string_lossy()]);
+        command.args(&[
+            "--to",
+            &format!("{}", config.timeout),
+            "-o",
+            &dir.to_string_lossy(),
+        ]);
         command
     } else if GLUCOSE.is_match(solver) {
         let mut command = Command::new(&solver);

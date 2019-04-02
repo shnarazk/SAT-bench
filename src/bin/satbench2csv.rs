@@ -1,8 +1,8 @@
 use sat_bench::bench18::SCB;
+use sat_bench::utils::parse_result;
 use std::collections::HashMap;
 use std::fs;
 use structopt::StructOpt;
-use sat_bench::utils::parse_result;
 
 /// Configuration built from command line options
 #[derive(Debug, StructOpt)]

@@ -1,7 +1,6 @@
 use chrono::offset::TimeZone;
 use chrono::{DateTime, Local};
 use regex::Regex;
-use std::fs;
 use std::fs::File;
 use std::io::*;
 use std::path::PathBuf;

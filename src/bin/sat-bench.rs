@@ -7,14 +7,14 @@
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
 use lazy_static::lazy_static;
 use regex::Regex;
+use sat_bench::utils::{current_date_time, system_time_to_date_time};
 use std::env;
 use std::fs;
 use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::process::Command;
-use structopt::StructOpt;
 use std::time::SystemTime;
-use sat_bench::utils::{current_date_time, system_time_to_date_time};
+use structopt::StructOpt;
 
 const VERSION: &str = "sat-bench 0.90.4";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
@@ -134,9 +134,7 @@ fn main() {
             VERSION,
             config.timeout,
             h,
-            current_date_time()
-                .format("%F-%m-%dT%H:%M:%S")
-                .to_string(),
+            current_date_time().format("%F-%m-%dT%H:%M:%S").to_string(),
             extra_message
         );
     } else {
@@ -146,9 +144,7 @@ fn main() {
             config.timeout,
             config.solver_options,
             h,
-            current_date_time()
-                .format("%F-%m-%dT%H:%M:%S")
-                .to_string(),
+            current_date_time().format("%F-%m-%dT%H:%M:%S").to_string(),
             extra_message
         );
     }
