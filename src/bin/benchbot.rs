@@ -16,12 +16,16 @@ use structopt::StructOpt;
 use serenity::model::user::OnlineStatus;
 use std::sync::RwLock;
 use std::{env, process, thread};
-use sat_bench::bench18::SCB;
+use sat_bench::{bench18::SCB, utils::parse_result};
+use sat_bench::utils::current_date_time;
+use std::collections::HashMap;
+use std::fs::{create_dir, read_dir};
 use std::str;
-use std::fs::create_dir;
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
+    pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
+    pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
     pub static ref M: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -42,7 +46,6 @@ impl EventHandler for Handler {
 }
 
 fn main() {
-    let home = env::var("HOME").expect("No home");
     let mut config = Config::from_args();
     config.solver = "splr-013".to_string();
     let base: String = if config.lib_dir.is_empty() {
@@ -61,15 +64,20 @@ fn main() {
             .stdout;
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
-    let cid_u8 = Command::new("git")
-        .current_dir(format!("{}/Repositories/splr", home))
-        .args(&["log", "-1", "--format=format:%h"])
-        .output()
-        .expect("fail to git")
-        .stdout;
-    let cid = unsafe { String::from_utf8_unchecked(cid_u8) };
-    println!("{}", cid);
-    let target_dir = PathBuf::from(format!("{}-{}", config.solver, cid));
+    let target_dir = {
+        let home = env::var("HOME").expect("No home");
+        let commit_id_u8 = Command::new("git")
+            .current_dir(format!("{}/Repositories/splr", home))
+            .args(&["log", "-1", "--format=format:%h"])
+            .output()
+            .expect("fail to git")
+            .stdout;
+        let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
+        let timestamp = current_date_time()
+            .format("%F-%m-%dT%H:%M:%S")
+            .to_string();
+        PathBuf::from(format!("{}-{}-{}", config.solver, commit_id, timestamp))
+    };
     if target_dir.exists() {
         panic!(format!("{} exists.", target_dir.to_string_lossy()));
     } else {
@@ -93,8 +101,8 @@ fn main() {
             queue.push(s.to_string());
         }
     }
-    post(&format!("Start benchmark @ {} now.", host));
-    for i in 0..=1 {
+    post(&format!("{}: Start benchmark @ {} now.", VERSION, host));
+    for i in 0..config.jobs {
         let c = config.clone();
         let b = base.to_string();
         let t = target_dir.clone();
@@ -129,7 +137,7 @@ command!(clean(context, message) {
     }
 });
 
-const VERSION: &str = "benchbot 0.0.0";
+const VERSION: &str = "benchbot 0.0.1";
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
@@ -137,8 +145,11 @@ struct Config {
     /// solver names
     solver: String,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "10")]
+    #[structopt(long = "timeout", short = "T", default_value = "100")]
     timeout: usize,
+    /// number of workers
+    #[structopt(long = "jobs", short = "j", default_value = "3")]    
+    jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
@@ -155,6 +166,9 @@ fn worker(config: Config, base: String, target_dir: PathBuf) {
             if let Some(top) = q.pop() {
                 p = format!("{}/{}", base, top);
                 num = q.len();
+                if let Ok(mut processed) = PROCESSED.write() {
+                    *processed += 1;
+                }
             } else {
                 break;
             }
@@ -167,7 +181,13 @@ fn worker(config: Config, base: String, target_dir: PathBuf) {
             post("Done. Bye.");
             process::exit(0);
         } else if (400 - num) % 20 == 0 {
-            post(&format!("The {}-th job is done.", 400 - num));
+            let (s,u) = report(&config, &target_dir).unwrap_or((0, 0));
+            if let Ok(mut answered) = ANSWERED.write() {
+                if *answered < s + u {
+                    *answered = s + u;
+                    post(&format!("The {}-th job is done, answered {} {}.", 400 - num, s, u));
+                }
+            }
         }
     }
 }
@@ -177,7 +197,9 @@ fn execute(config: &Config, _num: usize, target_dir: &PathBuf, cnf: &str) {
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
         println!("\x1B[032mRunning on {}...\x1B[000m", target);
-        state(&target);
+        if let Ok(processed) = PROCESSED.read() {
+            state(&format!("#{}, {}", *processed, &target));
+        }
         let mut command: Command = solver_command(&config.solver, config, target_dir);
         for opt in config.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
@@ -198,7 +220,7 @@ fn solver_command(solver: &str, config: &Config, dir: &PathBuf) -> Command {
     }
     if SPLR.is_match(solver) {
         let mut command = Command::new(&solver);
-        command.args(&["-r", "-", "--to", &format!("{}", config.timeout), "-o", &dir.to_string_lossy()]);
+        command.args(&["--to", &format!("{}", config.timeout), "-o", &dir.to_string_lossy()]);
         command
     } else if GLUCOSE.is_match(solver) {
         let mut command = Command::new(&solver);
@@ -232,4 +254,69 @@ fn state(s: &str) {
             }
         }
     }
+}
+
+fn report(config: &Config, target_dir: &PathBuf) -> std::io::Result<(usize, usize)> {
+    let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
+    let timeout = config.timeout as f64;
+    let mut nsat = 0;
+    let mut nunsat = 0;
+    for e in read_dir(target_dir)? {
+        let f = e?;
+        if !f.file_type()?.is_file() {
+            continue;
+        }
+        let fname = f.file_name().to_string_lossy().to_string();
+        if fname.starts_with(".ans_") {
+            let cnf = &fname[5..];
+            for key in SCB.iter() {
+                if *key == cnf {
+                    if None != hash.get(key) {
+                        panic!("duplicated {}", cnf);
+                    }
+                    if let Some((t, s, m)) = parse_result(f.path()) {
+                        hash.insert(key, (timeout.min(t), s, m));
+                        if s {
+                            nsat += 1;
+                        } else {
+                            nunsat += 1;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    println!(
+        "# SAT: {}, UNSAT: {}, total: {} so far",
+        nsat,
+        nunsat,
+        nsat + nunsat
+    );
+    println!("solver, num, target, time, satisfiability, strategy");
+    for (i, key) in SCB.iter().enumerate() {
+        if let Some(v) = hash.get(key) {
+            println!(
+                "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
+                target_dir.to_string_lossy(),
+                i + 1,
+                "SC18main/",
+                key,
+                v.0,
+                v.1,
+                v.2,
+            );
+        } else {
+            println!(
+                "\"{}\",{},\"{}{}\",{:>5},{},",
+                target_dir.to_string_lossy(),
+                i + 1,
+                "SC18main/",
+                key,
+                config.timeout,
+                "",
+            );
+        }
+    }
+    Ok((nsat, nunsat))
 }

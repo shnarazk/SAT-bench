@@ -5,8 +5,6 @@
 /// - sat-bench -3 -U 225 mios                  # 3-SAT from 200 to 225 vars
 /// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
-use chrono::offset::TimeZone;
-use chrono::{DateTime, Local};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::env;
@@ -14,8 +12,9 @@ use std::fs;
 use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
+use std::time::SystemTime;
+use sat_bench::utils::{current_date_time, system_time_to_date_time};
 
 const VERSION: &str = "sat-bench 0.90.4";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
@@ -135,7 +134,7 @@ fn main() {
             VERSION,
             config.timeout,
             h,
-            system_time_to_date_time(SystemTime::now())
+            current_date_time()
                 .format("%F-%m-%dT%H:%M:%S")
                 .to_string(),
             extra_message
@@ -147,7 +146,7 @@ fn main() {
             config.timeout,
             config.solver_options,
             h,
-            system_time_to_date_time(SystemTime::now())
+            current_date_time()
                 .format("%F-%m-%dT%H:%M:%S")
                 .to_string(),
             extra_message
@@ -395,22 +394,4 @@ fn print_solver(solver: &str) -> Option<String> {
         println!();
     }
     Some(which.to_string())
-}
-
-// See https://users.rust-lang.org/t/convert-std-time-systemtime-to-chrono-datetime-datetime
-fn system_time_to_date_time(t: SystemTime) -> DateTime<Local> {
-    let (sec, nsec) = match t.duration_since(UNIX_EPOCH) {
-        Ok(dur) => (dur.as_secs() as i64, dur.subsec_nanos()),
-        Err(e) => {
-            // unlikely but should be handled
-            let dur = e.duration();
-            let (sec, nsec) = (dur.as_secs() as i64, dur.subsec_nanos());
-            if nsec == 0 {
-                (-sec, 0)
-            } else {
-                (-sec - 1, 1_000_000_000 - nsec)
-            }
-        }
-    };
-    Local.timestamp(sec, nsec)
 }
