@@ -30,6 +30,7 @@ lazy_static! {
     pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
     pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
     pub static ref M: RwLock<String> = RwLock::new(String::new());
+    pub static ref RUN: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
 }
@@ -132,8 +133,11 @@ fn main() {
             .stdout;
         let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
         let timestamp = current_date_time().format("%F-%m-%d").to_string();
-        format!("{}-{}-{}", config.solver, commit_id, timestamp)
+        format!("{}-{}-{}-{}", config.solver, commit_id, host, timestamp)
     };
+    if let Ok(mut run) = RUN.write() {
+        *run = config.run_name.clone();
+    }
     config.dump_dir = PathBuf::from(&config.run_name);
     if config.dump_dir.exists() {
         panic!(format!("{} exists.", config.dump_dir.to_string_lossy()));
@@ -303,7 +307,9 @@ fn post(mes: &str) {
         if let Ok(channel) = ChannelId(*cid).to_channel() {
             if let Channel::Guild(gchannel) = &channel {
                 let ch = gchannel.read();
-                ch.say(&format!("{}", mes)).expect("fail to say");
+                if let Ok(id) = RUN.read() {
+                    ch.say(&format!("{}: {}", *id, mes)).expect("fail to say");
+                }
             }
         }
     }
