@@ -23,7 +23,7 @@ use std::str;
 use std::sync::RwLock;
 use std::{env, process, thread};
 
-const VERSION: &str = "benchbot 0.0.2";
+const VERSION: &str = "benchbot 0.0.3";
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -59,6 +59,9 @@ struct Config {
     /// cloud sharing directory
     #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
     sync_dir: PathBuf,
+    /// cloud sharing directory
+    #[structopt(long = "sync-cmd", default_value = "syncCloud")]
+    sync_cmd: String,
     /// Don't assign
     #[structopt(long = "dump", default_value = "")]
     dump_dir: PathBuf,
@@ -232,14 +235,15 @@ fn worker(config: Config) {
                     }
                 }
             }
-            // TODO: draw a graph
             let tarfile = format!("{}.tar.xz", config.run_name);
-            // build a tar file
             Command::new("tar")
                 .args(&["cvf", &tarfile, &config.dump_dir.to_string_lossy()])
                 .output()
                 .expect("fail to tar");
             fs::copy(&tarfile, config.sync_dir.join(&tarfile)).expect("fail to copy");
+            if !config.sync_cmd.is_empty() {
+                Command::new(config.sync_cmd).output().expect("fail to sync");
+            }
             process::exit(0);
         } else if (400 - num) % 20 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
@@ -406,6 +410,11 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             }
         }
     }
-    fs::copy(&outname, config.sync_dir.join(&outname)).expect("fail to copy");
+    if fs::copy(&outname, config.sync_dir.join(&outname)).is_ok() {
+        Command::new("make").current_dir(&config.sync_dir).output().expect("fail");
+        if !config.sync_cmd.is_empty() {
+            Command::new(&config.sync_cmd).output().expect("fail to sync");
+        }
+    }
     Ok((nsat, nunsat))
 }
