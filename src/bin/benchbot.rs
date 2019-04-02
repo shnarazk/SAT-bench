@@ -18,6 +18,7 @@ use sat_bench::{bench18::SCB, utils::parse_result};
 use serenity::model::user::OnlineStatus;
 use std::collections::HashMap;
 use std::fs;
+use std::io::{BufWriter, Write};
 use std::str;
 use std::sync::RwLock;
 use std::{env, process, thread};
@@ -49,17 +50,20 @@ struct Config {
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
     /// data directory
-    #[structopt(long = "lib", default_value = "~/Documents/SAT-RACE/SC18main")]
+    #[structopt(long = "data", default_value = "~/Documents/SAT-RACE/SC18main")]
     data_dir: PathBuf,
-    /// cloud sharing directory
-    #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
-    sync_dir: PathBuf,
-    /// directory to place results
-    #[structopt(long = "dump", default_value = "")]
-    dump_dir: PathBuf,
     /// solver repository
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
     repo_dir: PathBuf,
+    /// cloud sharing directory
+    #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
+    sync_dir: PathBuf,
+    /// Don't assign
+    #[structopt(long = "dump", default_value = "")]
+    dump_dir: PathBuf,
+    /// Don't assign
+    #[structopt(long = "run", default_value = "")]
+    run_name: String,
 }
 
 struct Handler;
@@ -119,7 +123,7 @@ fn main() {
             .stdout;
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
-    config.dump_dir = {
+    config.run_name = {
         let commit_id_u8 = Command::new("git")
             .current_dir(format!("{}/Repositories/splr", home))
             .args(&["log", "-1", "--format=format:%h"])
@@ -128,8 +132,9 @@ fn main() {
             .stdout;
         let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
         let timestamp = current_date_time().format("%F-%m-%d").to_string();
-        PathBuf::from(format!("{}-{}-{}", config.solver, commit_id, timestamp))
+        format!("{}-{}-{}", config.solver, commit_id, timestamp)
     };
+    config.dump_dir = PathBuf::from(&config.run_name);
     if config.dump_dir.exists() {
         panic!(format!("{} exists.", config.dump_dir.to_string_lossy()));
     } else {
@@ -224,13 +229,12 @@ fn worker(config: Config) {
                 }
             }
             // TODO: draw a graph
-            let tarfile = format!("{}.tar.xz", config.dump_dir.to_string_lossy());
+            let tarfile = format!("{}.tar.xz", config.run_name);
             // build a tar file
             Command::new("tar")
                 .args(&["cvf", &tarfile, &config.dump_dir.to_string_lossy()])
                 .output()
                 .expect("fail to tar");
-            // TODO: cp it
             fs::copy(&tarfile, config.sync_dir.join(&tarfile)).expect("fail to copy");
             process::exit(0);
         } else if (400 - num) % 20 == 0 {
@@ -320,66 +324,82 @@ fn state(s: &str) {
 }
 
 fn report(config: &Config) -> std::io::Result<(usize, usize)> {
-    let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
-    let timeout = config.timeout as f64;
+    let outname = config.sync_dir.join(config.run_name.to_string() + ".csv");
+    let outfile = fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(&outname)
+        .expect("open");
     let mut nsat = 0;
     let mut nunsat = 0;
-    for e in config.dump_dir.read_dir()? {
-        let f = e?;
-        if !f.file_type()?.is_file() {
-            continue;
-        }
-        let fname = f.file_name().to_string_lossy().to_string();
-        if fname.starts_with(".ans_") {
-            let cnf = &fname[5..];
-            for key in SCB.iter() {
-                if *key == cnf {
-                    if None != hash.get(key) {
-                        panic!("duplicated {}", cnf);
-                    }
-                    if let Some((t, s, m)) = parse_result(f.path()) {
-                        hash.insert(key, (timeout.min(t), s, m));
-                        if s {
-                            nsat += 1;
-                        } else {
-                            nunsat += 1;
+    {
+        let mut outbuf = BufWriter::new(outfile);
+        let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
+        let timeout = config.timeout as f64;
+        for e in config.dump_dir.read_dir()? {
+            let f = e?;
+            if !f.file_type()?.is_file() {
+                continue;
+            }
+            let fname = f.file_name().to_string_lossy().to_string();
+            if fname.starts_with(".ans_") {
+                let cnf = &fname[5..];
+                for key in SCB.iter() {
+                    if *key == cnf {
+                        if None != hash.get(key) {
+                            panic!("duplicated {}", cnf);
                         }
-                        break;
+                        if let Some((t, s, m)) = parse_result(f.path()) {
+                            hash.insert(key, (timeout.min(t), s, m));
+                            if s {
+                                nsat += 1;
+                            } else {
+                                nunsat += 1;
+                            }
+                            break;
+                        }
                     }
                 }
             }
         }
-    }
-    println!(
-        "# SAT: {}, UNSAT: {}, total: {} so far",
-        nsat,
-        nunsat,
-        nsat + nunsat
-    );
-    println!("solver, num, target, time, satisfiability, strategy");
-    for (i, key) in SCB.iter().enumerate() {
-        if let Some(v) = hash.get(key) {
-            println!(
-                "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
-                config.dump_dir.to_string_lossy(),
-                i + 1,
-                "SC18main/",
-                key,
-                v.0,
-                v.1,
-                v.2,
-            );
-        } else {
-            println!(
-                "\"{}\",{},\"{}{}\",{:>5},{},",
-                config.dump_dir.to_string_lossy(),
-                i + 1,
-                "SC18main/",
-                key,
-                config.timeout,
-                "",
-            );
+        writeln!(
+            outbuf,
+            "# SAT: {}, UNSAT: {}, total: {} so far",
+            nsat,
+            nunsat,
+            nsat + nunsat
+        )
+        .unwrap();
+        println!("solver, num, target, time, satisfiability, strategy");
+        for (i, key) in SCB.iter().enumerate() {
+            if let Some(v) = hash.get(key) {
+                writeln!(
+                    outbuf,
+                    "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
+                    config.dump_dir.to_string_lossy(),
+                    i + 1,
+                    "SC18main/",
+                    key,
+                    v.0,
+                    v.1,
+                    v.2,
+                )
+                .unwrap();
+            } else {
+                writeln!(
+                    outbuf,
+                    "\"{}\",{},\"{}{}\",{:>5},{},",
+                    config.dump_dir.to_string_lossy(),
+                    i + 1,
+                    "SC18main/",
+                    key,
+                    config.timeout,
+                    "",
+                )
+                .unwrap();
+            }
         }
     }
+    fs::copy(&outname, config.sync_dir.join(&outname)).expect("fail to copy");
     Ok((nsat, nunsat))
 }
