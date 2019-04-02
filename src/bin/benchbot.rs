@@ -17,10 +17,12 @@ use sat_bench::utils::current_date_time;
 use sat_bench::{bench18::SCB, utils::parse_result};
 use serenity::model::user::OnlineStatus;
 use std::collections::HashMap;
-use std::fs::{create_dir, read_dir};
+use std::fs;
 use std::str;
 use std::sync::RwLock;
 use std::{env, process, thread};
+
+const VERSION: &str = "benchbot 0.0.2";
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -30,8 +32,6 @@ lazy_static! {
     pub static ref N: RwLock<usize> = RwLock::new(0);
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
 }
-
-const VERSION: &str = "benchbot 0.0.1";
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
@@ -49,8 +49,17 @@ struct Config {
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
     /// data directory
-    #[structopt(long = "lib", default_value = "")]
-    data_dir: String,
+    #[structopt(long = "lib", default_value = "~/Documents/SAT-RACE/SC18main")]
+    data_dir: PathBuf,
+    /// cloud sharing directory
+    #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
+    sync_dir: PathBuf,
+    /// directory to place results
+    #[structopt(long = "dump", default_value = "")]
+    dump_dir: PathBuf,
+    /// solver repository
+    #[structopt(long = "repo", default_value = "~/Repositories/splr")]
+    repo_dir: PathBuf,
 }
 
 struct Handler;
@@ -68,16 +77,32 @@ impl EventHandler for Handler {
 }
 
 fn main() {
-    let home = env::var("HOME").expect("No home");
     let mut config = Config::from_args();
+    let tilde = Regex::new("~").expect("wrong reex");
+    let home = env::var("HOME").expect("No home");
+    config.data_dir = PathBuf::from(
+        tilde
+            .replace(&config.data_dir.to_string_lossy(), &home[..])
+            .to_string(),
+    );
+    config.sync_dir = PathBuf::from(
+        tilde
+            .replace(&config.sync_dir.to_string_lossy(), &home[..])
+            .to_string(),
+    );
+    config.repo_dir = PathBuf::from(
+        tilde
+            .replace(&config.repo_dir.to_string_lossy(), &home[..])
+            .to_string(),
+    );
     if config.solver.is_empty() {
         config.solver = "splr".to_string();
-        for e in read_dir(format!("{}/Repositories/splr/src/bin", home)).expect("no repo") {
+        for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
             if let Ok(f) = e {
                 let splr = f.path().file_stem().unwrap().to_string_lossy().to_string();
                 if splr.contains("splr") {
                     Command::new("cargo")
-                        .current_dir(format!("{}/Repositories/splr", home))
+                        .current_dir(&config.repo_dir)
                         .args(&["install", "--path", ".", "--force"])
                         .output()
                         .expect("fail to compile");
@@ -86,14 +111,6 @@ fn main() {
             }
         }
     }
-    let base: String = if config.data_dir.is_empty() {
-        match option_env!("SATBENCHLIB") {
-            Some(dir) => dir.to_string(),
-            None => format!("{}/Documents/SAT-RACE/SC18main", home),
-        }
-    } else {
-        config.data_dir.to_string()
-    };
     let host = {
         let h = Command::new("hostname")
             .arg("-s")
@@ -102,7 +119,7 @@ fn main() {
             .stdout;
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
-    let target_dir = {
+    config.dump_dir = {
         let commit_id_u8 = Command::new("git")
             .current_dir(format!("{}/Repositories/splr", home))
             .args(&["log", "-1", "--format=format:%h"])
@@ -113,10 +130,10 @@ fn main() {
         let timestamp = current_date_time().format("%F-%m-%d").to_string();
         PathBuf::from(format!("{}-{}-{}", config.solver, commit_id, timestamp))
     };
-    if target_dir.exists() {
-        panic!(format!("{} exists.", target_dir.to_string_lossy()));
+    if config.dump_dir.exists() {
+        panic!(format!("{} exists.", config.dump_dir.to_string_lossy()));
     } else {
-        create_dir(&target_dir).expect("fail to mkdir");
+        fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
     if let Ok(mut cid) = CHID.write() {
         *cid = env::var("DISCORD_CHANNEL")
@@ -138,10 +155,8 @@ fn main() {
     }
     for _ in 0..config.jobs {
         let c = config.clone();
-        let b = base.to_string();
-        let t = target_dir.clone();
         thread::spawn(move || {
-            worker(c, b, t);
+            worker(c);
         });
     }
     post(&format!(
@@ -174,13 +189,13 @@ command!(clean(context, message) {
     }
 });
 
-fn worker(config: Config, base: String, target_dir: PathBuf) {
+fn worker(config: Config) {
     loop {
-        let mut p: String;
+        let mut p: PathBuf;
         let num: usize;
         if let Ok(mut q) = PQ.write() {
             if let Some(top) = q.pop() {
-                p = format!("{}/{}", base, top);
+                p = config.data_dir.join(top);
                 num = q.len();
                 if let Ok(mut processed) = PROCESSED.write() {
                     *processed += 1;
@@ -191,11 +206,11 @@ fn worker(config: Config, base: String, target_dir: PathBuf) {
         } else {
             break;
         }
-        execute(&config, num, &target_dir, &p);
+        execute(&config, num, &p);
         if num == 0 {
             // I'm the last one.
             state("");
-            let (s, u) = report(&config, &target_dir).unwrap_or((0, 0));
+            let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(processed) = PROCESSED.read() {
                 if let Ok(mut answered) = ANSWERED.write() {
                     let sum = s + u;
@@ -209,19 +224,17 @@ fn worker(config: Config, base: String, target_dir: PathBuf) {
                 }
             }
             // TODO: draw a graph
+            let tarfile = format!("{}.tar.xz", config.dump_dir.to_string_lossy());
             // build a tar file
             Command::new("tar")
-                .args(&[
-                    "cvf",
-                    &format!("{}.tar.xz", target_dir.to_string_lossy()),
-                    &target_dir.to_string_lossy(),
-                ])
+                .args(&["cvf", &tarfile, &config.dump_dir.to_string_lossy()])
                 .output()
                 .expect("fail to tar");
             // TODO: cp it
+            fs::copy(&tarfile, config.sync_dir.join(&tarfile)).expect("fail to copy");
             process::exit(0);
         } else if (400 - num) % 20 == 0 {
-            let (s, u) = report(&config, &target_dir).unwrap_or((0, 0));
+            let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
                 let sum = s + u;
                 if *answered < sum {
@@ -237,7 +250,7 @@ fn worker(config: Config, base: String, target_dir: PathBuf) {
     }
 }
 
-fn execute(config: &Config, _num: usize, target_dir: &PathBuf, cnf: &str) {
+fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
@@ -245,7 +258,7 @@ fn execute(config: &Config, _num: usize, target_dir: &PathBuf, cnf: &str) {
         if let Ok(processed) = PROCESSED.read() {
             state(&format!("#{}, {}", *processed, &target));
         }
-        let mut command: Command = solver_command(&config.solver, config, target_dir);
+        let mut command: Command = solver_command(config);
         for opt in config.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
@@ -255,7 +268,7 @@ fn execute(config: &Config, _num: usize, target_dir: &PathBuf, cnf: &str) {
     }
 }
 
-fn solver_command(solver: &str, config: &Config, dir: &PathBuf) -> Command {
+fn solver_command(config: &Config) -> Command {
     lazy_static! {
         static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
         // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
@@ -263,21 +276,21 @@ fn solver_command(solver: &str, config: &Config, dir: &PathBuf) -> Command {
         // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
         static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
     }
-    if SPLR.is_match(solver) {
-        let mut command = Command::new(&solver);
+    if SPLR.is_match(&config.solver) {
+        let mut command = Command::new(&config.solver);
         command.args(&[
             "--to",
             &format!("{}", config.timeout),
             "-o",
-            &dir.to_string_lossy(),
+            &config.dump_dir.to_string_lossy(),
         ]);
         command
-    } else if GLUCOSE.is_match(solver) {
-        let mut command = Command::new(&solver);
+    } else if GLUCOSE.is_match(&config.solver) {
+        let mut command = Command::new(&config.solver);
         command.args(&["-verb=0", &format!("-cpu-lim={}", config.timeout)]);
         command
     } else {
-        Command::new(&solver)
+        Command::new(&config.solver)
     }
 }
 
@@ -306,12 +319,12 @@ fn state(s: &str) {
     }
 }
 
-fn report(config: &Config, target_dir: &PathBuf) -> std::io::Result<(usize, usize)> {
+fn report(config: &Config) -> std::io::Result<(usize, usize)> {
     let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
     let timeout = config.timeout as f64;
     let mut nsat = 0;
     let mut nunsat = 0;
-    for e in read_dir(target_dir)? {
+    for e in config.dump_dir.read_dir()? {
         let f = e?;
         if !f.file_type()?.is_file() {
             continue;
@@ -348,7 +361,7 @@ fn report(config: &Config, target_dir: &PathBuf) -> std::io::Result<(usize, usiz
         if let Some(v) = hash.get(key) {
             println!(
                 "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
-                target_dir.to_string_lossy(),
+                config.dump_dir.to_string_lossy(),
                 i + 1,
                 "SC18main/",
                 key,
@@ -359,7 +372,7 @@ fn report(config: &Config, target_dir: &PathBuf) -> std::io::Result<(usize, usiz
         } else {
             println!(
                 "\"{}\",{},\"{}{}\",{:>5},{},",
-                target_dir.to_string_lossy(),
+                config.dump_dir.to_string_lossy(),
                 i + 1,
                 "SC18main/",
                 key,
