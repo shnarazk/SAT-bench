@@ -232,7 +232,7 @@ fn worker(config: Config) {
                     .output()
                     .expect("fail to sync");
             }
-            process::exit(0);
+            // process::exit(0);
         } else if (400 - num) % 10 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
