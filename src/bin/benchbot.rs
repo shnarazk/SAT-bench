@@ -23,7 +23,7 @@ use std::str;
 use std::sync::RwLock;
 use std::{env, process, thread, time};
 
-const VERSION: &str = "benchbot 0.0.4";
+const VERSION: &str = "benchbot 0.1.0";
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -370,8 +370,9 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "#{} from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            "#{} by {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
             config.run_name,
+            VERSION,
             config.target_from,
             config.target_to,
             config.num_jobs,
