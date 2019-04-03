@@ -133,7 +133,7 @@ fn main() {
             .expect("fail to git")
             .stdout;
         let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
-        let timestamp = current_date_time().format("%F-%m-%d").to_string();
+        let timestamp = current_date_time().format("%F").to_string();
         format!("{}-{}-{}-{}", config.solver, commit_id, timestamp, host)
     };
     if let Ok(mut run) = RUN.write() {
