@@ -21,7 +21,7 @@ use std::fs;
 use std::io::{BufWriter, Write};
 use std::str;
 use std::sync::RwLock;
-use std::{env, process, thread};
+use std::{env, process, thread, time};
 
 const VERSION: &str = "benchbot 0.0.4";
 
@@ -172,13 +172,14 @@ fn main() {
         }
         queue.reverse();
     }
+    report(&config).unwrap();
     for _ in 0..config.num_jobs {
         let c = config.clone();
         thread::spawn(move || {
+            thread::sleep(time::Duration::from_millis(4_000));
             worker(c);
         });
     }
-    report(&config).unwrap();
     post(&format!(
         "{}: Start {} parallel benchmark @ {} now.",
         VERSION, config.num_jobs, host
