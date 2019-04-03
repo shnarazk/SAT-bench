@@ -155,8 +155,11 @@ fn main() {
             config.discord_channel.parse::<u64>().unwrap()
         };
     }
-    let mut client = Client::new(&env::var("DISCORD_TOKEN").expect("token"), Handler)
-        .expect("Error creating client");
+    let mut client = if !config.discord_token.is_empty() {
+        Client::new(&config.discord_token, Handler).expect("create client")
+    } else {
+        Client::new(&env::var("DISCORD_TOKEN").expect("token"), Handler).expect("create client")
+    };
     client.with_framework(
         StandardFramework::new()
             .configure(|c| c.prefix("."))
