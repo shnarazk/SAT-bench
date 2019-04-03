@@ -164,6 +164,8 @@ fn main() {
         StandardFramework::new()
             .configure(|c| c.prefix("."))
             .cmd("clear", clean)
+            .cmd("who", who)
+            .cmd("whatsup", whatsup)
             .cmd("bye", bye),
     );
     if let Ok(mut queue) = PQ.write() {
@@ -181,9 +183,10 @@ fn main() {
         });
     }
     post(&format!(
-        "{}: Start {} parallel benchmark @ {} now.",
-        VERSION, config.num_jobs, host
+        "A new {} parallel benchmark start: **{}**.",
+        config.num_jobs, &config.run_name,
     ));
+
     if let Err(why) = client.start() {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -453,6 +456,20 @@ command!(clean(context, message) {
         }
         Err(e) => {
             ch.say(&format!("Error {}", e))?;
+        }
+    }
+});
+
+command!(who(_context, message) {
+    let ch = message.channel_id;
+    ch.say(&format!("I am {}.", VERSION))?;
+});
+
+command!(whatsup(_context, message) {
+    let ch = message.channel_id;
+    if let Ok(p) = PROCESSED.read() {
+        if let Ok(a) = ANSWERED.read() {
+            ch.say(&format!("tried {} problems, answered {}.", p, a))?;
         }
     }
 });
