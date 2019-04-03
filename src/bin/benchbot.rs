@@ -223,12 +223,11 @@ fn worker(config: Config) {
                     }
                 }
             }
-            let tarfile = format!("{}.tar.xz", config.run_name);
+            let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
             Command::new("tar")
-                .args(&["cvf", &tarfile, &config.dump_dir.to_string_lossy()])
+                .args(&["cvf", &tarfile.to_string_lossy(), &config.dump_dir.to_string_lossy()])
                 .output()
                 .expect("fail to tar");
-            fs::copy(&tarfile, config.sync_dir.join(&tarfile)).expect("fail to copy");
             if !config.sync_cmd.is_empty() {
                 Command::new(&config.sync_cmd)
                     .output()
