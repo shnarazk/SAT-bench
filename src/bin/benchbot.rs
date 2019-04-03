@@ -324,13 +324,13 @@ fn state(s: &str) {
 
 fn report(config: &Config) -> std::io::Result<(usize, usize)> {
     let outname = config.sync_dir.join(config.run_name.to_string() + ".csv");
-    let outfile = fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .open(&outname)?;
     let mut nsat = 0;
     let mut nunsat = 0;
     {
+        let outfile = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&outname)?;
         let mut outbuf = BufWriter::new(outfile);
         let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
         let timeout = config.timeout as f64;
