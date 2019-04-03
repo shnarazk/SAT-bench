@@ -23,7 +23,7 @@ use std::str;
 use std::sync::RwLock;
 use std::{env, process, thread};
 
-const VERSION: &str = "benchbot 0.0.3";
+const VERSION: &str = "benchbot 0.0.4";
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -36,17 +36,23 @@ lazy_static! {
 }
 
 #[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
+#[structopt(name = "sat-bench", about = "Run the SAT Competition benchmark")]
 struct Config {
     /// solver names
     #[structopt(long = "solver", short = "s", default_value = "")]
     solver: String,
+    /// start of the range of target problems
+    #[structopt(long = "from", default_value = "0")]
+    target_from: usize,
+    /// end of the range of target problems
+    #[structopt(long = "to", default_value = "400")]
+    target_to: usize,
     /// time out in seconds
     #[structopt(long = "timeout", short = "T", default_value = "2000")]
     timeout: usize,
     /// number of workers
     #[structopt(long = "jobs", short = "j", default_value = "3")]
-    jobs: usize,
+    num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
     solver_options: String,
@@ -68,20 +74,12 @@ struct Config {
     /// Don't assign
     #[structopt(long = "run", default_value = "")]
     run_name: String,
-}
-
-struct Handler;
-impl EventHandler for Handler {
-    fn typing_start(&self, ctx: Context, _: TypingStartEvent) {
-        if let Ok(mes) = M.read() {
-            if mes.is_empty() {
-                ctx.set_presence(None, OnlineStatus::Idle);
-            } else {
-                let name = format!("{}", *mes);
-                ctx.set_game(Game::playing(&name));
-            }
-        }
-    }
+    /// DISCORD CHHANNEL
+    #[structopt(long = "token", default_value = "")]
+    discord_token: String,
+    /// DISCORD TOKEN
+    #[structopt(long = "channel", default_value = "")]
+    discord_channel: String,
 }
 
 fn main() {
@@ -136,22 +134,26 @@ fn main() {
             .stdout;
         let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
         let timestamp = current_date_time().format("%F-%m-%d").to_string();
-        format!("{}-{}-{}-{}", config.solver, commit_id, host, timestamp)
+        format!("{}-{}-{}-{}", config.solver, commit_id, timestamp, host)
     };
     if let Ok(mut run) = RUN.write() {
         *run = config.run_name.clone();
     }
     config.dump_dir = PathBuf::from(&config.run_name);
     if config.dump_dir.exists() {
-        panic!(format!("{} exists.", config.dump_dir.to_string_lossy()));
+        println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
     } else {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
     if let Ok(mut cid) = CHID.write() {
-        *cid = env::var("DISCORD_CHANNEL")
-            .expect("no channel")
-            .parse::<u64>()
-            .unwrap();
+        *cid = if config.discord_channel.is_empty() {
+            env::var("DISCORD_CHANNEL")
+                .expect("no channel")
+                .parse::<u64>()
+                .unwrap()
+        } else {
+            config.discord_channel.parse::<u64>().unwrap()
+        };
     }
     let mut client = Client::new(&env::var("DISCORD_TOKEN").expect("token"), Handler)
         .expect("Error creating client");
@@ -161,11 +163,12 @@ fn main() {
             .cmd("clear", clean),
     );
     if let Ok(mut queue) = PQ.write() {
-        for s in SCB.iter().rev() {
+        for s in SCB.iter().take(config.target_to).skip(config.target_from) {
             queue.push(s.to_string());
         }
+        queue.reverse();
     }
-    for _ in 0..config.jobs {
+    for _ in 0..config.num_jobs {
         let c = config.clone();
         thread::spawn(move || {
             worker(c);
@@ -173,33 +176,12 @@ fn main() {
     }
     post(&format!(
         "{}: Start {} parallel benchmark @ {} now.",
-        VERSION, config.jobs, host
+        VERSION, config.num_jobs, host
     ));
     if let Err(why) = client.start() {
         println!("An error occurred while running the client: {:?}", why);
     }
 }
-
-command!(clean(context, message) {
-    context.idle();
-    let ch = message.channel_id;
-    let retriever = GetMessages::default().before(message.id).limit(100);
-    match ch.messages(|_| retriever) {
-        Ok(ref v) => {
-            let len = v.len();
-            let mut n = 0;
-            for (i, m) in v.iter().enumerate() {
-                match m.delete() {
-                    Ok(_) => n += 1,
-                    Err(why) => println!("{} ({}/{}): {}", n, i, len, why),
-                }
-            }
-        }
-        Err(e) => {
-            ch.say(&format!("Error {}", e))?;
-        }
-    }
-});
 
 fn worker(config: Config) {
     loop {
@@ -242,10 +224,12 @@ fn worker(config: Config) {
                 .expect("fail to tar");
             fs::copy(&tarfile, config.sync_dir.join(&tarfile)).expect("fail to copy");
             if !config.sync_cmd.is_empty() {
-                Command::new(config.sync_cmd).output().expect("fail to sync");
+                Command::new(config.sync_cmd)
+                    .output()
+                    .expect("fail to sync");
             }
             process::exit(0);
-        } else if (400 - num) % 20 == 0 {
+        } else if (400 - num) % 10 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
                 let sum = s + u;
@@ -338,14 +322,18 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
     let outfile = fs::OpenOptions::new()
         .write(true)
         .create(true)
-        .open(&outname)
-        .expect("open");
+        .open(&outname)?;
     let mut nsat = 0;
     let mut nunsat = 0;
     {
         let mut outbuf = BufWriter::new(outfile);
         let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
         let timeout = config.timeout as f64;
+        let processed = if let Ok(p) = PROCESSED.read() {
+            *p
+        } else {
+            0
+        };
         for e in config.dump_dir.read_dir()? {
             let f = e?;
             if !f.file_type()?.is_file() {
@@ -374,13 +362,21 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "# SAT: {}, UNSAT: {}, total: {} so far",
+            "#{} from {} to {}\n#  process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            config.run_name,
+            config.target_from,
+            config.target_to,
+            config.num_jobs,
+            config.timeout,
+            processed,
+            nsat + nunsat,
             nsat,
             nunsat,
-            nsat + nunsat
-        )
-        .unwrap();
-        println!("solver, num, target, time, satisfiability, strategy");
+        )?;
+        writeln!(
+            outbuf,
+            "solver, num, target, time, satisfiability, strategy"
+        )?;
         for (i, key) in SCB.iter().enumerate() {
             if let Some(v) = hash.get(key) {
                 writeln!(
@@ -393,8 +389,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                     v.0,
                     v.1,
                     v.2,
-                )
-                .unwrap();
+                )?;
             } else {
                 writeln!(
                     outbuf,
@@ -405,16 +400,52 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                     key,
                     config.timeout,
                     "",
-                )
-                .unwrap();
+                )?;
             }
         }
     }
     if fs::copy(&outname, config.sync_dir.join(&outname)).is_ok() {
-        Command::new("make").current_dir(&config.sync_dir).output().expect("fail");
+        Command::new("make")
+            .current_dir(&config.sync_dir)
+            .output()?;
         if !config.sync_cmd.is_empty() {
-            Command::new(&config.sync_cmd).output().expect("fail to sync");
+            Command::new(&config.sync_cmd).output()?;
         }
     }
     Ok((nsat, nunsat))
 }
+
+struct Handler;
+impl EventHandler for Handler {
+    fn typing_start(&self, ctx: Context, _: TypingStartEvent) {
+        if let Ok(mes) = M.read() {
+            if mes.is_empty() {
+                ctx.set_presence(None, OnlineStatus::Idle);
+            } else {
+                let name = format!("{}", *mes);
+                ctx.set_game(Game::playing(&name));
+            }
+        }
+    }
+}
+
+command!(clean(context, message) {
+    context.idle();
+    let ch = message.channel_id;
+    let retriever = GetMessages::default().before(message.id).limit(100);
+    match ch.messages(|_| retriever) {
+        Ok(ref v) => {
+            let len = v.len();
+            let mut n = 0;
+            for (i, m) in v.iter().enumerate() {
+                match m.delete() {
+                    Ok(_) => n += 1,
+                    Err(why) => println!("{} ({}/{}): {}", n, i, len, why),
+                }
+            }
+        }
+        Err(e) => {
+            ch.say(&format!("Error {}", e))?;
+        }
+    }
+});
