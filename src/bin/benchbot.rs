@@ -409,13 +409,11 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             }
         }
     }
-    if 0 < fs::copy(&outname, config.sync_dir.join(&outname)).expect("copy") {
-        Command::new("make")
-            .current_dir(&config.sync_dir)
-            .output()?;
-        if !config.sync_cmd.is_empty() {
-            Command::new(&config.sync_cmd).output()?;
-        }
+    Command::new("make")
+        .current_dir(&config.sync_dir)
+        .output()?;
+    if !config.sync_cmd.is_empty() {
+        Command::new(&config.sync_cmd).output()?;
     }
     Ok((nsat, nunsat))
 }
