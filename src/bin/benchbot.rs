@@ -65,7 +65,7 @@ struct Config {
     /// cloud sharing directory
     #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
     sync_dir: PathBuf,
-    /// cloud sharing directory
+    /// cloud sync command
     #[structopt(long = "sync-cmd", default_value = "syncCloud")]
     sync_cmd: String,
     /// Don't assign
