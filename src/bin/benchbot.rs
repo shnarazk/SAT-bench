@@ -173,10 +173,10 @@ fn main() {
         queue.reverse();
     }
     report(&config).unwrap();
-    for _ in 0..config.num_jobs {
+    for i in 0..config.num_jobs {
         let c = config.clone();
         thread::spawn(move || {
-            thread::sleep(time::Duration::from_millis(4_000));
+            thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
             worker(c);
         });
     }
