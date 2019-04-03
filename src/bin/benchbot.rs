@@ -228,7 +228,7 @@ fn worker(config: Config) {
                 .expect("fail to tar");
             fs::copy(&tarfile, config.sync_dir.join(&tarfile)).expect("fail to copy");
             if !config.sync_cmd.is_empty() {
-                Command::new(config.sync_cmd)
+                Command::new(&config.sync_cmd)
                     .output()
                     .expect("fail to sync");
             }
