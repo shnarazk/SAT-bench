@@ -75,11 +75,11 @@ struct Config {
     #[structopt(long = "run", default_value = "")]
     run_name: String,
     /// DISCORD CHHANNEL
-    #[structopt(long = "token", default_value = "")]
-    discord_token: String,
-    /// DISCORD TOKEN
     #[structopt(long = "channel", default_value = "")]
     discord_channel: String,
+    /// DISCORD TOKEN
+    #[structopt(long = "token", default_value = "")]
+    discord_token: String,
 }
 
 fn main() {
