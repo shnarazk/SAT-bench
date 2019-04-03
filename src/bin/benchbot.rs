@@ -178,6 +178,7 @@ fn main() {
             worker(c);
         });
     }
+    report(&config).unwrap();
     post(&format!(
         "{}: Start {} parallel benchmark @ {} now.",
         VERSION, config.num_jobs, host
