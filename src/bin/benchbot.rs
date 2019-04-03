@@ -409,7 +409,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             }
         }
     }
-    if fs::copy(&outname, config.sync_dir.join(&outname)).is_ok() {
+    if 0 < fs::copy(&outname, config.sync_dir.join(&outname)).expect("copy") {
         Command::new("make")
             .current_dir(&config.sync_dir)
             .output()?;
