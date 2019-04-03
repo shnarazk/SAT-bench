@@ -163,7 +163,8 @@ fn main() {
     client.with_framework(
         StandardFramework::new()
             .configure(|c| c.prefix("."))
-            .cmd("clear", clean),
+            .cmd("clear", clean)
+            .cmd("bye", bye),
     );
     if let Ok(mut queue) = PQ.write() {
         for s in SCB.iter().take(config.target_to).skip(config.target_from) {
@@ -431,6 +432,10 @@ impl EventHandler for Handler {
         }
     }
 }
+
+command!(bye(_context, _message) {
+    process::exit(0);
+});
 
 command!(clean(context, message) {
     context.idle();
