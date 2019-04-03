@@ -225,7 +225,11 @@ fn worker(config: Config) {
             }
             let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
             Command::new("tar")
-                .args(&["cvf", &tarfile.to_string_lossy(), &config.dump_dir.to_string_lossy()])
+                .args(&[
+                    "cvf",
+                    &tarfile.to_string_lossy(),
+                    &config.dump_dir.to_string_lossy(),
+                ])
                 .output()
                 .expect("fail to tar");
             if !config.sync_cmd.is_empty() {
@@ -233,7 +237,7 @@ fn worker(config: Config) {
                     .output()
                     .expect("fail to sync");
             }
-            // process::exit(0);
+        // process::exit(0);
         } else if (400 - num) % 10 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
@@ -334,11 +338,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         let mut outbuf = BufWriter::new(outfile);
         let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
         let timeout = config.timeout as f64;
-        let processed = if let Ok(p) = PROCESSED.read() {
-            *p
-        } else {
-            0
-        };
+        let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
         for e in config.dump_dir.read_dir()? {
             let f = e?;
             if !f.file_type()?.is_file() {
@@ -367,7 +367,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "#{} from {} to {}\n#  process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            "#{} from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
             config.run_name,
             config.target_from,
             config.target_to,
