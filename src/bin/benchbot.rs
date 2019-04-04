@@ -1,6 +1,8 @@
 /// A simple SAT benchmarker
 use lazy_static::lazy_static;
 use regex::Regex;
+use sat_bench::utils::current_date_time;
+use sat_bench::{bench18::SCB, utils::parse_result};
 use serenity::builder::GetMessages;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::command;
@@ -9,21 +11,18 @@ use serenity::model::channel::Channel;
 use serenity::model::event::TypingStartEvent;
 use serenity::model::gateway::Game;
 use serenity::model::id::ChannelId;
-use std::path::PathBuf;
-use std::process::Command;
-use structopt::StructOpt;
-// use serenity::model::prelude::Message;
-use sat_bench::utils::current_date_time;
-use sat_bench::{bench18::SCB, utils::parse_result};
 use serenity::model::user::OnlineStatus;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufWriter, Write};
+use std::io::{stdout, BufWriter, Write};
+use std::path::PathBuf;
+use std::process::Command;
 use std::str;
 use std::sync::RwLock;
 use std::{env, process, thread, time};
+use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.1.0";
+const VERSION: &str = "benchbot 0.1.1";
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -107,12 +106,15 @@ fn main() {
             if let Ok(f) = e {
                 let splr = f.path().file_stem().unwrap().to_string_lossy().to_string();
                 if splr.contains("splr") {
+                    print!("\x1B[032mCompiling {}...\x1B[000m", config.solver);
+                    stdout().flush().unwrap();
                     Command::new("cargo")
                         .current_dir(&config.repo_dir)
                         .args(&["install", "--path", ".", "--force"])
                         .output()
                         .expect("fail to compile");
                     config.solver = splr;
+                    println!("\x1B[032mdone.\x1B[000m");
                 }
             }
         }
@@ -166,6 +168,7 @@ fn main() {
             .cmd("clear", clean)
             .cmd("who", who)
             .cmd("whatsup", whatsup)
+            .cmd("help", help)
             .cmd("bye", bye),
     );
     if let Ok(mut queue) = PQ.write() {
@@ -173,6 +176,9 @@ fn main() {
             queue.push(s.to_string());
         }
         queue.reverse();
+    }
+    if let Ok(mut processed) = PROCESSED.write() {
+        *processed = config.target_from;
     }
     report(&config).unwrap();
     for i in 0..config.num_jobs {
@@ -183,8 +189,8 @@ fn main() {
         });
     }
     post(&format!(
-        "A new {} parallel benchmark start: **{}**.",
-        config.num_jobs, &config.run_name,
+        "A new {} parallel benchmark starts.",
+        config.num_jobs,
     ));
 
     if let Err(why) = client.start() {
@@ -462,15 +468,17 @@ command!(clean(context, message) {
 });
 
 command!(who(_context, message) {
-    let ch = message.channel_id;
-    ch.say(&format!("I am {}.", VERSION))?;
+    message.channel_id.say(&format!("I am {}.", VERSION))?;
+});
+
+command!(help(_context, message) {
+    message.channel_id.say(&format!("I accept `bye`, `clean`, `whatsup`, `who`"))?;
 });
 
 command!(whatsup(_context, message) {
-    let ch = message.channel_id;
     if let Ok(p) = PROCESSED.read() {
         if let Ok(a) = ANSWERED.read() {
-            ch.say(&format!("tried {} problems, answered {}.", p, a))?;
+            message.channel_id.say(&format!("tried {} problems, answered {}.", p, a))?;
         }
     }
 });
