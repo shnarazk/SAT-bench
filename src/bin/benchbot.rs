@@ -160,6 +160,15 @@ fn main() {
         let timestamp = current_date_time().format("%F").to_string();
         format!("{}-{}-{}-{}", config.solver, commit_id, timestamp, host)
     };
+    let diff = {
+        let diff8 = Command::new("git")
+            .current_dir(format!("{}/Repositories/splr", home))
+            .args(&["log", "-1", "diff"])
+            .output()
+            .expect("fail to git")
+            .stdout;
+        unsafe { String::from_utf8_unchecked(diff8) }
+    };
     if let Ok(mut run) = RUN.write() {
         *run = config.run_name.clone();
     }
@@ -215,6 +224,12 @@ fn main() {
         "A new {} parallel benchmark starts.",
         config.num_jobs,
     ));
+    if !diff.is_empty() {
+        post(&format!(
+            "**WARNING: unregistered modifications**\n```diff\n{}```\n",
+            diff
+        ));
+    }
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
@@ -251,7 +266,7 @@ fn worker(config: Config) {
                     *answered = sum;
                     post(&format!(
                         "All {} problems were solved, answered {}.",
-                        processed, sum, 
+                        processed, sum,
                     ));
                 }
             }
