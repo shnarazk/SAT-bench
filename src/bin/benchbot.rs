@@ -25,14 +25,15 @@ use structopt::StructOpt;
 const VERSION: &str = "benchbot 0.1.2";
 
 lazy_static! {
+    pub static ref CHID: RwLock<u64> = RwLock::new(0);
+    pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
+    pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
     pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
     pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
     pub static ref M: RwLock<String> = RwLock::new(String::new());
     pub static ref RUN: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
-    pub static ref CHID: RwLock<u64> = RwLock::new(0);
-    pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
 }
 
 #[derive(Clone, Debug, StructOpt)]
@@ -169,6 +170,9 @@ fn main() {
             .stdout;
         unsafe { String::from_utf8_unchecked(diff8) }
     };
+    if let Ok(mut d) = DIFF.write() {
+        *d = diff.clone();
+    }
     if let Ok(mut run) = RUN.write() {
         *run = config.run_name.clone();
     }
@@ -426,6 +430,11 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             nsat,
             nunsat,
         )?;
+        if let Ok(diff) = DIFF.write() {
+            for l in diff.lines() {
+                writeln!(outbuf, "# {}", l)?;
+            }
+        }
         writeln!(
             outbuf,
             "solver, num, target, time, satisfiability, strategy"
