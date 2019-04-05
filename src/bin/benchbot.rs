@@ -74,10 +74,10 @@ pub struct Config {
     /// Don't assign
     #[structopt(long = "run", default_value = "")]
     pub run_name: String,
-    /// DISCORD CHHANNEL
+    /// Discord chhannel
     #[structopt(long = "channel", default_value = "")]
     pub discord_channel: String,
-    /// DISCORD TOKEN
+    /// Discord token
     #[structopt(long = "token", default_value = "")]
     pub discord_token: String,
 }
@@ -188,6 +188,7 @@ fn main() {
         StandardFramework::new()
             .configure(|c| c.prefix("."))
             .cmd("clear", clean)
+            .cmd("draw", draw)
             .cmd("who", who)
             .cmd("whatsup", whatsup)
             .cmd("help", help)
@@ -489,6 +490,11 @@ command!(clean(context, message) {
             ch.say(&format!("Error {}", e))?;
         }
     }
+});
+
+command!(draw(_context, message) {
+    message.channel_id.say(&format!("not yet implemented"))?;
+    // message.channel_id.send_files(&[]);
 });
 
 command!(who(_context, message) {
