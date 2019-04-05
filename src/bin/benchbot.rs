@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.1.1";
+const VERSION: &str = "benchbot 0.1.2";
 
 lazy_static! {
     pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -32,53 +32,75 @@ lazy_static! {
     pub static ref RUN: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
+    pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
 }
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run the SAT Competition benchmark")]
-struct Config {
+pub struct Config {
     /// solver names
     #[structopt(long = "solver", short = "s", default_value = "")]
-    solver: String,
+    pub solver: String,
     /// start of the range of target problems
     #[structopt(long = "from", default_value = "0")]
-    target_from: usize,
+    pub target_from: usize,
     /// end of the range of target problems
     #[structopt(long = "to", default_value = "400")]
-    target_to: usize,
+    pub target_to: usize,
     /// time out in seconds
     #[structopt(long = "timeout", short = "T", default_value = "2000")]
-    timeout: usize,
+    pub timeout: usize,
     /// number of workers
     #[structopt(long = "jobs", short = "j", default_value = "3")]
-    num_jobs: usize,
+    pub num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
-    solver_options: String,
+    pub solver_options: String,
     /// data directory
     #[structopt(long = "data", default_value = "~/Documents/SAT-RACE/SC18main")]
-    data_dir: PathBuf,
+    pub data_dir: PathBuf,
     /// solver repository
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
-    repo_dir: PathBuf,
+    pub repo_dir: PathBuf,
     /// cloud sharing directory
     #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
-    sync_dir: PathBuf,
+    pub sync_dir: PathBuf,
     /// cloud sync command
     #[structopt(long = "sync-cmd", default_value = "syncCloud")]
-    sync_cmd: String,
+    pub sync_cmd: String,
     /// Don't assign
     #[structopt(long = "dump", default_value = "")]
-    dump_dir: PathBuf,
+    pub dump_dir: PathBuf,
     /// Don't assign
     #[structopt(long = "run", default_value = "")]
-    run_name: String,
+    pub run_name: String,
     /// DISCORD CHHANNEL
     #[structopt(long = "channel", default_value = "")]
-    discord_channel: String,
+    pub discord_channel: String,
     /// DISCORD TOKEN
     #[structopt(long = "token", default_value = "")]
-    discord_token: String,
+    pub discord_token: String,
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            solver: String::from("splr"),
+            target_from: 0,
+            target_to: 400,
+            timeout: 2000,
+            num_jobs: 3,
+            solver_options: String::new(),
+            data_dir: PathBuf::new(),
+            repo_dir: PathBuf::new(),
+            sync_dir: PathBuf::new(),
+            sync_cmd: String::new(),
+            dump_dir: PathBuf::new(),
+            run_name: String::new(),
+            discord_channel: String::new(),
+            discord_token: String::new(),
+        }
+    }
 }
 
 fn main() {
@@ -192,7 +214,9 @@ fn main() {
         "A new {} parallel benchmark starts.",
         config.num_jobs,
     ));
-
+    if let Ok(mut conf) = CONFIG.write() {
+        *conf = config.clone();
+    }
     if let Err(why) = client.start() {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -468,7 +492,9 @@ command!(clean(context, message) {
 });
 
 command!(who(_context, message) {
-    message.channel_id.say(&format!("I am {}.", VERSION))?;
+    if let Ok(conf) = CONFIG.read() {
+        message.channel_id.say(&format!("I am {}: ```rust\n{:?}\n```", VERSION, conf))?;
+    }
 });
 
 command!(help(_context, message) {
