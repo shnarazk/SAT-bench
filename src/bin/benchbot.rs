@@ -248,13 +248,11 @@ fn worker(config: Config) {
             if let Ok(processed) = PROCESSED.read() {
                 if let Ok(mut answered) = ANSWERED.write() {
                     let sum = s + u;
-                    if *answered < sum {
-                        *answered = sum;
-                        post(&format!(
-                            "{} of {} problems were solved. Bye.",
-                            sum, processed
-                        ));
-                    }
+                    *answered = sum;
+                    post(&format!(
+                        "All {} problems were solved, answered {}.",
+                        processed, sum, 
+                    ));
                 }
             }
             let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
