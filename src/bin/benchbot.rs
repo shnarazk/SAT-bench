@@ -164,9 +164,9 @@ fn main() {
     let diff = {
         let diff8 = Command::new("git")
             .current_dir(format!("{}/Repositories/splr", home))
-            .args(&["log", "-1", "diff"])
+            .args(&["diff"])
             .output()
-            .expect("fail to git")
+            .expect("fail to git diff")
             .stdout;
         unsafe { String::from_utf8_unchecked(diff8) }
     };
