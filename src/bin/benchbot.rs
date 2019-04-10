@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.1.4";
+const VERSION: &str = "benchbot 0.2.0";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -307,6 +307,9 @@ fn worker(config: Config) {
 }
 
 fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
+    lazy_static! {
+        static ref PANIC: Regex = Regex::new(r"thread 'main' panicked").expect("wrong regex");
+    }
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
@@ -318,8 +321,13 @@ fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
         for opt in config.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
-        if command.arg(f.as_os_str()).output().is_err() {
-            post(&format!("Something happened to {}.", &target));
+        let result = command.arg(f.as_os_str()).output();
+        match &result {
+            Err(_) => post(&format!("Something happened to {}.", &target)),
+            Ok(r) if PANIC.is_match(&String::from_utf8(r.stderr.clone()).unwrap()) => {
+                post(&format!("**Panic at {}.**", &target))
+            }
+            _ => (),
         }
     }
 }
