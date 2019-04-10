@@ -523,8 +523,18 @@ command!(clean(context, message) {
 });
 
 command!(draw(_context, message) {
-    message.channel_id.say(&format!("not yet implemented"))?;
-    // message.channel_id.send_files(&[]);
+    if let Ok(conf) = CONFIG.read() { 
+        let host = {
+            let h = Command::new("hostname")
+                .arg("-s")
+                .output()
+                .expect("failed to execute process")
+                .stdout;
+            String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
+        };
+        let pdf = conf.sync_dir.join(&format!("CactusL-{}.pdf", host));
+        message.channel_id.send_files(&[pdf], |m| m.content("Cactus Plot")).unwrap();
+    }
 });
 
 command!(who(_context, message) {
