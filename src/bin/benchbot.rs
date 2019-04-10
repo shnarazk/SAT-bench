@@ -523,7 +523,7 @@ command!(clean(context, message) {
 });
 
 command!(draw(_context, message) {
-    if let Ok(conf) = CONFIG.read() { 
+    if let Ok(conf) = CONFIG.read() {
         let host = {
             let h = Command::new("hostname")
                 .arg("-s")
