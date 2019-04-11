@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.2.0";
+const VERSION: &str = "benchbot 0.2.1";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -289,7 +289,7 @@ fn worker(config: Config) {
                     .expect("fail to sync");
             }
         // process::exit(0);
-        } else if (400 - num) % 10 == 0 {
+        } else if (config.to - num) % 10 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
                 let sum = s + u;
