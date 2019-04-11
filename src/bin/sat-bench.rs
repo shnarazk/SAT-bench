@@ -16,7 +16,7 @@ use std::process::Command;
 use std::time::SystemTime;
 use structopt::StructOpt;
 
-const VERSION: &str = "sat-bench 0.90.4";
+const VERSION: &str = "sat-bench 0.90.5";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -328,9 +328,14 @@ impl SolverHandling for Command {
         lazy_static! {
             static ref MINISAT_LIKE: Regex =
                 Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
+            static ref PANIC: Regex = Regex::new(r"thread 'main' panicked").expect("wrong regex");
         }
         let result = self.output();
-        match result {
+        match &result {
+            Ok(r) if PANIC.is_match(&String::from_utf8(r.stderr.clone()).unwrap()) => {
+                println!("Abort: panic");
+                return None;
+            }
             Ok(ref done) => {
                 match done.status.code() {
                     Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
