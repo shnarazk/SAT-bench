@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.2.2";
+const VERSION: &str = "benchbot 0.3.0";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -202,8 +202,8 @@ fn main() {
             .configure(|c| c.prefix("."))
             .cmd("clear", clean)
             .cmd("draw", draw)
-            .cmd("who", who)
             .cmd("whatsup", whatsup)
+            .cmd("who", who)
             .cmd("help", help)
             .cmd("bye", bye),
     );
@@ -288,6 +288,7 @@ fn worker(config: Config) {
                     .output()
                     .expect("fail to sync");
             }
+            println!("Benchmark {} h<as been done.", config.run_name);
         // process::exit(0);
         } else if (config.target_to - num) % 10 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
@@ -297,7 +298,7 @@ fn worker(config: Config) {
                     *answered = sum;
                     post(&format!(
                         "The {}-th job is done, answered {}.",
-                        400 - num,
+                        config.target_to - num,
                         sum
                     ));
                 }
@@ -534,8 +535,8 @@ command!(draw(_context, message) {
                 .stdout;
             String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
         };
-        let pdf = conf.sync_dir.join(&format!("CactusL-{}.pdf", host));
-        message.channel_id.send_files(&[pdf], |m| m.content("Cactus Plot")).unwrap();
+        let cactus = conf.sync_dir.join(&format!("CactusL-{}.png", host));
+        message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).unwrap();
     }
 });
 
@@ -546,7 +547,7 @@ command!(who(_context, message) {
 });
 
 command!(help(_context, message) {
-    message.channel_id.say(&format!("I accept `bye`, `clean`, `whatsup`, `who`"))?;
+    message.channel_id.say(&format!("I accept `bye`, `clear`, `draw`, `whatsup`, `who`"))?;
 });
 
 command!(whatsup(_context, message) {
