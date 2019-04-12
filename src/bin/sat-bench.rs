@@ -16,6 +16,13 @@ use std::process::Command;
 use std::time::SystemTime;
 use structopt::StructOpt;
 
+/// Abnormal termination flags.
+#[derive(Debug)]
+pub enum SolverException {
+    TimeOut,
+    Abort,
+}
+
 const VERSION: &str = "sat-bench 0.90.5";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
@@ -222,10 +229,10 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                 .arg(f.path())
                 .check_result(solver, &start, config.timeout as f64)
             {
-                Some(_) => {
+                Ok(_) => {
                     count += 1;
                 }
-                None => {
+                Err(SolverException::TimeOut) => {
                     println!(
                         "{}{:<14}{:>3},{:>20} TIMEOUT at {}",
                         CLEAR,
@@ -233,6 +240,17 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                         num,
                         &format!("\"{}{}({})\",", name, n, count),
                         // &format!("\"{}({})\",", tag, count),
+                        f.file_name().to_str().unwrap(),
+                    );
+                    return;
+                }
+                Err(SolverException::Abort) => {
+                    println!(
+                        "{}{:<14}{:>3},{:>20} ABORT at {}",
+                        CLEAR,
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}{}({})\",", name, n, count),
                         f.file_name().to_str().unwrap(),
                     );
                     return;
@@ -277,7 +295,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 .arg(f.as_os_str())
                 .check_result(solver, &start, config.timeout as f64)
             {
-                Some(end) => {
+                Ok(end) => {
                     println!(
                         "{}{:<14}{:>3},{:>20}{:>8.3}",
                         CLEAR,
@@ -287,7 +305,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         end,
                     );
                 }
-                None => {
+                Err(SolverException::TimeOut) => {
                     println!(
                         "{}{:<14}{:>3},{:>20}{:>8}",
                         CLEAR,
@@ -297,6 +315,16 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "TIMEOUT",
                     );
                 }
+                Err(SolverException::Abort) => {
+                    println!(
+                        "{}{:<14}{:>3},{:>20}{:>8}",
+                        CLEAR,
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}\",", name),
+                        "ABORT",
+                    );
+                }
             };
         }
     }
@@ -304,7 +332,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
 
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
-    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Option<f64>;
+    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
@@ -324,7 +352,7 @@ impl SolverHandling for Command {
             self.arg(solver)
         }
     }
-    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Option<f64> {
+    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Result<f64, SolverException> {
         lazy_static! {
             static ref MINISAT_LIKE: Regex =
                 Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
@@ -333,28 +361,27 @@ impl SolverHandling for Command {
         let result = self.output();
         match &result {
             Ok(r) if PANIC.is_match(&String::from_utf8(r.stderr.clone()).unwrap()) => {
-                println!("Abort: panic");
-                return None;
+                return Err(SolverException::Abort);
             }
             Ok(ref done) => {
                 match done.status.code() {
                     Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
                     Some(0) => (),
-                    _ => return None,
+                    _ => return Err(SolverException::Abort),
                 }
                 match start.elapsed() {
                     Ok(e) => {
                         let end = e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64;
                         if end < timeout {
-                            Some(end)
+                            Ok(end)
                         } else {
-                            None
+                            Err(SolverException::TimeOut)
                         }
                     }
-                    Err(_) => None,
+                    Err(_) => Err(SolverException::Abort),
                 }
             }
-            Err(_) => None,
+            Err(_) => Err(SolverException::Abort),
         }
     }
 }
