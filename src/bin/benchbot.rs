@@ -289,7 +289,7 @@ fn worker(config: Config) {
                     .expect("fail to sync");
             }
         // process::exit(0);
-        } else if (config.to - num) % 10 == 0 {
+        } else if (config.target_to - num) % 10 == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
                 let sum = s + u;
