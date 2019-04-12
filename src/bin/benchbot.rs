@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.2.1";
+const VERSION: &str = "benchbot 0.2.2";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -315,7 +315,9 @@ fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
         println!("\x1B[032mRunning on {}...\x1B[000m", target);
         if let Ok(processed) = PROCESSED.read() {
-            state(&format!("#{}, {}", *processed, &target));
+            if let Ok(answered) = ANSWERED.read() {
+                state(&format!("#{}/{},{}", *answered, *processed, &target));
+            }
         }
         let mut command: Command = solver_command(config);
         for opt in config.solver_options.split_whitespace() {
