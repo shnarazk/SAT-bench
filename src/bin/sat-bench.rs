@@ -399,7 +399,7 @@ fn print_solver(solver: &str) -> Option<String> {
     which = which.trim_end_matches('\n').to_string();
     let at = fs::metadata(&which);
     if let Ok(home) = env::var("HOME") {
-        home.trim_end_matches('/');
+        let _ = home.trim_end_matches('/');
         let hr = Regex::new(&home).expect("wrong regex");
         which = hr.replace(&which, "~").to_string();
     }
