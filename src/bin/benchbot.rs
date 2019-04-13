@@ -288,21 +288,8 @@ fn worker(config: Config) {
                     .output()
                     .expect("fail to sync");
             }
-            println!("Benchmark {} h<as been done.", config.run_name);
-        // process::exit(0);
-        } else if (config.target_to - num) % 10 == 0 {
-            let (s, u) = report(&config).unwrap_or((0, 0));
-            if let Ok(mut answered) = ANSWERED.write() {
-                let sum = s + u;
-                if *answered < sum {
-                    *answered = sum;
-                    post(&format!(
-                        "The {}-th job is done, answered {}.",
-                        config.target_to - num,
-                        sum
-                    ));
-                }
-            }
+            println!("Benchmark {} has been done.", config.run_name);
+            // process::exit(0);
         }
     }
 }
