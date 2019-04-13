@@ -289,7 +289,45 @@ fn worker(config: Config) {
                     .expect("fail to sync");
             }
             println!("Benchmark {} has been done.", config.run_name);
-            // process::exit(0);
+        // process::exit(0);
+        } else {
+            let ans = {
+                if let Ok(answered) = ANSWERED.read() {
+                    *answered
+                } else {
+                    0
+                }
+            };
+            let pro = {
+                if let Ok(processed) = PROCESSED.read() {
+                    *processed
+                } else {
+                    0
+                }
+            };
+            if (num == 20 && 3 < ans)
+                || (num == 40 && 9 < ans)
+                || (num == 60 && 26 < ans)
+                || (num == 80 && 32 < ans)
+                || (num == 100 && 51 < ans)
+                || (num == 120 && 61 < ans)
+                || (num == 140 && 67 < ans)
+                || (num == 160 && 71 < ans)
+                || (num == 180 && 79 < ans)
+                || (num == 200 && 88 < ans)
+                || (num == 220 && 97 < ans)
+                || (num == 240 && 109 < ans)
+                || (num == 260 && 117 < ans)
+                || (num == 280 && 124 < ans)
+                || (num == 300 && 134 < ans)
+                || (num == 320 && 147 < ans)
+                || (num == 340 && 157 < ans)
+                || (num == 360 && 164 < ans)
+                || (num == 380 && 171 < ans)
+            {
+                post(&format!("New record: {} solutions at {}-th problem.", ans, pro));
+
+            }
         }
     }
 }
