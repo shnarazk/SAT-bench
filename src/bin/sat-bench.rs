@@ -332,7 +332,12 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
 
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
-    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Result<f64, SolverException>;
+    fn check_result(
+        &mut self,
+        solver: &str,
+        start: &SystemTime,
+        timeout: f64,
+    ) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
@@ -352,7 +357,12 @@ impl SolverHandling for Command {
             self.arg(solver)
         }
     }
-    fn check_result(&mut self, solver: &str, start: &SystemTime, timeout: f64) -> Result<f64, SolverException> {
+    fn check_result(
+        &mut self,
+        solver: &str,
+        start: &SystemTime,
+        timeout: f64,
+    ) -> Result<f64, SolverException> {
         lazy_static! {
             static ref MINISAT_LIKE: Regex =
                 Regex::new(r"\b(glucose|minisat)").expect("wrong regex");

@@ -304,7 +304,7 @@ fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
         println!("\x1B[032mRunning on {}...\x1B[000m", target);
         if let Ok(processed) = PROCESSED.read() {
             if let Ok(answered) = ANSWERED.read() {
-                state(&format!("#{}/{},{}", *answered, *processed, &target));
+                state(&format!("{}#{},{}", *answered, *processed, &target));
             }
         }
         let mut command: Command = solver_command(config);
