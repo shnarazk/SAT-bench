@@ -536,7 +536,17 @@ command!(draw(_context, message) {
             String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
         };
         let cactus = conf.sync_dir.join(&format!("CactusL-{}.png", host));
-        message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).unwrap();
+        // ./mkCactusL.R rio.runs 400 "" $(THR)
+        if Command::new("./mkCactusL.R")
+            .current_dir(&conf.sync_dir)
+            .args(&[&format!("{}.run", host), "400", "", &format!("{}", conf.timeout)])
+            .output()
+            .is_ok()
+        {
+            message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).unwrap();
+        } else {
+            message.channel_id.say("Failed to draw a cactus graph.").unwrap();
+        }
     }
 });
 
