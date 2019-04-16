@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.5.7";
+const VERSION: &str = "benchbot 0.5.8";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -275,15 +275,13 @@ fn worker(config: Config) {
             // I'm the last one.
             state("");
             let (s, u) = report(&config).unwrap_or((0, 0));
-            if let Ok(processed) = PROCESSED.read() {
-                if let Ok(mut answered) = ANSWERED.write() {
-                    let sum = s + u;
-                    *answered = sum;
-                    post(&format!(
-                        "All {} problems were solved, answered {}.",
-                        processed, sum,
-                    ));
-                }
+            if let Ok(mut answered) = ANSWERED.write() {
+                let sum = s + u;
+                *answered = sum;
+                post(&format!(
+                    "All ({} + {}, {}) problems were solved, answered {}.",
+                    config.target_from, config.target_step, config.target_to, sum,
+                ));
             }
             let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
             Command::new("tar")
@@ -343,8 +341,10 @@ fn worker(config: Config) {
                 || (num == 360 && 164 < ans)
                 || (num == 380 && 171 < ans)
             {
-                post(&format!("New record: {} solutions at {}-th problem.", ans, pro));
-
+                post(&format!(
+                    "New record: {} solutions at {}-th problem.",
+                    ans, pro
+                ));
             }
         }
     }

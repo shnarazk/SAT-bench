@@ -836,7 +836,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "sat-bench"
-version = "0.5.7"
+version = "0.5.8"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "discord-rpc-client 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",

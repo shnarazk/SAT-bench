@@ -23,7 +23,7 @@ pub enum SolverException {
     Abort,
 }
 
-const VERSION: &str = "sat-bench 0.5.7";
+const VERSION: &str = "sat-bench 0.5.8";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
