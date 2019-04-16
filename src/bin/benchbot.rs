@@ -262,7 +262,7 @@ fn worker(config: Config) {
                 p = config.data_dir.join(top);
                 num = q.len();
                 if let Ok(mut processed) = PROCESSED.write() {
-                    *processed += 1;
+                    *processed = index;
                 }
             } else {
                 break;
