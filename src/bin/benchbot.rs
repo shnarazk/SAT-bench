@@ -307,7 +307,11 @@ fn worker(config: Config) {
                 }
             };
             if pro % config.num_jobs == 0 {
-                report(&config).unwrap();
+                let (s, u) = report(&config).unwrap_or((0, 0));
+                if let Ok(mut answered) = ANSWERED.write() {
+                    let sum = s + u;
+                    *answered = sum;
+                }
             }
             let ans = {
                 if let Ok(answered) = ANSWERED.read() {
