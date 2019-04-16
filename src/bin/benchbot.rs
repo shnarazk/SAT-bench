@@ -22,13 +22,13 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.4.0";
+const VERSION: &str = "benchbot 0.5.0";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
     pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
-    pub static ref PQ: RwLock<Vec<String>> = RwLock::new(Vec::new());
+    pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
     pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
     pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
     pub static ref M: RwLock<String> = RwLock::new(String::new());
@@ -48,6 +48,9 @@ pub struct Config {
     /// end of the range of target problems
     #[structopt(long = "to", default_value = "400")]
     pub target_to: usize,
+    /// step of choosen target problems
+    #[structopt(long = "step", default_value = "1")]
+    pub target_step: usize,
     /// time out in seconds
     #[structopt(long = "timeout", short = "T", default_value = "2000")]
     pub timeout: usize,
@@ -89,6 +92,7 @@ impl Default for Config {
             solver: String::from("splr"),
             target_from: 0,
             target_to: 400,
+            target_step: 1,
             timeout: 2000,
             num_jobs: 3,
             solver_options: String::new(),
@@ -209,7 +213,9 @@ fn main() {
     );
     if let Ok(mut queue) = PQ.write() {
         for s in SCB.iter().take(config.target_to).skip(config.target_from) {
-            queue.push(s.to_string());
+            if s.0 % config.target_step == 0 {
+                queue.push((s.0, s.1.to_string()));
+            }
         }
         queue.reverse();
     }
@@ -246,8 +252,10 @@ fn worker(config: Config) {
     loop {
         let mut p: PathBuf;
         let num: usize;
+        let n: usize;
         if let Ok(mut q) = PQ.write() {
-            if let Some(top) = q.pop() {
+            if let Some((index, top)) = q.pop() {
+                n = index;
                 p = config.data_dir.join(top);
                 num = q.len();
                 if let Ok(mut processed) = PROCESSED.write() {
@@ -259,7 +267,7 @@ fn worker(config: Config) {
         } else {
             break;
         }
-        execute(&config, num, &p);
+        execute(&config, n, &p);
         if num == 0 {
             // I'm the last one.
             state("");
@@ -335,7 +343,7 @@ fn worker(config: Config) {
     }
 }
 
-fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
+fn execute(config: &Config, num: usize, cnf: &PathBuf) {
     lazy_static! {
         static ref PANIC: Regex = Regex::new(r"thread 'main' panicked").expect("wrong regex");
     }
@@ -343,10 +351,8 @@ fn execute(config: &Config, _num: usize, cnf: &PathBuf) {
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
         println!("\x1B[032mRunning on {}...\x1B[000m", target);
-        if let Ok(processed) = PROCESSED.read() {
-            if let Ok(answered) = ANSWERED.read() {
-                state(&format!("{}#{},{}", *answered, *processed, &target));
-            }
+        if let Ok(answered) = ANSWERED.read() {
+            state(&format!("{}#{},{}", *answered, num, &target));
         }
         let mut command: Command = solver_command(config);
         for opt in config.solver_options.split_whitespace() {
@@ -437,7 +443,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             let fname = f.file_name().to_string_lossy().to_string();
             if fname.starts_with(".ans_") {
                 let cnf = &fname[5..];
-                for key in SCB.iter() {
+                for (_n, key) in SCB.iter() {
                     if *key == cnf {
                         if None != hash.get(key) {
                             panic!("duplicated {}", cnf);
@@ -478,7 +484,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             outbuf,
             "solver, num, target, time, satisfiability, strategy"
         )?;
-        for (i, key) in SCB.iter().enumerate() {
+        for (i, key) in SCB.iter() {
             if let Some(v) = hash.get(key) {
                 writeln!(
                     outbuf,
