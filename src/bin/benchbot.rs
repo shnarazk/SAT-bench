@@ -22,7 +22,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.5.0";
+const VERSION: &str = "benchbot 0.5.7";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
