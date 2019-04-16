@@ -291,16 +291,19 @@ fn worker(config: Config) {
             println!("Benchmark {} has been done.", config.run_name);
         // process::exit(0);
         } else {
-            let ans = {
-                if let Ok(answered) = ANSWERED.read() {
-                    *answered
+            let pro = {
+                if let Ok(processed) = PROCESSED.read() {
+                    *processed
                 } else {
                     0
                 }
             };
-            let pro = {
-                if let Ok(processed) = PROCESSED.read() {
-                    *processed
+            if pro % config.num_jobs == 0 {
+                report(&config).unwrap();
+            }
+            let ans = {
+                if let Ok(answered) = ANSWERED.read() {
+                    *answered
                 } else {
                     0
                 }
