@@ -222,7 +222,10 @@ fn main() {
     if let Ok(mut processed) = PROCESSED.write() {
         *processed = config.target_from;
     }
-    report(&config).unwrap();
+    if let Ok(mut answered) = ANSWERED.write() {
+        let (s, u) = report(&config).unwrap_or((0, 0));
+        *answered = s + u;
+    }
     for i in 0..config.num_jobs {
         let c = config.clone();
         thread::spawn(move || {
