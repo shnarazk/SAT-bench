@@ -582,12 +582,11 @@ command!(draw(_context, message) {
             .current_dir(&conf.sync_dir)
             .args(&[&format!("{}.run", host), "400", "", &format!("{}", conf.timeout)])
             .output()
-            .is_ok()
+            .is_err()
         {
-            message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).unwrap();
-        } else {
             message.channel_id.say("Failed to draw a cactus graph.").unwrap();
         }
+        message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).unwrap();
     }
 });
 
