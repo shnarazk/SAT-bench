@@ -11,6 +11,7 @@ use serenity::model::channel::Channel;
 use serenity::model::event::TypingStartEvent;
 use serenity::model::gateway::Game;
 use serenity::model::id::ChannelId;
+use serenity::model::prelude::Ready;
 use serenity::model::user::OnlineStatus;
 use std::collections::HashMap;
 use std::fs;
@@ -22,7 +23,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.5.8";
+const VERSION: &str = "benchbot 0.5.10";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -127,6 +128,41 @@ fn main() {
             .replace(&config.repo_dir.to_string_lossy(), &home[..])
             .to_string(),
     );
+    let mut client = if !config.discord_token.is_empty() {
+        Client::new(&config.discord_token, Handler).expect("Can't tcreate client")
+    } else {
+        Client::new(&env::var("DISCORD_TOKEN").expect("NO token"), Handler)
+            .expect("Can't create client")
+    };
+    if let Ok(mut conf) = CONFIG.write() {
+        *conf = config.clone();
+    }
+    // start_benchmark();
+    client.with_framework(
+        StandardFramework::new()
+            .configure(|c| c.prefix("."))
+            .cmd("clear", clean)
+            .cmd("draw", draw)
+            .cmd("start", start)
+            .cmd("whatsup", whatsup)
+            .cmd("who", who)
+            .cmd("help", help)
+            .cmd("bye", bye),
+    );
+    if let Err(why) = client.start() {
+        println!("An error occurred while running the client: {:?}", why);
+    } else {
+        println!("Start a discord client.");
+    }
+}
+
+fn start_benchmark() {
+    let mut config = if let Ok(conf) = CONFIG.read() {
+        conf.clone()
+    } else {
+        Config::from_args()
+    };
+    let home = env::var("HOME").expect("No home");
     if config.solver.is_empty() {
         config.solver = "splr".to_string();
         for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
@@ -196,21 +232,6 @@ fn main() {
             config.discord_channel.parse::<u64>().unwrap()
         };
     }
-    let mut client = if !config.discord_token.is_empty() {
-        Client::new(&config.discord_token, Handler).expect("create client")
-    } else {
-        Client::new(&env::var("DISCORD_TOKEN").expect("token"), Handler).expect("create client")
-    };
-    client.with_framework(
-        StandardFramework::new()
-            .configure(|c| c.prefix("."))
-            .cmd("clear", clean)
-            .cmd("draw", draw)
-            .cmd("whatsup", whatsup)
-            .cmd("who", who)
-            .cmd("help", help)
-            .cmd("bye", bye),
-    );
     if let Ok(mut queue) = PQ.write() {
         for s in SCB.iter().take(config.target_to).skip(config.target_from) {
             if s.0 % config.target_step == 0 {
@@ -245,9 +266,6 @@ fn main() {
     }
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
-    }
-    if let Err(why) = client.start() {
-        println!("An error occurred while running the client: {:?}", why);
     }
 }
 
@@ -529,6 +547,10 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
 
 struct Handler;
 impl EventHandler for Handler {
+    fn ready(&self, ctx: Context, _: Ready) {
+        println!("booted up");
+        ctx.idle();
+    }
     fn typing_start(&self, ctx: Context, _: TypingStartEvent) {
         if let Ok(mes) = M.read() {
             if mes.is_empty() {
@@ -567,6 +589,7 @@ command!(clean(context, message) {
 });
 
 command!(draw(_context, message) {
+    println!("{:?}", message.content);
     if let Ok(conf) = CONFIG.read() {
         let host = {
             let h = Command::new("hostname")
@@ -576,7 +599,6 @@ command!(draw(_context, message) {
                 .stdout;
             String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
         };
-        let cactus = conf.sync_dir.join(&format!("CactusL-{}.png", host));
         // ./mkCactusL.R rio.runs 400 "" $(THR)
         if Command::new("./mkCactusL.R")
             .current_dir(&conf.sync_dir)
@@ -586,8 +608,19 @@ command!(draw(_context, message) {
         {
             message.channel_id.say("Failed to draw a cactus graph.").unwrap();
         }
-        message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).unwrap();
+        let cactus = conf.sync_dir.join(&format!("CactusL-{}.png", host));
+        if cactus.exists() {
+            if message.channel_id.send_files(&[cactus], |m| m.content("Cactus Plot")).is_err() {
+                message.channel_id.say("Failed to upload the file.").unwrap();
+            }
+        } else {
+            message.channel_id.say(&format!("{} doesn't exist.", cactus.to_string_lossy())).unwrap();
+        }
     }
+});
+
+command!(start(_context, _message) {
+    start_benchmark();
 });
 
 command!(who(_context, message) {
