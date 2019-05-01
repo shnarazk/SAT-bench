@@ -297,8 +297,12 @@ fn worker(config: Config) {
                 let sum = s + u;
                 *answered = sum;
                 post(&format!(
-                    "All ({} + {}, {}) problems were solved, answered {}.",
-                    config.target_from, config.target_step, config.target_to, sum,
+                    "All ({} + {}, {}) problems were solved, answered {}.{}",
+                    config.target_from,
+                    config.target_step,
+                    config.target_to,
+                    sum,
+                    if 172 < sum { " It's a new record!" } else { "" },
                 ));
             }
             let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
@@ -345,19 +349,19 @@ fn worker(config: Config) {
                 || (num == 80 && 32 < ans)
                 || (num == 100 && 51 < ans)
                 || (num == 120 && 61 < ans)
-                || (num == 140 && 67 < ans)
-                || (num == 160 && 71 < ans)
-                || (num == 180 && 79 < ans)
-                || (num == 200 && 88 < ans)
-                || (num == 220 && 97 < ans)
-                || (num == 240 && 109 < ans)
-                || (num == 260 && 117 < ans)
-                || (num == 280 && 124 < ans)
-                || (num == 300 && 134 < ans)
-                || (num == 320 && 147 < ans)
-                || (num == 340 && 157 < ans)
-                || (num == 360 && 164 < ans)
-                || (num == 380 && 171 < ans)
+                || (num == 140 && 66 < ans)
+                || (num == 160 && 69 < ans)
+                || (num == 180 && 78 < ans)
+                || (num == 200 && 86 < ans)
+                || (num == 220 && 95 < ans)
+                || (num == 240 && 107 < ans)
+                || (num == 260 && 115 < ans)
+                || (num == 280 && 122 < ans)
+                || (num == 300 && 132 < ans)
+                || (num == 320 && 145 < ans)
+                || (num == 340 && 154 < ans)
+                || (num == 360 && 165 < ans)
+                || (num == 380 && 170 < ans)
             {
                 post(&format!(
                     "New record: {} solutions at {}-th problem.",
