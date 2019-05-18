@@ -56,7 +56,7 @@ pub struct Config {
     #[structopt(long = "timeout", short = "T", default_value = "2000")]
     pub timeout: usize,
     /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "3")]
+    #[structopt(long = "jobs", short = "j", default_value = "5")]
     pub num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
