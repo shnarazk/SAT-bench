@@ -23,7 +23,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.5.10";
+const VERSION: &str = "benchbot 0.5.11";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -68,10 +68,10 @@ pub struct Config {
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
     pub repo_dir: PathBuf,
     /// cloud sharing directory
-    #[structopt(long = "sync", default_value = "~/Documents/ownCloud/splr-exp")]
+    #[structopt(long = "sync", default_value = "~/Public")]
     pub sync_dir: PathBuf,
     /// cloud sync command
-    #[structopt(long = "sync-cmd", default_value = "syncCloud")]
+    #[structopt(long = "sync-cmd", default_value = "")]
     pub sync_cmd: String,
     /// Don't assign
     #[structopt(long = "dump", default_value = "")]
@@ -317,7 +317,7 @@ fn worker(config: Config) {
             if !config.sync_cmd.is_empty() {
                 Command::new(&config.sync_cmd)
                     .output()
-                    .expect("fail to sync");
+                    .expect("fail to run sync command");
             }
             println!("Benchmark {} has been done.", config.run_name);
         // process::exit(0);
