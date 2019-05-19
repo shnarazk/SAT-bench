@@ -53,16 +53,16 @@ pub struct Config {
     #[structopt(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "2000")]
+    #[structopt(long = "timeout", short = "T", default_value = "1200")]
     pub timeout: usize,
     /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "5")]
+    #[structopt(long = "jobs", short = "j", default_value = "4")]
     pub num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
     pub solver_options: String,
     /// data directory
-    #[structopt(long = "data", default_value = "~/Documents/SAT-RACE/SC18main")]
+    #[structopt(long = "data", default_value = "~/Library/SAT/SC18main")]
     pub data_dir: PathBuf,
     /// solver repository
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
