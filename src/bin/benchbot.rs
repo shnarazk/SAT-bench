@@ -23,7 +23,7 @@ use std::sync::RwLock;
 use std::{env, process, thread, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.5.11";
+const VERSION: &str = "benchbot 0.5.12";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -53,7 +53,7 @@ pub struct Config {
     #[structopt(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "1200")]
+    #[structopt(long = "timeout", short = "T", default_value = "1000")]
     pub timeout: usize,
     /// number of workers
     #[structopt(long = "jobs", short = "j", default_value = "4")]
@@ -68,7 +68,7 @@ pub struct Config {
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
     pub repo_dir: PathBuf,
     /// cloud sharing directory
-    #[structopt(long = "sync", default_value = "~/Public")]
+    #[structopt(long = "sync", default_value = "~/Desktop/splr-exp")]
     pub sync_dir: PathBuf,
     /// cloud sync command
     #[structopt(long = "sync-cmd", default_value = "")]
@@ -94,7 +94,7 @@ impl Default for Config {
             target_from: 0,
             target_to: 400,
             target_step: 1,
-            timeout: 2000,
+            timeout: 5000,
             num_jobs: 3,
             solver_options: String::new(),
             data_dir: PathBuf::new(),
