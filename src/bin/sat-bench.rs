@@ -23,7 +23,7 @@ pub enum SolverException {
     Abort,
 }
 
-const VERSION: &str = "sat-bench 0.5.8";
+const VERSION: &str = "sat-bench 0.5.12";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -214,10 +214,11 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
             print!(
-                "{}\x1B[032mRunning on {}...\x1B[000m",
+                "{}\x1B[032mRunning on {}({})...\x1B[000m",
                 CLEAR,
                 // &spinner[count % spinner.len()],
-                f.path().file_name().unwrap().to_str().unwrap()
+                f.path().file_name().unwrap().to_str().unwrap(),
+                count,
             );
             stdout().flush().unwrap();
             let mut run = Command::new("timeout");
