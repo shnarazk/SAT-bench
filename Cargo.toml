@@ -1,14 +1,14 @@
 [package]
 name = "sat-bench"
-version = "0.5.11"
+version = "0.5.12"
 authors = ["Shuji Narazaki <shujinarazaki@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
 chrono ="^0.4"
-discord-rpc-client = "0.3.0"
+discord-rpc-client = "0.3"
 http = "0.1"
 lazy_static = "^1.3"
 regex = "^1.1"
-serenity = {version = "0.5.13", default-features = false, features = [ "builder", "client", "framework", "model", "standard_framework" ]}
+serenity = {version = "0.5.14", default-features = false, features = [ "builder", "client", "framework", "model", "standard_framework" ]}
 structopt = "^0.2"
