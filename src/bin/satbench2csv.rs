@@ -78,7 +78,7 @@ fn main() -> std::io::Result<()> {
             println!(
                 "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
                 tag,
-                i + 1,
+                i,
                 config.target,
                 key,
                 v.0,
@@ -89,7 +89,7 @@ fn main() -> std::io::Result<()> {
             println!(
                 "\"{}\",{},\"{}{}\",{:>5},{},",
                 tag,
-                i + 1,
+                i,
                 config.target,
                 key,
                 config.timeout,
