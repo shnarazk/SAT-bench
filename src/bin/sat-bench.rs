@@ -75,7 +75,7 @@ struct Config {
     #[structopt(long = "targets", short = "t", default_value = "")]
     targets: String,
     /// Lower limit of the number of variables of 3-SAT instances
-    #[structopt(long = "from", short = "L", default_value = "200")]
+    #[structopt(long = "from", short = "L", default_value = "250")]
     range_from: usize,
     /// Upper limit of the number of variables of 3-SAT instances
     #[structopt(long = "upto", short = "U", default_value = "360")]
