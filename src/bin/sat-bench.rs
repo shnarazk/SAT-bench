@@ -425,7 +425,7 @@ fn print_solver(solver: &str) -> Option<String> {
             println!(
                 " @ {}",
                 system_time_to_date_time(time)
-                    .format("%F-%m-%dT%H:%M:%S")
+                    .format("%FT%H:%M:%S")
                     .to_string()
             );
         }
