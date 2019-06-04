@@ -23,7 +23,7 @@ pub enum SolverException {
     Abort,
 }
 
-const VERSION: &str = "sat-bench 0.5.12";
+const VERSION: &str = "sat-bench 0.5.12p1";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -141,7 +141,7 @@ fn main() {
             VERSION,
             config.timeout,
             h,
-            current_date_time().format("%F-%m-%dT%H:%M:%S").to_string(),
+            current_date_time().format("%FT%H:%M:%S").to_string(),
             extra_message
         );
     } else {
@@ -151,7 +151,7 @@ fn main() {
             config.timeout,
             config.solver_options,
             h,
-            current_date_time().format("%F-%m-%dT%H:%M:%S").to_string(),
+            current_date_time().format("%FT%H:%M:%S").to_string(),
             extra_message
         );
     }
