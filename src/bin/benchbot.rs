@@ -461,7 +461,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             .create(true)
             .open(&outname)?;
         let mut outbuf = BufWriter::new(outfile);
-        let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
+        let mut hash: HashMap<&str, (usize, f64, String, bool)> = HashMap::new();
         let timeout = config.timeout as f64;
         let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
         for e in config.dump_dir.read_dir()? {
@@ -478,12 +478,12 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                             panic!("duplicated {}", cnf);
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {
-                            hash.insert(key, (timeout.min(t), s, m));
                             if s {
                                 nsat += 1;
                             } else {
                                 nunsat += 1;
                             }
+                            hash.insert(key, (nsat + nunsat, timeout.min(t), m, s));
                             break;
                         }
                     }
@@ -511,27 +511,28 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "solver, num, target, time, satisfiability, strategy"
+            "solver, num, target, solved, time, strategy, satisfiability"
         )?;
         for (i, key) in SCB.iter() {
             if let Some(v) = hash.get(key) {
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
+                    "\"{}\",{},\"{}{}\",{:>3.0},{:>8.2},{},{}",
                     config.dump_dir.to_string_lossy(),
-                    i + 1,
+                    i,
                     "SC18main/",
                     key,
                     v.0,
                     v.1,
                     v.2,
+                    v.3,
                 )?;
             } else {
                 writeln!(
                     outbuf,
                     "\"{}\",{},\"{}{}\",{:>5},{},",
                     config.dump_dir.to_string_lossy(),
-                    i + 1,
+                    i,
                     "SC18main/",
                     key,
                     config.timeout,

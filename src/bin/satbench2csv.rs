@@ -27,7 +27,7 @@ pub struct Config {
 
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
-    let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
+    let mut hash: HashMap<&str, (usize, f64, bool, String)> = HashMap::new();
     let tag: &str = if config.solver.is_empty() {
         if config.from.ends_with('/') {
             &config.from[..config.from.len() - 1]
@@ -54,12 +54,12 @@ fn main() -> std::io::Result<()> {
                         panic!("duplicated {}", cnf);
                     }
                     if let Some((t, s, m)) = parse_result(f.path()) {
-                        hash.insert(key, (timeout.min(t), s, m));
                         if s {
                             nsat += 1;
                         } else {
                             nunsat += 1;
                         }
+                        hash.insert(key, (nsat + nunsat, timeout.min(t), s, m));
                         break;
                     }
                 }
@@ -76,7 +76,7 @@ fn main() -> std::io::Result<()> {
     for (i, key) in SCB.iter() {
         if let Some(v) = hash.get(key) {
             println!(
-                "\"{}\",{},\"{}{}\",{:>8.2},{},{}",
+                "\"{}\",{},\"{}{}\",{:>3.0}, {:>8.2},{},{}",
                 tag,
                 i,
                 config.target,
@@ -84,6 +84,7 @@ fn main() -> std::io::Result<()> {
                 v.0,
                 v.1,
                 v.2,
+                v.3,
             );
         } else {
             println!(
