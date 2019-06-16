@@ -214,7 +214,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
             print!(
-                "{}\x1B[032mRunning on {}-th problem: {}...\x1B[000m",
+                "{}\x1B[032mRunning on {:>3}th problem: {}...\x1B[000m",
                 CLEAR,
                 // &spinner[count % spinner.len()],
                 count,
