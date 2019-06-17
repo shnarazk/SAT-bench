@@ -461,7 +461,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             .create(true)
             .open(&outname)?;
         let mut outbuf = BufWriter::new(outfile);
-        let mut hash: HashMap<&str, (usize, f64, String, bool)> = HashMap::new();
+        let mut hash: HashMap<&str, (f64, String, bool)> = HashMap::new();
         let timeout = config.timeout as f64;
         let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
         for e in config.dump_dir.read_dir()? {
@@ -483,7 +483,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                             } else {
                                 nunsat += 1;
                             }
-                            hash.insert(key, (nsat + nunsat, timeout.min(t), m, s));
+                            hash.insert(key, (timeout.min(t), m, s));
                             break;
                         }
                     }
@@ -511,30 +511,33 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "solver, num, target, solved, time, strategy, satisfiability"
+            "solver, num, target, nsolved, time, strategy, satisfiability"
         )?;
+        let mut nsolved = 0;
         for (i, key) in SCB.iter() {
             if let Some(v) = hash.get(key) {
+                nsolved += 1;
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}{}\",{:>3.0},{:>8.2},{},{}",
+                    "\"{}\",{},\"{}{}\",{:>3},{:>8.2},{},{}",
                     config.dump_dir.to_string_lossy(),
                     i,
                     "SC18main/",
                     key,
+                    nsolved,
                     v.0,
                     v.1,
                     v.2,
-                    v.3,
                 )?;
             } else {
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}{}\",{:>5},{},",
+                    "\"{}\",{},\"{}{}\",{:>3},{:>5},{},",
                     config.dump_dir.to_string_lossy(),
                     i,
                     "SC18main/",
                     key,
+                    nsolved,
                     config.timeout,
                     "",
                 )?;

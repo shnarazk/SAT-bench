@@ -27,7 +27,7 @@ pub struct Config {
 
 fn main() -> std::io::Result<()> {
     let config = Config::from_args();
-    let mut hash: HashMap<&str, (usize, f64, bool, String)> = HashMap::new();
+    let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
     let tag: &str = if config.solver.is_empty() {
         if config.from.ends_with('/') {
             &config.from[..config.from.len() - 1]
@@ -59,7 +59,7 @@ fn main() -> std::io::Result<()> {
                         } else {
                             nunsat += 1;
                         }
-                        hash.insert(key, (nsat + nunsat, timeout.min(t), s, m));
+                        hash.insert(key, (timeout.min(t), s, m));
                         break;
                     }
                 }
@@ -72,27 +72,30 @@ fn main() -> std::io::Result<()> {
         nunsat,
         nsat + nunsat
     );
-    println!("solver, num, target, time, satisfiability, strategy");
+    println!("solver, num, target, nsolved, time, strategy, satisfiability");
+    let mut nsolved = 0;
     for (i, key) in SCB.iter() {
         if let Some(v) = hash.get(key) {
+            nsolved += 1;
             println!(
-                "\"{}\",{},\"{}{}\",{:>3.0}, {:>8.2},{},{}",
+                "\"{}\",{},\"{}{}\",{:>3},{:>8.2},{},{}",
                 tag,
                 i,
                 config.target,
                 key,
+                nsolved,
                 v.0,
                 v.1,
                 v.2,
-                v.3,
             );
         } else {
             println!(
-                "\"{}\",{},\"{}{}\",{:>5},{},",
+                "\"{}\",{},\"{}{}\",{:3},{:>5},{},",
                 tag,
                 i,
                 config.target,
                 key,
+                nsolved,
                 config.timeout,
                 "",
             );
