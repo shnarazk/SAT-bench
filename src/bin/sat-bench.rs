@@ -60,46 +60,6 @@ const UNSAT_PROBLEMS: [(usize, &str); 12] = [
 ];
 const MATH_PROBLEMS: [(&str, &str); 20] = [
     (
-        "U360/001",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S404185236-001.cnf",
-    ),
-    (
-        "U360/015",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf",
-    ),
-    (
-        "U360/028",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S23373420-028.cnf",
-    ),
-    (
-        "U360/029",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf",
-    ),
-    (
-        "U360/031",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S305156909-031.cnf",
-    ),
-    (
-        "U360/053",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf",
-    ),
-    (
-        "U360/061",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S2025517367-061.cnf",
-    ),
-    (
-        "U360/086",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf",
-    ),
-    (
-        "U360/089",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1906521511-089.cnf",
-    ),
-    (
-        "U360/096",
-        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf",
-    ),
-    (
         "S360/002",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S144043535-002.cnf",
     ),
@@ -138,6 +98,46 @@ const MATH_PROBLEMS: [(&str, &str); 20] = [
     (
         "S360/093",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1711406314-093.cnf",
+    ),
+    (
+        "U360/001",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S404185236-001.cnf",
+    ),
+    (
+        "U360/015",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf",
+    ),
+    (
+        "U360/028",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S23373420-028.cnf",
+    ),
+    (
+        "U360/029",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf",
+    ),
+    (
+        "U360/031",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S305156909-031.cnf",
+    ),
+    (
+        "U360/053",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf",
+    ),
+    (
+        "U360/061",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S2025517367-061.cnf",
+    ),
+    (
+        "U360/086",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf",
+    ),
+    (
+        "U360/089",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1906521511-089.cnf",
+    ),
+    (
+        "U360/096",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf",
     ),
 ];
 const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
