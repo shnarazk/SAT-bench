@@ -23,7 +23,7 @@ pub enum SolverException {
     Abort,
 }
 
-const VERSION: &str = "sat-bench 0.5.12p2";
+const VERSION: &str = "sat-bench 0.5.14";
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -58,6 +58,28 @@ const UNSAT_PROBLEMS: [(usize, &str); 12] = [
     (540, "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540"),
     (560, "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560"),
 ];
+const MATH_PROBLEMS: [(&str, &str); 20] = [
+    ("U360/001", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S404185236-001.cnf"),
+    ("U360/015", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf"),
+    ("U360/028", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S23373420-028.cnf"),
+    ("U360/029", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf"),
+    ("U360/031", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S305156909-031.cnf"),
+    ("U360/053", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf"),
+    ("U360/061", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S2025517367-061.cnf"),
+    ("U360/086", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf"),
+    ("U360/089", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1906521511-089.cnf"),
+    ("U360/096", "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf"),
+    ("S360/002", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S144043535-002.cnf"),
+    ("S360/030", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S722433227-030.cnf"),
+    ("S360/033", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1459690542-033.cnf"),
+    ("S360/035", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S2032263657-035.cnf"),
+    ("S360/039", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1293537826-039.cnf"),
+    ("S360/051", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S368632549-051.cnf"),
+    ("S360/060", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1448866403-060.cnf"),
+    ("S360/073", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1684547485-073.cnf"),
+    ("S360/087", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1826927554-087.cnf"),
+    ("S360/093", "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1711406314-093.cnf"),
+];
 const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
     ("SR2015/itox", "SR2015/itox_vc1130.cnf"),
     ("SR2015/m283", "SR2015/manthey_DimacsSorter_28_3.cnf"),
@@ -86,6 +108,9 @@ struct Config {
     /// Structured instances
     #[structopt(long = "structured", short = "s")]
     structured_set: bool,
+    /// SAT/UNSAT 360 3SAT instances
+    #[structopt(long = "massive", short = "m")]
+    massive_3sat_set: bool,
     /// time out in seconds
     #[structopt(long = "timeout", short = "T", default_value = "510")]
     timeout: usize,
@@ -162,7 +187,11 @@ fn main() {
         "{:<14}{:>3},{:>20}{:>8}",
         "solver,", "num", "target,", "time"
     );
-    if !config.three_sat_set && !config.structured_set && config.targets.is_empty() {
+    if !config.three_sat_set
+        && !config.structured_set
+        && !config.massive_3sat_set
+        && config.targets.is_empty()
+    {
         config.three_sat_set = true;
     }
     for solver in &config.solvers {
@@ -184,6 +213,13 @@ fn main() {
                     execute_3sats(&config, solver, "UUF", num, *n, &dir);
                     num += 1;
                 }
+            }
+        }
+        if config.massive_3sat_set {
+            for (k, s) in &MATH_PROBLEMS {
+                let cnf = format!("{}/{}", base, s);
+                execute(&config, solver, num, k, &cnf);
+                num += 1;
             }
         }
         if config.structured_set {
