@@ -79,25 +79,12 @@ fn main() -> std::io::Result<()> {
             nsolved += 1;
             println!(
                 "\"{}\",{},\"{}{}\",{:>3},{:>8.2},{},{}",
-                tag,
-                i,
-                config.target,
-                key,
-                nsolved,
-                v.0,
-                v.1,
-                v.2,
+                tag, i, config.target, key, nsolved, v.0, v.1, v.2,
             );
         } else {
             println!(
                 "\"{}\",{},\"{}{}\",{:3},{:>5},{},",
-                tag,
-                i,
-                config.target,
-                key,
-                nsolved,
-                config.timeout,
-                "",
+                tag, i, config.target, key, nsolved, config.timeout, "",
             );
         }
     }

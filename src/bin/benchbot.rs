@@ -520,10 +520,9 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                 nsolved += 1;
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}{}\",{:>3},{:>8.2},{},{}",
+                    "\"{}\",{},\"SC18main/{}\",{:>3},{:>8.2},{},{}",
                     config.dump_dir.to_string_lossy(),
                     i,
-                    "SC18main/",
                     key,
                     nsolved,
                     v.0,
@@ -533,14 +532,12 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             } else {
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}{}\",{:>3},{:>5},{},",
+                    "\"{}\",{},\"SC18main/{}\",{:>3},{:>5},,",
                     config.dump_dir.to_string_lossy(),
                     i,
-                    "SC18main/",
                     key,
                     nsolved,
                     config.timeout,
-                    "",
                 )?;
             }
         }
@@ -565,7 +562,7 @@ impl EventHandler for Handler {
             if mes.is_empty() {
                 ctx.set_presence(None, OnlineStatus::Idle);
             } else {
-                let name = format!("{}", *mes);
+                let name = mes.to_string();
                 ctx.set_game(Game::playing(&name));
             }
         }
