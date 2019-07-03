@@ -289,10 +289,10 @@ fn main() {
             }
         }
         if config.massive_3sat_set {
-            threaded_execute(&config, &solver_name, &MATH_PROBLEMS, &mut num);
+            threaded_execute(&config, &solver_name, &MATH_PROBLEMS, &mut num, base);
         }
         if config.structured_set {
-            threaded_execute(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num);
+            threaded_execute(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num, base);
         }
         for t in config.targets.split_whitespace() {
             execute(&config, solver, num, t, t);
@@ -304,7 +304,7 @@ fn main() {
     }
 }
 
-fn threaded_execute(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mut usize) {
+fn threaded_execute(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mut usize, dir: &str) {
     if let Ok(mut q) = PQUEUE.write() {
         *q = VecDeque::new();
     }
@@ -318,14 +318,11 @@ fn threaded_execute(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mu
     if let Ok(mut q) = PQUEUE.write() {
         if let Ok(mut v) = RESVEC.write() {
             for (i, desc) in ps.iter().enumerate() {
-                q.push_back((i, desc.0.to_string(), desc.1.to_string()));
+                q.push_back((i, desc.0.to_string(), format!("{}/{}", dir, desc.1)));
                 *num += 1;
                 v.push(None);
             }
         }
-    }
-    if let Ok(mut n) = NREPORT.write() {
-        *n = 0;
     }
     let nt = 5;
     let mut hs = Vec::new();
