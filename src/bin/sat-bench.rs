@@ -8,13 +8,18 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use sat_bench::utils::{current_date_time, system_time_to_date_time};
+use std::collections::VecDeque;
 use std::env;
 use std::fs;
 use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::RwLock;
+use std::thread;
 use std::time::SystemTime;
 use structopt::StructOpt;
+
+const VERSION: &str = "sat-bench 0.6.0";
 
 /// Abnormal termination flags.
 #[derive(Debug)]
@@ -23,7 +28,14 @@ pub enum SolverException {
     Abort,
 }
 
-const VERSION: &str = "sat-bench 0.5.14";
+type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
+
+lazy_static! {
+    pub static ref PQUEUE: RwLock<VecDeque<(usize, String, String)>> = RwLock::new(VecDeque::new());
+    pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
+    pub static ref NREPORT: RwLock<usize> = RwLock::new(0);
+}
+
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
     (125, "3-SAT/UF125"),
@@ -60,83 +72,83 @@ const UNSAT_PROBLEMS: [(usize, &str); 12] = [
 ];
 const MATH_PROBLEMS: [(&str, &str); 20] = [
     (
-        "3SAT/SAT/v360-c1530/002",
+        "3/SAT/v360-c1530/002",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S144043535-002.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/030",
+        "3/SAT/v360-c1530/030",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S722433227-030.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/033",
+        "3/SAT/v360-c1530/033",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1459690542-033.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/035",
+        "3/SAT/v360-c1530/035",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S2032263657-035.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/039",
+        "3/SAT/v360-c1530/039",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1293537826-039.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/051",
+        "3/SAT/v360-c1530/051",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S368632549-051.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/060",
+        "3/SAT/v360-c1530/060",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1448866403-060.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/073",
+        "3/SAT/v360-c1530/073",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1684547485-073.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/087",
+        "3/SAT/v360-c1530/087",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1826927554-087.cnf",
     ),
     (
-        "3SAT/SAT/v360-c1530/093",
+        "3/SAT/v360-c1530/093",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1711406314-093.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/001",
+        "3/UNS/v360-c1530/001",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S404185236-001.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/015",
+        "3/UNS/v360-c1530/015",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/028",
+        "3/UNS/v360-c1530/028",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S23373420-028.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/029",
+        "3/UNS/v360-c1530/029",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/031",
+        "3/UNS/v360-c1530/031",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S305156909-031.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/053",
+        "3/UNS/v360-c1530/053",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/061",
+        "3/UNS/v360-c1530/061",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S2025517367-061.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/086",
+        "3/UNS/v360-c1530/086",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/089",
+        "3/UNS/v360-c1530/089",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1906521511-089.cnf",
     ),
     (
-        "3SAT/UNS/v360-c1530/096",
+        "3/UNS/v360-c1530/096",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf",
     ),
 ];
@@ -244,7 +256,7 @@ fn main() {
         print_solver(&config.solvers[0]);
     }
     println!(
-        "{:<14}{:>3},{:>20}{:>8}",
+        "{:<14}{:>3},{:>24}{:>8}",
         "solver,", "num", "target,", "time"
     );
     if !config.three_sat_set
@@ -275,19 +287,12 @@ fn main() {
                 }
             }
         }
+        let solver_name = format!("{}{}", solver, config.aux_key);
         if config.massive_3sat_set {
-            for (k, s) in &MATH_PROBLEMS {
-                let cnf = format!("{}/{}", base, s);
-                execute(&config, solver, num, k, &cnf);
-                num += 1;
-            }
+            threaded_execte(&config, &solver_name, &MATH_PROBLEMS, &mut num);
         }
         if config.structured_set {
-            for (k, s) in &STRUCTURED_PROBLEMS {
-                let cnf = format!("{}/{}", base, s);
-                execute(&config, solver, num, k, &cnf);
-                num += 1;
-            }
+            threaded_execte(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num);
         }
         for t in config.targets.split_whitespace() {
             execute(&config, solver, num, t, t);
@@ -297,6 +302,140 @@ fn main() {
     if !config.terminate_hook.is_empty() {
         let _ = Command::new(config.terminate_hook).output();
     }
+}
+
+fn threaded_execte(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mut usize) {
+    if let Ok(mut q) = PQUEUE.write() {
+        *q = VecDeque::new();
+    }
+    if let Ok(mut v) = RESVEC.write() {
+        *v = Vec::new()
+    }
+    if let Ok(mut r) = NREPORT.write() {
+        *r = 0;
+    }
+    let offset = *num;
+    if let Ok(mut q) = PQUEUE.write() {
+        if let Ok(mut v) = RESVEC.write() {
+            for (i, desc) in ps.iter().enumerate() {
+                q.push_back((i, desc.0.to_string(), desc.1.to_string()));
+                *num += 1;
+                v.push(None);
+            }
+        }
+    }
+    if let Ok(mut n) = NREPORT.write() {
+        *n = 0;
+    }
+    let nt = 5;
+    let mut hs = Vec::new();
+    let solver_name = format!("{}{}", solver, config.aux_key);
+    for _ in 0..nt {
+        let cfg = config.clone();
+        let slv = solver.to_string();
+        let sln = solver_name.to_string();
+        hs.push(thread::spawn(move || worker(cfg, slv, sln, offset)));
+    }
+    for h in hs {
+        let _ = h.join();
+    }
+}
+
+fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
+    let mut i = 0;
+    let mut n = String::new();
+    let mut p = String::new();
+    loop {
+        if let Ok(mut q) = PQUEUE.write() {
+            if q.is_empty() {
+                return;
+            } else if let Some(desc) = q.pop_front() {
+                i = desc.0;
+                n = desc.1;
+                p = desc.2;
+            }
+        }
+        let res = worker_execute(&config, &solver, &n, &p);
+        if let Ok(mut v) = RESVEC.write() {
+            v[i] = res;
+            if let Ok(mut r) = NREPORT.write() {
+                for j in *r..v.len() {
+                    if let Some(r) = &v[j] {
+                        worker_report(&solver_name, j + offset, &r.0, &r.1);
+                    } else {
+                        *r = j;
+                        print!(
+                            "{}\x1B[032mRunning on {}th problem...\x1B[000m",
+                            CLEAR,
+                            j + offset
+                        );
+                        stdout().flush().unwrap();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> SolveResultPromise {
+    let f = PathBuf::from(path);
+    if !f.is_file() {
+        return None;
+    }
+    print!(
+        "{}\x1B[032mRunning on {}...\x1B[000m",
+        CLEAR,
+        f.file_name().unwrap().to_str().unwrap()
+    );
+    stdout().flush().unwrap();
+    let start = SystemTime::now();
+    let mut run = Command::new("timeout");
+    let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
+    for opt in config.solver_options.split_whitespace() {
+        command = command.arg(&opt[opt.starts_with('\\') as usize..]);
+    }
+    Some((
+        name.to_string(),
+        command
+            .arg(f.as_os_str())
+            .check_result(solver, &start, config.timeout as f64),
+    ))
+}
+
+fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverException>) {
+    match res {
+        Ok(end) => {
+            println!(
+                "{}{:<14}{:>3},{:>24}{:>8.3}",
+                CLEAR,
+                &format!("\"{}\",", solver),
+                num,
+                &format!("\"{}\",", name),
+                end,
+            );
+        }
+        Err(SolverException::TimeOut) => {
+            println!(
+                "{}{:<14}{:>3},{:>24}{:>8}",
+                CLEAR,
+                &format!("\"{}\",", solver),
+                num,
+                &format!("\"{}\",", name),
+                "TIMEOUT",
+            );
+        }
+        Err(SolverException::Abort) => {
+            println!(
+                "{}{:<14}{:>3},{:>24}{:>8}",
+                CLEAR,
+                &format!("\"{}\",", solver),
+                num,
+                &format!("\"{}\",", name),
+                "ABORT",
+            );
+        }
+    };
 }
 
 /// show the average or total result of SAT problems
@@ -331,7 +470,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                 }
                 Err(SolverException::TimeOut) => {
                     println!(
-                        "{}{:<14}{:>3},{:>20} TIMEOUT at {}",
+                        "{}{:<14}{:>3},{:>24} TIMEOUT at {}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
@@ -343,7 +482,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                 }
                 Err(SolverException::Abort) => {
                     println!(
-                        "{}{:<14}{:>3},{:>20} ABORT at {}",
+                        "{}{:<14}{:>3},{:>24} ABORT at {}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
@@ -360,7 +499,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         Err(_) => 0.0f64,
     };
     println!(
-        "{}{:<14}{:>3},{:>20}{:>8.3}",
+        "{}{:<14}{:>3},{:>24}{:>8.3}",
         CLEAR,
         &format!("\"{}\",", solver_name),
         num,
@@ -368,63 +507,6 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         // &format!("\"{}({})\",", tag, count),
         end,
     );
-}
-
-#[allow(unused_variables)]
-fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) {
-    let solver_name = format!("{}{}", solver, config.aux_key);
-    for e in target.split_whitespace() {
-        let f = PathBuf::from(e);
-        if f.is_file() {
-            print!(
-                "{}\x1B[032mRunning on {}...\x1B[000m",
-                CLEAR,
-                f.file_name().unwrap().to_str().unwrap()
-            );
-            stdout().flush().unwrap();
-            let start = SystemTime::now();
-            let mut run = Command::new("timeout");
-            let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
-            for opt in config.solver_options.split_whitespace() {
-                command = command.arg(&opt[opt.starts_with('\\') as usize..]);
-            }
-            match command
-                .arg(f.as_os_str())
-                .check_result(solver, &start, config.timeout as f64)
-            {
-                Ok(end) => {
-                    println!(
-                        "{}{:<14}{:>3},{:>20}{:>8.3}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}\",", name),
-                        end,
-                    );
-                }
-                Err(SolverException::TimeOut) => {
-                    println!(
-                        "{}{:<14}{:>3},{:>20}{:>8}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}\",", name),
-                        "TIMEOUT",
-                    );
-                }
-                Err(SolverException::Abort) => {
-                    println!(
-                        "{}{:<14}{:>3},{:>20}{:>8}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}\",", name),
-                        "ABORT",
-                    );
-                }
-            };
-        }
-    }
 }
 
 trait SolverHandling {
@@ -463,12 +545,15 @@ impl SolverHandling for Command {
         lazy_static! {
             static ref MINISAT_LIKE: Regex =
                 Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
-            static ref PANIC: Regex = Regex::new(r"thread 'main' panicked").expect("wrong regex");
         }
         let result = self.output();
         match &result {
-            Ok(r) if PANIC.is_match(&String::from_utf8(r.stderr.clone()).unwrap()) => {
-                return Err(SolverException::Abort);
+            Ok(r)
+                if String::from_utf8(r.stderr.clone())
+                    .unwrap()
+                    .contains("thread 'main' panicked") =>
+            {
+                Err(SolverException::Abort)
             }
             Ok(ref done) => {
                 match done.status.code() {
@@ -529,4 +614,61 @@ fn print_solver(solver: &str) -> Option<String> {
         println!();
     }
     Some(which.to_string())
+}
+
+#[allow(unused_variables)]
+fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) {
+    let solver_name = format!("{}{}", solver, config.aux_key);
+    for e in target.split_whitespace() {
+        let f = PathBuf::from(e);
+        if f.is_file() {
+            print!(
+                "{}\x1B[032mRunning on {}...\x1B[000m",
+                CLEAR,
+                f.file_name().unwrap().to_str().unwrap()
+            );
+            stdout().flush().unwrap();
+            let start = SystemTime::now();
+            let mut run = Command::new("timeout");
+            let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
+            for opt in config.solver_options.split_whitespace() {
+                command = command.arg(&opt[opt.starts_with('\\') as usize..]);
+            }
+            match command
+                .arg(f.as_os_str())
+                .check_result(solver, &start, config.timeout as f64)
+            {
+                Ok(end) => {
+                    println!(
+                        "{}{:<14}{:>3},{:>24}{:>8.3}",
+                        CLEAR,
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}\",", name),
+                        end,
+                    );
+                }
+                Err(SolverException::TimeOut) => {
+                    println!(
+                        "{}{:<14}{:>3},{:>24}{:>8}",
+                        CLEAR,
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}\",", name),
+                        "TIMEOUT",
+                    );
+                }
+                Err(SolverException::Abort) => {
+                    println!(
+                        "{}{:<14}{:>3},{:>24}{:>8}",
+                        CLEAR,
+                        &format!("\"{}\",", solver_name),
+                        num,
+                        &format!("\"{}\",", name),
+                        "ABORT",
+                    );
+                }
+            };
+        }
+    }
 }
