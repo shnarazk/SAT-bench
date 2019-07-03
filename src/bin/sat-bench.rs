@@ -270,6 +270,7 @@ fn main() {
         if !single_solver {
             print_solver(solver);
         }
+        let solver_name = format!("{}{}", solver, config.aux_key);
         let mut num: usize = 1;
         if config.three_sat_set {
             for (n, s) in &SAT_PROBLEMS {
@@ -287,12 +288,11 @@ fn main() {
                 }
             }
         }
-        let solver_name = format!("{}{}", solver, config.aux_key);
         if config.massive_3sat_set {
-            threaded_execte(&config, &solver_name, &MATH_PROBLEMS, &mut num);
+            threaded_execute(&config, &solver_name, &MATH_PROBLEMS, &mut num);
         }
         if config.structured_set {
-            threaded_execte(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num);
+            threaded_execute(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num);
         }
         for t in config.targets.split_whitespace() {
             execute(&config, solver, num, t, t);
@@ -304,7 +304,7 @@ fn main() {
     }
 }
 
-fn threaded_execte(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mut usize) {
+fn threaded_execute(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mut usize) {
     if let Ok(mut q) = PQUEUE.write() {
         *q = VecDeque::new();
     }
