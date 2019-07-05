@@ -2,7 +2,7 @@
 /// Usage: sat-bench [OPTIONS] [solvers]
 /// # Examples:
 /// - sat-bench -s minisat                      # run on structured problems
-/// - sat-bench -3 -U 225 mios                  # 3-SAT from 200 to 225 vars
+/// - sat-bench -3 -U 225 -L 200 mios           # 3-SAT from 200 to 225 vars
 /// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
 use lazy_static::lazy_static;

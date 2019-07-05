@@ -374,9 +374,6 @@ fn worker(config: Config) {
 }
 
 fn execute(config: &Config, num: usize, cnf: &PathBuf) {
-    lazy_static! {
-        static ref PANIC: Regex = Regex::new(r"thread 'main' panicked").expect("wrong regex");
-    }
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
@@ -391,7 +388,7 @@ fn execute(config: &Config, num: usize, cnf: &PathBuf) {
         let result = command.arg(f.as_os_str()).output();
         match &result {
             Err(_) => post(&format!("Something happened to {}.", &target)),
-            Ok(r) if PANIC.is_match(&String::from_utf8(r.stderr.clone()).unwrap()) => {
+            Ok(r) if String::from_utf8(r.stderr.clone()).unwrap().contains("thread 'main' panicked") => {
                 post(&format!("**Panic at {}.**", &target))
             }
             _ => (),
@@ -636,7 +633,7 @@ command!(who(_context, message) {
 });
 
 command!(help(_context, message) {
-    message.channel_id.say(&format!("I accept `bye`, `clear`, `draw`, `whatsup`, `who`"))?;
+    message.channel_id.say("I accept `bye`, `clear`, `draw`, `whatsup`, `who`".to_string())?;
 });
 
 command!(whatsup(_context, message) {
