@@ -19,7 +19,7 @@ use std::thread;
 use std::time::SystemTime;
 use structopt::StructOpt;
 
-const VERSION: &str = "sat-bench 0.6.0";
+const VERSION: &str = "sat-bench 0.6.1";
 
 /// Abnormal termination flags.
 #[derive(Debug)]
@@ -199,8 +199,10 @@ struct Config {
     #[structopt(long = "aux-key", short = "K", default_value = "")]
     aux_key: String,
     /// data directory
-    #[structopt(long = "lib", default_value = "")]
     lib_dir: String,
+    /// the number of jobs in parallel
+    #[structopt(long = "jobs", short = "j", default_value = "5")]
+    num_jobs: usize,
 }
 
 fn main() {
@@ -324,10 +326,9 @@ fn threaded_execute(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mu
             }
         }
     }
-    let nt = 5;
     let mut hs = Vec::new();
     let solver_name = format!("{}{}", solver, config.aux_key);
-    for _ in 0..nt {
+    for _ in 0..config.num_jobs {
         let cfg = config.clone();
         let slv = solver.to_string();
         let sln = solver_name.to_string();
