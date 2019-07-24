@@ -306,7 +306,13 @@ fn main() {
     }
 }
 
-fn threaded_execute(config: &Config, solver: &str, ps: &[(&str, &str)], num: &mut usize, dir: &str) {
+fn threaded_execute(
+    config: &Config,
+    solver: &str,
+    ps: &[(&str, &str)],
+    num: &mut usize,
+    dir: &str,
+) {
     if let Ok(mut q) = PQUEUE.write() {
         *q = VecDeque::new();
     }
