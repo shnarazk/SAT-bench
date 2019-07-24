@@ -272,13 +272,13 @@ fn start_benchmark() {
 fn worker(config: Config) {
     loop {
         let mut p: PathBuf;
-        let num: usize;
+        let remains: usize;
         let n: usize;
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
                 n = index;
                 p = config.data_dir.join(top);
-                num = q.len();
+                remains = q.len();
                 if let Ok(mut processed) = PROCESSED.write() {
                     *processed = index;
                 }
@@ -289,7 +289,7 @@ fn worker(config: Config) {
             break;
         }
         execute(&config, n, &p);
-        if num == 0 {
+        if remains == 0 {
             // I'm the last one.
             state("");
             let (s, u) = report(&config).unwrap_or((0, 0));
@@ -343,31 +343,33 @@ fn worker(config: Config) {
                     0
                 }
             };
-            if (num == 20 && 3 < ans && config.timeout == 1000)
-                || (num == 40 && 4 < ans)
-                || (num == 60 && 19 < ans)
-                || (num == 80 && 24 < ans)
-                || (num == 100 && 42 < ans)
-                || (num == 120 && 51 < ans)
-                || (num == 140 && 53 < ans)
-                || (num == 160 && 56 < ans)
-                || (num == 180 && 61 < ans)
-                || (num == 200 && 67 < ans)
-                || (num == 220 && 75 < ans)
-                || (num == 240 && 84 < ans)
-                || (num == 260 && 90 < ans)
-                || (num == 280 && 95 < ans)
-                || (num == 300 && 99 < ans)
-                || (num == 320 && 110 < ans)
-                || (num == 340 && 122 < ans)
-                || (num == 360 && 133 < ans)
-                || (num == 380 && 134 < ans)
-                || (num == 400 && 135 < ans)
-            {
-                post(&format!(
-                    "New record: {} solutions at {}-th problem.",
-                    ans, pro
-                ));
+            if config.timeout == 1000 {
+                if (n == 20 && 3 < ans)
+                    || (n == 40 && 4 < ans)
+                    || (n == 60 && 19 < ans)
+                    || (n == 80 && 24 < ans)
+                    || (n == 100 && 42 < ans)
+                    || (n == 120 && 51 < ans)
+                    || (n == 140 && 53 < ans)
+                    || (n == 160 && 56 < ans)
+                    || (n == 180 && 61 < ans)
+                    || (n == 200 && 67 < ans)
+                    || (n == 220 && 75 < ans)
+                    || (n == 240 && 84 < ans)
+                    || (n == 260 && 90 < ans)
+                    || (n == 280 && 95 < ans)
+                    || (n == 300 && 99 < ans)
+                    || (n == 320 && 110 < ans)
+                    || (n == 340 && 122 < ans)
+                    || (n == 360 && 133 < ans)
+                    || (n == 380 && 134 < ans)
+                    || (n == 400 && 135 < ans)
+                {
+                    post(&format!(
+                        "New record: {} solutions at {}-th problem.",
+                        ans, pro
+                    ));
+                }
             }
         }
     }
@@ -388,7 +390,11 @@ fn execute(config: &Config, num: usize, cnf: &PathBuf) {
         let result = command.arg(f.as_os_str()).output();
         match &result {
             Err(_) => post(&format!("Something happened to {}.", &target)),
-            Ok(r) if String::from_utf8(r.stderr.clone()).unwrap().contains("thread 'main' panicked") => {
+            Ok(r)
+                if String::from_utf8(r.stderr.clone())
+                    .unwrap()
+                    .contains("thread 'main' panicked") =>
+            {
                 post(&format!("**Panic at {}.**", &target))
             }
             _ => (),
