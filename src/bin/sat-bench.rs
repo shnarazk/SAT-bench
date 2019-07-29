@@ -199,6 +199,7 @@ struct Config {
     #[structopt(long = "aux-key", short = "K", default_value = "")]
     aux_key: String,
     /// data directory
+    #[structopt(long = "lib", default_value = "")]
     lib_dir: String,
     /// the number of jobs in parallel
     #[structopt(long = "jobs", short = "j", default_value = "5")]
