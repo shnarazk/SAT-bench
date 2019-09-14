@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use sat_bench::utils::current_date_time;
 use sat_bench::{bench18::SCB, utils::parse_result};
-use serenity::builder::GetMessages;
+// use serenity::builder::GetMessages;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{StandardFramework,
                                     CommandResult,
@@ -22,7 +22,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::str;
 use std::sync::RwLock;
-use std::{env, process, thread, time};
+use std::{env, process, time};
 use structopt::StructOpt;
 
 const VERSION: &str = "benchbot 0.5.12";
@@ -248,13 +248,6 @@ fn start_benchmark(ctx: &mut Context) {
         let (s, u) = report(&config).unwrap_or((0, 0));
         *answered = s + u;
     }
-    for i in 0..config.num_jobs {
-        let c = config.clone();
-        thread::spawn(move || {
-            thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-            worker(c, &ctx.http);
-        });
-    }
     post(&ctx.http,
          &format!(
              "A new {} parallel benchmark starts.",
@@ -269,6 +262,17 @@ fn start_benchmark(ctx: &mut Context) {
              )
         );
     }
+
+    for i in 0..config.num_jobs {
+        let c = config.clone();
+        let cache = &ctx.http;
+        crossbeam::scope(|s| {
+            s.spawn(move |_| {
+                std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
+                worker(c, cache);
+            });
+        }).unwrap();
+    }
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
@@ -276,7 +280,7 @@ fn start_benchmark(ctx: &mut Context) {
 
 fn worker(config: Config, http: &Http) {
     loop {
-        let mut p: PathBuf;
+        let p: PathBuf;
         let remains: usize;
         let n: usize;
         if let Ok(mut q) = PQ.write() {
@@ -585,7 +589,7 @@ impl EventHandler for Handler {
 group!({
     name: "general",
     options: {},
-    commands: [bye, clean, draw, start, who, help, bye],
+    commands: [bye, /* clean, */ draw, start, who, help, bye],
 });
 
 
@@ -595,12 +599,14 @@ fn bye(_context: &mut Context, _message: &Message) -> CommandResult {
     // Ok(())
 }
 
+/*
 #[command]
 fn clean(context: &mut Context, message: &Message) -> CommandResult {
     context.idle();
     let ch = message.channel_id;
-    let retriever = GetMessages::default().before(message.id).limit(100);
-    match ch.messages(context.http, |_| retriever) {
+    let mut retriever = GetMessages::default();
+    let messages = retriever.before(message.id).limit(100);
+    match ch.messages(&context.http, |_| messages) {
         Ok(ref v) => {
             let len = v.len();
             let mut n = 0;
@@ -612,11 +618,12 @@ fn clean(context: &mut Context, message: &Message) -> CommandResult {
             }
         }
         Err(e) => {
-            ch.say(context.http, &format!("Error {}", e))?;
+            ch.say(&context.http, &format!("Error {}", e))?;
         }
     }
     Ok(())
 }
+*/
 
 #[command]
 fn draw(context: &mut Context, message: &Message) -> CommandResult {
@@ -637,15 +644,15 @@ fn draw(context: &mut Context, message: &Message) -> CommandResult {
             .output()
             .is_err()
         {
-            message.channel_id.say(context.http, "Failed to draw a cactus graph.").unwrap();
+            message.channel_id.say(&context.http, "Failed to draw a cactus graph.").unwrap();
         }
         let cactus = conf.sync_dir.join(&format!("CactusL-{}.png", host));
         if cactus.exists() {
-            if message.channel_id.send_files(context.http, &[cactus], |m| m.content("Cactus Plot")).is_err() {
-                message.channel_id.say(context.http, "Failed to upload the file.").unwrap();
+            if message.channel_id.send_files(&context.http, &[cactus], |m| m.content("Cactus Plot")).is_err() {
+                message.channel_id.say(&context.http, "Failed to upload the file.").unwrap();
             }
         } else {
-            message.channel_id.say(context.http, &format!("{} doesn't exist.", cactus.to_string_lossy())).unwrap();
+            message.channel_id.say(&context.http, &format!("{} doesn't exist.", cactus.to_string_lossy())).unwrap();
         }
     }
     Ok(())
@@ -660,14 +667,14 @@ fn start(context: &mut Context, _message: &Message) -> CommandResult {
 #[command]
 fn who(context: &mut Context, message: &Message) -> CommandResult {
     if let Ok(conf) = CONFIG.read() {
-        message.channel_id.say(context.http, &format!("I am {}: ```rust\n{:?}\n```", VERSION, conf))?;
+        message.channel_id.say(&context.http, &format!("I am {}: ```rust\n{:?}\n```", VERSION, conf))?;
     }
     Ok(())
 }
 
 #[command]
 fn help(context: &mut Context, message: &Message) -> CommandResult {
-    message.channel_id.say(context.http, "I accept `bye`, `clear`, `draw`, `whatsup`, `who`".to_string())?;
+    message.channel_id.say(&context.http, "I accept `bye`, `clear`, `draw`, `whatsup`, `who`".to_string())?;
     Ok(())
 }
 
@@ -675,7 +682,7 @@ fn help(context: &mut Context, message: &Message) -> CommandResult {
 fn whatsup(context: &mut Context, message: &Message) -> CommandResult {
     if let Ok(p) = PROCESSED.read() {
         if let Ok(a) = ANSWERED.read() {
-            message.channel_id.say(context.http, &format!("tried {} problems, answered {}.", p, a))?;
+            message.channel_id.say(&context.http, &format!("tried {} problems, answered {}.", p, a))?;
         }
     }
     Ok(())
