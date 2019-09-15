@@ -250,7 +250,8 @@ fn start_benchmark(ctx: &mut Context) {
     }
     post(&ctx.http,
          &format!(
-             "A new {} parallel benchmark starts.",
+             "<@{}>, A new {} parallel benchmark starts.",
+             config.master_id,
              config.num_jobs,
          )
     );
@@ -379,7 +380,8 @@ fn worker(config: Config, http: &Http) {
                 {
                     post(http,
                          &format!(
-                             "New record: {} solutions at {}-th problem.",
+                             "<@{}>, New record: {} solutions at {}-th problem.",
+                             config.master_id,
                              ans, pro
                          )
                     );
