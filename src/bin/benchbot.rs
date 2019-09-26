@@ -263,17 +263,17 @@ fn start_benchmark(ctx: &mut Context) {
              )
         );
     }
-
-    for i in 0..config.num_jobs {
-        let c = config.clone();
-        let cache = &ctx.http;
-        crossbeam::scope(|s| {
+    crossbeam::scope(|s| {
+        for i in 0..config.num_jobs {
+            let c = config.clone();
+            let cache = &ctx.http;
             s.spawn(move |_| {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
                 worker(c, cache);
             });
-        }).unwrap();
     }
+        }).unwrap();
+
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
