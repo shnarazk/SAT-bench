@@ -25,7 +25,7 @@ use std::sync::RwLock;
 use std::{env, process, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.5.13";
+const VERSION: &str = "benchbot 0.6.5";
 
 lazy_static! {
     pub static ref CHID: RwLock<u64> = RwLock::new(0);
@@ -153,7 +153,6 @@ fn main() {
         println!("An error occurred while running the client: {:?}", why);
     } else {
         println!("Start a discord client.");
-        start_benchmark(&client.cache_and_http.http);
     }
 }
 
@@ -343,28 +342,29 @@ fn worker(config: Config, http: &Http) {
                 }
             }
             let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-            if config.timeout == 1000 {
+            if config.timeout == 1000 && 4 <= config.num_jobs {
                 if (pro == 20 && 3 < ans)
                     || (pro == 40 && 4 < ans)
-                    || (pro == 60 && 19 < ans)
-                    || (pro == 80 && 24 < ans)
+                    || (pro == 60 && 20 < ans)
+                    || (pro == 80 && 26 < ans)
                     || (pro == 100 && 42 < ans)
-                    || (pro == 120 && 51 < ans)
-                    || (pro == 140 && 53 < ans)
-                    || (pro == 160 && 56 < ans)
-                    || (pro == 180 && 61 < ans)
-                    || (pro == 200 && 67 < ans)
-                    || (pro == 220 && 75 < ans)
-                    || (pro == 240 && 84 < ans)
+                    || (pro == 120 && 54 < ans)
+                    || (pro == 140 && 56 < ans)
+                    || (pro == 160 && 58 < ans)
+                    || (pro == 180 && 63 < ans)
+                    || (pro == 200 && 70 < ans)
+                    || (pro == 220 && 77 < ans)
+                    || (pro == 240 && 88 < ans)
                     || (pro == 260 && 90 < ans)
-                    || (pro == 280 && 95 < ans)
-                    || (pro == 300 && 99 < ans)
-                    || (pro == 320 && 110 < ans)
-                    || (pro == 340 && 122 < ans)
-                    || (pro == 360 && 133 < ans)
-                    || (pro == 380 && 134 < ans)
-                    || (pro == 400 && 135 < ans)
+                    || (pro == 280 && 97 < ans)
+                    || (pro == 300 && 107 < ans)
+                    || (pro == 320 && 117 < ans)
+                    || (pro == 340 && 129 < ans)
+                    || (pro == 360 && 141 < ans)
+                    || (pro == 380 && 144 < ans)
+                    || (pro == 400 && 145 < ans)
                 {
+                    println!("; New record: {} solutions at {}-th problem.", ans, pro);
                     post(http,
                          &format!(
                              "<@{}>, New record: {} solutions at {}-th problem.",
@@ -372,6 +372,8 @@ fn worker(config: Config, http: &Http) {
                              ans, pro
                          )
                     );
+                } else {
+                    println!("; {} solutions at {}-th problem.", ans, pro);
                 }
             }
         }
@@ -382,7 +384,7 @@ fn execute(config: &Config, http: &Http, num: usize, cnf: &PathBuf) {
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
-        println!("\x1B[032mRunning on {}...\x1B[000m", target);
+        print!("\x1B[032mRunning on {}...\x1B[000m", target);
         if let Ok(answered) = ANSWERED.read() {
             state(http, &format!("{}#{},{}", *answered, num, &target));
         }
@@ -561,6 +563,7 @@ struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, ctx: Context, _: Ready) {
         println!("booted up");
+        start_benchmark(&ctx.http);
         ctx.idle();
     }
     fn typing_start(&self, ctx: Context, _: TypingStartEvent) {
