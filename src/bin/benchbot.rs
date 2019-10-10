@@ -144,7 +144,6 @@ fn main() {
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
-    // start_benchmark();
     client.with_framework(
         StandardFramework::new()
             .configure(|c| c.prefix("."))
@@ -154,10 +153,11 @@ fn main() {
         println!("An error occurred while running the client: {:?}", why);
     } else {
         println!("Start a discord client.");
+        start_benchmark(&client.cache_and_http.http);
     }
 }
 
-fn start_benchmark(ctx: &mut Context) {
+fn start_benchmark(http: &Http) {
     let mut config = if let Ok(conf) = CONFIG.read() {
         conf.clone()
     } else {
@@ -248,7 +248,7 @@ fn start_benchmark(ctx: &mut Context) {
         let (s, u) = report(&config).unwrap_or((0, 0));
         *answered = s + u;
     }
-    post(&ctx.http,
+    post(http,
          &format!(
              "<@{}>, A new {} parallel benchmark starts.",
              config.master_id,
@@ -256,7 +256,7 @@ fn start_benchmark(ctx: &mut Context) {
          )
     );
     if !diff.is_empty() {
-        post(&ctx.http,
+        post(http,
             &format!(
                  "**WARNING: unregistered modifications**\n```diff\n{}```\n",
                  diff
@@ -266,10 +266,9 @@ fn start_benchmark(ctx: &mut Context) {
     crossbeam::scope(|s| {
         for i in 0..config.num_jobs {
             let c = config.clone();
-            let cache = &ctx.http;
             s.spawn(move |_| {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-                worker(c, cache);
+                worker(c, http);
             });
     }
         }).unwrap();
@@ -335,13 +334,7 @@ fn worker(config: Config, http: &Http) {
             println!("Benchmark {} has been done.", config.run_name);
             // process::exit(0);
         } else {
-            let pro = {
-                if let Ok(processed) = PROCESSED.read() {
-                    *processed
-                } else {
-                    0
-                }
-            };
+            let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
             if pro % config.num_jobs == 0 {
                 let (s, u) = report(&config).unwrap_or((0, 0));
                 if let Ok(mut answered) = ANSWERED.write() {
@@ -349,13 +342,7 @@ fn worker(config: Config, http: &Http) {
                     *answered = sum;
                 }
             }
-            let ans = {
-                if let Ok(answered) = ANSWERED.read() {
-                    *answered
-                } else {
-                    0
-                }
-            };
+            let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
             if config.timeout == 1000 {
                 if (pro == 20 && 3 < ans)
                     || (pro == 40 && 4 < ans)
@@ -591,7 +578,7 @@ impl EventHandler for Handler {
 group!({
     name: "general",
     options: {},
-    commands: [bye, /* clean, */ draw, start, who, help, bye],
+    commands: [bye, /* clean, */ draw, start, how, who, help, bye],
 });
 
 
@@ -662,9 +649,23 @@ fn draw(context: &mut Context, message: &Message) -> CommandResult {
 
 #[command]
 fn start(context: &mut Context, _message: &Message) -> CommandResult {
-    start_benchmark(context);
+    start_benchmark(&context.http);
     Ok(())
 }
+
+
+#[command]
+fn how(context: &mut Context, message: &Message) -> CommandResult {
+    if let Ok(_conf) = CONFIG.read() {
+        let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+        let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+        message.channel_id.say(&context.http,
+                               &format!("Running on {} and answered {} now.", pro, ans)
+        )?;
+    }
+    Ok(())
+}
+
 
 #[command]
 fn who(context: &mut Context, message: &Message) -> CommandResult {
