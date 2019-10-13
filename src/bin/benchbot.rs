@@ -384,7 +384,8 @@ fn execute(config: &Config, http: &Http, num: usize, cnf: &PathBuf) {
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
-        print!("\x1B[032mRunning on {}...\x1B[000m", target);
+        print!("\x1B[032m{}\x1B[000m", target);
+        stdout().flush().unwrap();
         if let Ok(answered) = ANSWERED.read() {
             state(http, &format!("{}#{},{}", *answered, num, &target));
         }
