@@ -162,7 +162,6 @@ fn start_benchmark(http: &Http) {
     } else {
         Config::from_args()
     };
-    let home = env::var("HOME").expect("No home");
     if config.solver.is_empty() {
         config.solver = "splr".to_string();
         for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
@@ -192,7 +191,7 @@ fn start_benchmark(http: &Http) {
     };
     config.run_name = {
         let commit_id_u8 = Command::new("git")
-            .current_dir(format!("{}/Repositories/splr", home))
+            .current_dir(&config.repo_dir)
             .args(&["log", "-1", "--format=format:%h"])
             .output()
             .expect("fail to git")
@@ -203,7 +202,7 @@ fn start_benchmark(http: &Http) {
     };
     let diff = {
         let diff8 = Command::new("git")
-            .current_dir(format!("{}/Repositories/splr", home))
+            .current_dir(&config.repo_dir)
             .args(&["diff"])
             .output()
             .expect("fail to git diff")
