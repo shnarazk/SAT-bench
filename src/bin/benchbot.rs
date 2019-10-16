@@ -90,7 +90,17 @@ pub struct Config {
     /// Your id for the bot to mention you
     #[structopt(long = "your-id", default_value = "")]
     pub master_id: String,
-
+    /// user id to post to Matrix
+    #[structopt(long = "matrix-id", default_value = "")]
+    pub matrix_id: String,
+    /// user password to post to Matrix
+    #[structopt(long = "matrix-password", default_value = "")]
+    pub matrix_password: String,
+    /// The Matrix room
+    #[structopt(long = "matrix-room", default_value = "")]
+    pub matrix_room: String,
+    #[structopt(skip)]
+    pub matrix_token: String,
 }
 
 impl Default for Config {
@@ -112,7 +122,11 @@ impl Default for Config {
             discord_channel: String::new(),
             discord_token: String::new(),
             master_id: String::new(),
-        }
+            matrix_id: String::new(),
+            matrix_password: String::new(),
+            matrix_room: String::new(),
+            matrix_token: String::new(),
+       }
     }
 }
 
