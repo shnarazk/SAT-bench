@@ -278,6 +278,52 @@ fn start_benchmark(http: &Http) {
 
 fn worker(config: Config, http: &Http) {
     loop {
+        {
+            let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+            if pro % config.num_jobs == 0 {
+                let (s, u) = report(&config).unwrap_or((0, 0));
+                if let Ok(mut answered) = ANSWERED.write() {
+                    let sum = s + u;
+                    *answered = sum;
+                }
+            }
+            let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+            if config.timeout == 1000 && 4 <= config.num_jobs {
+                if (pro == 20 && 3 < ans)
+                    || (pro == 40 && 4 < ans)
+                    || (pro == 60 && 20 < ans)
+                    || (pro == 80 && 26 < ans)
+                    || (pro == 100 && 42 < ans)
+                    || (pro == 120 && 54 < ans)
+                    || (pro == 140 && 56 < ans)
+                    || (pro == 160 && 58 < ans)
+                    || (pro == 180 && 63 < ans)
+                    || (pro == 200 && 70 < ans)
+                    || (pro == 220 && 77 < ans)
+                    || (pro == 240 && 88 < ans)
+                    || (pro == 260 && 90 < ans)
+                    || (pro == 280 && 97 < ans)
+                    || (pro == 300 && 107 < ans)
+                    || (pro == 320 && 117 < ans)
+                    || (pro == 340 && 129 < ans)
+                    || (pro == 360 && 141 < ans)
+                    || (pro == 380 && 144 < ans)
+                    || (pro == 400 && 145 < ans)
+                {
+                    print!("*{:>3}-th problem,{:>3} solutions,", pro, ans);
+                    post(http,
+                         &format!(
+                             "<@{}>, New record: {} solutions at {}-th problem.",
+                             config.master_id,
+                             ans, pro
+                         )
+                    );
+                } else {
+                    print!(" {:>3}-th problem,{:>3} solutions,", pro, ans);
+                }
+                stdout().flush().unwrap();
+            }
+        }
         let p: PathBuf;
         let remains: usize;
         let n: usize;
@@ -332,6 +378,7 @@ fn worker(config: Config, http: &Http) {
             println!("Benchmark {} has been done.", config.run_name);
             // process::exit(0);
         } else {
+/*
             let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
             if pro % config.num_jobs == 0 {
                 let (s, u) = report(&config).unwrap_or((0, 0));
@@ -375,6 +422,7 @@ fn worker(config: Config, http: &Http) {
                     println!("; {} solutions at {}-th problem.", ans, pro);
                 }
             }
+*/
         }
     }
 }
@@ -383,8 +431,7 @@ fn execute(config: &Config, http: &Http, num: usize, cnf: &PathBuf) {
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
-        print!("\x1B[032m{}\x1B[000m", target);
-        stdout().flush().unwrap();
+        println!("\x1B[032m{}\x1B[000m", target);
         if let Ok(answered) = ANSWERED.read() {
             state(http, &format!("{}#{},{}", *answered, num, &target));
         }
