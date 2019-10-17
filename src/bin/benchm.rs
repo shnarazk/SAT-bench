@@ -134,7 +134,12 @@ fn main() {
         map.insert("user", &config.matrix_id);
         map.insert("password", &config.matrix_password);
         config.matrix_token = matrix::get_token(&map);
+        println!("ready to post to matrix; user: {}, token: {:?}",
+                 config.matrix_id,
+                 config.matrix_token,
+                 );
     }
+    matrix::post(&config.matrix_room, &config.matrix_token, "A test post from benchm.");
     start_benchmark();
 }
 

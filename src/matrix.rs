@@ -22,7 +22,9 @@ pub fn get_token(map: &HashMap<&str, &str>) -> Option<String> {
         Ok(mut r) => {
             let body: String = r.text().unwrap();
             let v: Value = serde_json::from_str(&body).unwrap();
-            return Some(v["access_token"].to_string());
+            let token = v["access_token"].to_string();
+            let s = &token[1..token.len() - 1];
+            return Some(s.to_string());
         }
     }
     None
