@@ -21,9 +21,7 @@ pub fn get_token(map: &HashMap<&str, &str>) -> Option<String> {
         Err(e) => println!("failed to post: {:?}.", e),
         Ok(mut r) => {
             let body: String = r.text().unwrap();
-            println!("got {}.", body);
             let v: Value = serde_json::from_str(&body).unwrap();
-            println!("got {} => {}.", body, v["access_token"]);
             return Some(v["access_token"].to_string());
         }
     }
