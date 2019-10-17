@@ -4,18 +4,6 @@ use regex::Regex;
 use sat_bench::matrix;
 use sat_bench::utils::current_date_time;
 use sat_bench::{bench18::SCB, utils::parse_result};
-// use serenity::builder::GetMessages;
-use serenity::client::{Client, Context, EventHandler};
-use serenity::framework::standard::{StandardFramework,
-                                    CommandResult,
-                                    macros::{command, group}};
-use serenity::http::raw::Http;
-use serenity::model::channel::{Channel, Message};
-use serenity::model::event::TypingStartEvent;
-use serenity::model::gateway::Activity;
-use serenity::model::id::ChannelId;
-use serenity::model::prelude::Ready;
-use serenity::model::user::OnlineStatus;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{stdout, BufWriter, Write};
@@ -23,13 +11,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::str;
 use std::sync::RwLock;
-use std::{env, process, time};
+use std::{env, time};
 use structopt::StructOpt;
 
 const VERSION: &str = "benchbot 0.6.6";
 
 lazy_static! {
-    pub static ref CHID: RwLock<u64> = RwLock::new(0);
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
     pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
     pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
@@ -82,15 +69,6 @@ pub struct Config {
     /// Don't assign
     #[structopt(long = "run", default_value = "")]
     pub run_name: String,
-    /// Discord chhannel
-    #[structopt(long = "channel", default_value = "")]
-    pub discord_channel: String,
-    /// Discord token
-    #[structopt(long = "token", default_value = "")]
-    pub discord_token: String,
-    /// Your id for the bot to mention you
-    #[structopt(long = "your-id", default_value = "")]
-    pub master_id: String,
     /// user id to post to Matrix
     #[structopt(long = "matrix-id", default_value = "")]
     pub matrix_id: String,
@@ -120,9 +98,6 @@ impl Default for Config {
             sync_cmd: String::new(),
             dump_dir: PathBuf::new(),
             run_name: String::new(),
-            discord_channel: String::new(),
-            discord_token: String::new(),
-            master_id: String::new(),
             matrix_id: String::new(),
             matrix_password: String::new(),
             matrix_room: String::new(),
@@ -157,29 +132,10 @@ fn main() {
         map.insert("password", &config.matrix_password);
         config.matrix_token = matrix::get_token(&map);
     }
-    // Discord
-    let mut client = if !config.discord_token.is_empty() {
-        Client::new(&config.discord_token, Handler).expect("Can't tcreate client")
-    } else {
-        Client::new(&env::var("DISCORD_TOKEN").expect("NO token"), Handler)
-            .expect("Can't create client")
-    };
-    if let Ok(mut conf) = CONFIG.write() {
-        *conf = config.clone();
-    }
-    client.with_framework(
-        StandardFramework::new()
-            .configure(|c| c.prefix("."))
-            .group(&GENERAL_GROUP),
-    );
-    if let Err(why) = client.start() {
-        println!("An error occurred while running the client: {:?}", why);
-    } else {
-        println!("Start a discord client.");
-    }
+    start_benchmark();
 }
 
-fn start_benchmark(http: &Http) {
+fn start_benchmark() {
     let mut config = if let Ok(conf) = CONFIG.read() {
         conf.clone()
     } else {
@@ -244,16 +200,6 @@ fn start_benchmark(http: &Http) {
     } else {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
-    if let Ok(mut cid) = CHID.write() {
-        *cid = if config.discord_channel.is_empty() {
-            env::var("DISCORD_CHANNEL")
-                .expect("no channel")
-                .parse::<u64>()
-                .unwrap()
-        } else {
-            config.discord_channel.parse::<u64>().unwrap()
-        };
-    }
     if let Ok(mut queue) = PQ.write() {
         for s in SCB.iter().take(config.target_to).skip(config.target_from) {
             if s.0 % config.target_step == 0 {
@@ -269,19 +215,18 @@ fn start_benchmark(http: &Http) {
         let (s, u) = report(&config).unwrap_or((0, 0));
         *answered = s + u;
     }
-    post(http,
-         &format!(
-             "<@{}>, A new {} parallel benchmark starts.",
-             config.master_id,
-             config.num_jobs,
-         )
+    matrix::post(&config.matrix_token,
+                 &format!(
+                     "A new {} parallel benchmark starts.",
+                     config.num_jobs,
+                 )
     );
     if !diff.is_empty() {
-        post(http,
-            &format!(
-                 "**WARNING: unregistered modifications**\n```diff\n{}```\n",
-                 diff
-             )
+        matrix::post(&config.matrix_token,
+                     &format!(
+                         "**WARNING: unregistered modifications**\n```diff\n{}```\n",
+                         diff
+                     )
         );
     }
     crossbeam::scope(|s| {
@@ -289,7 +234,7 @@ fn start_benchmark(http: &Http) {
             let c = config.clone();
             s.spawn(move |_| {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-                worker(c, http);
+                worker(c);
             });
     }
         }).unwrap();
@@ -299,7 +244,7 @@ fn start_benchmark(http: &Http) {
     }
 }
 
-fn worker(config: Config, http: &Http) {
+fn worker(config: Config) {
     loop {
         let mut new_solution = false;
         let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
@@ -340,13 +285,6 @@ fn worker(config: Config, http: &Http) {
                 matrix::post(&config.matrix_token,
                              &format!("*{:>3}-th problem,{:>3} solutions,", pro, ans)
                 );
-                post(http,
-                     &format!(
-                         "<@{}>, New record: {} solutions at {}-th problem.",
-                         config.master_id,
-                         ans, pro
-                     )
-                );
             } else {
                 print!(" {:>3}-th problem,{:>3} solutions,", pro, ans);
                 stdout().flush().unwrap();
@@ -359,10 +297,8 @@ fn worker(config: Config, http: &Http) {
         }
         let p: PathBuf;
         let remains: usize;
-        let n: usize;
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
-                n = index;
                 p = config.data_dir.join(top);
                 remains = q.len();
                 if let Ok(mut processed) = PROCESSED.write() {
@@ -374,24 +310,13 @@ fn worker(config: Config, http: &Http) {
         } else {
             break;
         }
-        execute(&config, http, n, &p);
+        execute(&config, &p);
         if remains == 0 {
             // I'm the last one.
-            state(http, "");
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
                 let sum = s + u;
                 *answered = sum;
-                post(http,
-                     &format!(
-                         "<@{}>, All ({} + {}, {}) problems were solved, answered {}.",
-                         config.master_id,
-                         config.target_from,
-                         config.target_step,
-                         config.target_to,
-                         sum,
-                     )
-                );
             }
             let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
             Command::new("tar")
@@ -412,27 +337,24 @@ fn worker(config: Config, http: &Http) {
     }
 }
 
-fn execute(config: &Config, http: &Http, num: usize, cnf: &PathBuf) {
+fn execute(config: &Config, cnf: &PathBuf) {
     let f = PathBuf::from(cnf);
     if f.is_file() {
         let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
         println!("\x1B[032m{}\x1B[000m", target);
-        if let Ok(answered) = ANSWERED.read() {
-            state(http, &format!("{}#{},{}", *answered, num, &target));
-        }
         let mut command: Command = solver_command(config);
         for opt in config.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
         let result = command.arg(f.as_os_str()).output();
         match &result {
-            Err(_) => post(http, &format!("Something happened to {}.", &target)),
+            Err(_) => println!("Something happened to {}.", &target),
             Ok(r)
                 if String::from_utf8(r.stderr.clone())
                 .unwrap()
                 .contains("thread 'main' panicked") =>
             {
-                post(http, &format!("**Panic at {}.**", &target))
+                panic!("**Panic at {}.**", &target);
             }
             _ => (),
         }
@@ -462,33 +384,6 @@ fn solver_command(config: &Config) -> Command {
         command
     } else {
         Command::new(&config.solver)
-    }
-}
-
-fn post(http: &Http, mes: &str) {
-    if let Ok(cid) = CHID.read() {
-        if let Ok(channel) = ChannelId(*cid).to_channel(http) {
-            if let Channel::Guild(gchannel) = &channel {
-                let ch = gchannel.read();
-                if let Ok(id) = RUN.read() {
-                    ch.say(http, &format!("{}: {}", *id, mes)).expect("fail to say");
-                }
-            }
-        }
-    }
-}
-
-fn state(http: &Http, s: &str) {
-    if let Ok(cid) = CHID.read() {
-        if let Ok(channel) = ChannelId(*cid).to_channel(http) {
-            if let Channel::Guild(gchannel) = &channel {
-                if let Ok(mut mes) = M.write() {
-                    *mes = s.to_string();
-                }
-                let ch = gchannel.read();
-                ch.broadcast_typing(http).expect("typing");
-            }
-        }
     }
 }
 
@@ -589,139 +484,4 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         Command::new(&config.sync_cmd).output()?;
     }
     Ok((nsat, nunsat))
-}
-
-struct Handler;
-impl EventHandler for Handler {
-    fn ready(&self, ctx: Context, _: Ready) {
-        println!("booted up");
-        start_benchmark(&ctx.http);
-        ctx.idle();
-    }
-    fn typing_start(&self, ctx: Context, _: TypingStartEvent) {
-        if let Ok(mes) = M.read() {
-            if mes.is_empty() {
-                ctx.set_presence(None, OnlineStatus::Idle);
-            } else {
-                let name = mes.to_string();
-                ctx.set_activity(Activity::playing(&name));
-            }
-        }
-    }
-}
-
-group!({
-    name: "general",
-    options: {},
-    commands: [bye, /* clean, */ draw, start, how, who, help, bye],
-});
-
-
-#[command]
-fn bye(_context: &mut Context, _message: &Message) -> CommandResult {
-    process::exit(0);
-    // Ok(())
-}
-
-/*
-#[command]
-fn clean(context: &mut Context, message: &Message) -> CommandResult {
-    context.idle();
-    let ch = message.channel_id;
-    let mut retriever = GetMessages::default();
-    let messages = retriever.before(message.id).limit(100);
-    match ch.messages(&context.http, |_| messages) {
-        Ok(ref v) => {
-            let len = v.len();
-            let mut n = 0;
-            for (i, m) in v.iter().enumerate() {
-                match m.delete(context.http) {
-                    Ok(_) => n += 1,
-                    Err(why) => println!("{} ({}/{}): {}", n, i, len, why),
-                }
-            }
-        }
-        Err(e) => {
-            ch.say(&context.http, &format!("Error {}", e))?;
-        }
-    }
-    Ok(())
-}
-*/
-
-#[command]
-fn draw(context: &mut Context, message: &Message) -> CommandResult {
-    println!("{:?}", message.content);
-    if let Ok(conf) = CONFIG.read() {
-        let host = {
-            let h = Command::new("hostname")
-                .arg("-s")
-                .output()
-                .expect("failed to execute process")
-                .stdout;
-            String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
-        };
-        // ./mkCactusL.R rio.runs 400 "" $(THR)
-        if Command::new("./mkCactusL.R")
-            .current_dir(&conf.sync_dir)
-            .args(&[&format!("{}.run", host), "400", "", &format!("{}", conf.timeout)])
-            .output()
-            .is_err()
-        {
-            message.channel_id.say(&context.http, "Failed to draw a cactus graph.").unwrap();
-        }
-        let cactus = conf.sync_dir.join(&format!("CactusL-{}.png", host));
-        if cactus.exists() {
-            if message.channel_id.send_files(&context.http, &[cactus], |m| m.content("Cactus Plot")).is_err() {
-                message.channel_id.say(&context.http, "Failed to upload the file.").unwrap();
-            }
-        } else {
-            message.channel_id.say(&context.http, &format!("{} doesn't exist.", cactus.to_string_lossy())).unwrap();
-        }
-    }
-    Ok(())
-}
-
-#[command]
-fn start(context: &mut Context, _message: &Message) -> CommandResult {
-    start_benchmark(&context.http);
-    Ok(())
-}
-
-
-#[command]
-fn how(context: &mut Context, message: &Message) -> CommandResult {
-    if let Ok(_conf) = CONFIG.read() {
-        let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-        let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-        message.channel_id.say(&context.http,
-                               &format!("Running on {} and answered {} now.", pro, ans)
-        )?;
-    }
-    Ok(())
-}
-
-
-#[command]
-fn who(context: &mut Context, message: &Message) -> CommandResult {
-    if let Ok(conf) = CONFIG.read() {
-        message.channel_id.say(&context.http, &format!("I am {}: ```rust\n{:?}\n```", VERSION, conf))?;
-    }
-    Ok(())
-}
-
-#[command]
-fn help(context: &mut Context, message: &Message) -> CommandResult {
-    message.channel_id.say(&context.http, "I accept `bye`, `clear`, `draw`, `whatsup`, `who`".to_string())?;
-    Ok(())
-}
-
-#[command]
-fn whatsup(context: &mut Context, message: &Message) -> CommandResult {
-    if let Ok(p) = PROCESSED.read() {
-        if let Ok(a) = ANSWERED.read() {
-            message.channel_id.say(&context.http, &format!("tried {} problems, answered {}.", p, a))?;
-        }
-    }
-    Ok(())
 }
