@@ -218,14 +218,16 @@ fn start_benchmark() {
         let (s, u) = report(&config).unwrap_or((0, 0));
         *answered = s + u;
     }
-    matrix::post(&config.matrix_token,
+    matrix::post(&config.matrix_room,
+                 &config.matrix_token,
                  &format!(
                      "A new {} parallel benchmark starts.",
                      config.num_jobs,
                  )
     );
     if !diff.is_empty() {
-        matrix::post(&config.matrix_token,
+        matrix::post(&config.matrix_room,
+                     &config.matrix_token,
                      &format!(
                          "**WARNING: unregistered modifications**\n```diff\n{}```\n",
                          diff
@@ -285,14 +287,16 @@ fn worker(config: Config) {
                 || (pro == 400 && 145 < ans)
             {
                 print!("*{:>3}-th problem,{:>3} solutions,", pro, ans);
-                matrix::post(&config.matrix_token,
+                matrix::post(&config.matrix_room,
+                             &config.matrix_token,
                              &format!("*{:>3}-th problem,{:>3} solutions,", pro, ans)
                 );
             } else {
                 print!(" {:>3}-th problem,{:>3} solutions,", pro, ans);
                 stdout().flush().unwrap();
                 if new_solution {
-                    matrix::post(&config.matrix_token,
+                    matrix::post(&config.matrix_room,
+                                 &config.matrix_token,
                                  &format!(" {:>3}-th problem,{:>3} solutions,", pro, ans)
                     );
                 }

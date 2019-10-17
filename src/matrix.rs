@@ -28,9 +28,8 @@ pub fn get_token(map: &HashMap<&str, &str>) -> Option<String> {
     None
 }
 
-pub fn post(maybe_token: &Option<String>, msg: &str) {
+pub fn post(room: &str, maybe_token: &Option<String>, msg: &str) {
     if let Some(ref token) = maybe_token {
-        let room = "!mflwVjLifrqjTvoAnJ:matrix.org";
         let url = format!("https://matrix.org/_matrix/client/r0/rooms/{}/send/m.room.message?access_token={}", room, token);
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("msgtype", "m.text");

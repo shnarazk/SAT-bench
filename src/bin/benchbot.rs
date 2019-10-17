@@ -301,14 +301,14 @@ fn start_benchmark(http: &Http) {
 
 fn worker(config: Config, http: &Http) {
     loop {
-        let mut new_solution = false;
+        let mut _new_solution = false;
         let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
         if pro % config.num_jobs == 0 {
             let (s, u) = report(&config).unwrap_or((0, 0));
             if let Ok(mut answered) = ANSWERED.write() {
                 let sum = s + u;
                 if *answered < sum {
-                    new_solution = true;
+                    // new_solution = true;
                     *answered = sum;
                 }
             }
@@ -337,9 +337,6 @@ fn worker(config: Config, http: &Http) {
                 || (pro == 400 && 145 < ans)
             {
                 print!("*{:>3}-th problem,{:>3} solutions,", pro, ans);
-                matrix::post(&config.matrix_token,
-                             &format!("*{:>3}-th problem,{:>3} solutions,", pro, ans)
-                );
                 post(http,
                      &format!(
                          "<@{}>, New record: {} solutions at {}-th problem.",
@@ -350,11 +347,6 @@ fn worker(config: Config, http: &Http) {
             } else {
                 print!(" {:>3}-th problem,{:>3} solutions,", pro, ans);
                 stdout().flush().unwrap();
-                if new_solution {
-                    matrix::post(&config.matrix_token,
-                                 &format!(" {:>3}-th problem,{:>3} solutions,", pro, ans)
-                    );
-                }
             }
         }
         let p: PathBuf;
