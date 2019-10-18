@@ -291,18 +291,18 @@ fn worker(config: Config) {
                 || (pro == 380 && 144 < ans)
                 || (pro == 400 && 145 < ans)
             {
-                print!("*{:>3}-th problem,{:>3} solutions,", pro, ans);
+                print!("*{:>3} problems,{:>3} solutions,", pro, ans);
                 matrix::post(&config.matrix_room,
                              &config.matrix_token,
-                             &format!("*{:>3}-th problem,{:>3} solutions,", pro, ans)
+                             &format!("*{:>3} problems,{:>3} solutions,", pro, ans)
                 );
             } else {
-                print!(" {:>3}-th problem,{:>3} solutions,", pro, ans);
+                print!(" {:>3} problems,{:>3} solutions,", pro, ans);
                 stdout().flush().unwrap();
                 if new_solution {
                     matrix::post(&config.matrix_room,
                                  &config.matrix_token,
-                                 &format!(" {:>3}-th problem,{:>3} solutions,", pro, ans)
+                                 &format!(" {:>3} problems,{:>3} solutions,", pro, ans)
                     );
                 }
             }

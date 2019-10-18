@@ -2,15 +2,6 @@
 use serde_json::Value;
 use std::collections::HashMap;
 
-//use std::fs;
-//use std::io::{stdout, BufWriter, Write};
-//use std::path::PathBuf;
-//use std::process::Command;
-//use std::str;
-//use std::sync::RwLock;
-//use std::{env, process, time};
-//use structopt::StructOpt;
-
 pub fn get_token(map: &HashMap<&str, &str>) -> Option<String> {
     let url = "https://matrix.org/_matrix/client/r0/login";
     let mut map: HashMap<&str, &str> = map.clone();
@@ -23,6 +14,7 @@ pub fn get_token(map: &HashMap<&str, &str>) -> Option<String> {
             let body: String = r.text().unwrap();
             let v: Value = serde_json::from_str(&body).unwrap();
             let token = v["access_token"].to_string();
+            assert!(!token.is_empty());
             let s = &token[1..token.len() - 1];
             return Some(s.to_string());
         }
