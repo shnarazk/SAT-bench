@@ -125,9 +125,6 @@ fn main() {
             .replace(&config.repo_dir.to_string_lossy(), &home[..])
             .to_string(),
     );
-    if let Ok(mut conf) = CONFIG.write() {
-        *conf = config.clone();
-    }
     // Matrix
     if !config.matrix_id.is_empty() {
         let mut map: HashMap<&str, &str> = HashMap::new();
@@ -140,6 +137,9 @@ fn main() {
                  );
     }
     matrix::post(&config.matrix_room, &config.matrix_token, "A test post from benchm.");
+    if let Ok(mut conf) = CONFIG.write() {
+        *conf = config.clone();
+    }
     start_benchmark();
 }
 
