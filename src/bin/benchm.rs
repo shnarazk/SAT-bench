@@ -106,6 +106,12 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    fn post(&self, msg: &str) {
+        matrix::post(&self.matrix_room, &self.matrix_token, msg);
+    }
+}
+
 fn main() {
     let mut config = Config::from_args();
     let tilde = Regex::new("~").expect("wrong reex");
@@ -136,7 +142,7 @@ fn main() {
                  config.matrix_token,
                  );
     }
-    matrix::post(&config.matrix_room, &config.matrix_token, "A test post from benchm.");
+    config.post("A test post from benchm.");
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
@@ -223,20 +229,12 @@ fn start_benchmark() {
         let (s, u) = report(&config).unwrap_or((0, 0));
         *answered = s + u;
     }
-    matrix::post(&config.matrix_room,
-                 &config.matrix_token,
-                 &format!(
-                     "A new {} parallel benchmark starts.",
-                     config.num_jobs,
-                 )
-    );
+    config.post(&format!("A new {} parallel benchmark starts.", config.num_jobs));
     if !diff.is_empty() {
-        matrix::post(&config.matrix_room,
-                     &config.matrix_token,
-                     &format!(
-                         "**WARNING: unregistered modifications**\n```diff\n{}```\n",
-                         diff
-                     )
+        config.post(&format!(
+            "**WARNING: unregistered modifications**\n```diff\n{}```\n",
+            diff
+        )
         );
     }
     crossbeam::scope(|s| {
@@ -246,9 +244,31 @@ fn start_benchmark() {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
                 worker(c);
             });
-    }
-        }).unwrap();
+        }
+    }).unwrap();
 
+    let (s, u) = report(&config).unwrap_or((0, 0));
+    if let Ok(mut answered) = ANSWERED.write() {
+        let sum = s + u;
+        *answered = sum;
+    }
+    let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
+    Command::new("tar")
+        .args(&[
+            "cvf",
+            &tarfile.to_string_lossy(),
+            &config.dump_dir.to_string_lossy(),
+        ])
+        .output()
+        .expect("fail to tar");
+    if !config.sync_cmd.is_empty() {
+        Command::new(&config.sync_cmd)
+            .output()
+            .expect("fail to run sync command");
+    }
+    println!("Benchmark {} has been done.", config.run_name);
+    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+    config.post(&format!("Benchmark ended, {} problems, {} solutions", pro, s + u));
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
@@ -292,27 +312,22 @@ fn worker(config: Config) {
                 || (pro == 400 && 145 < ans)
             {
                 print!("*{:>3} problems,{:>3} solutions,", pro, ans);
-                matrix::post(&config.matrix_room,
-                             &config.matrix_token,
-                             &format!("*{:>3} problems,{:>3} solutions,", pro, ans)
-                );
+                config.post(&format!("*{:>3} problems,{:>3} solutions,", pro, ans));
             } else {
                 print!(" {:>3} problems,{:>3} solutions,", pro, ans);
                 stdout().flush().unwrap();
                 if new_solution {
-                    matrix::post(&config.matrix_room,
-                                 &config.matrix_token,
-                                 &format!(" {:>3} problems,{:>3} solutions,", pro, ans)
-                    );
+                    config.post(&format!(" {:>3} problems,{:>3} solutions,", pro, ans));
                 }
             }
         }
         let p: PathBuf;
-        let remains: usize;
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
                 p = config.data_dir.join(top);
-                remains = q.len();
+                if q.is_empty() {
+                    break;
+                }
                 if let Ok(mut processed) = PROCESSED.write() {
                     *processed = index;
                 }
@@ -323,29 +338,6 @@ fn worker(config: Config) {
             break;
         }
         execute(&config, &p);
-        if remains == 0 {
-            // I'm the last one.
-            let (s, u) = report(&config).unwrap_or((0, 0));
-            if let Ok(mut answered) = ANSWERED.write() {
-                let sum = s + u;
-                *answered = sum;
-            }
-            let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
-            Command::new("tar")
-                .args(&[
-                    "cvf",
-                    &tarfile.to_string_lossy(),
-                    &config.dump_dir.to_string_lossy(),
-                ])
-                .output()
-                .expect("fail to tar");
-            if !config.sync_cmd.is_empty() {
-                Command::new(&config.sync_cmd)
-                    .output()
-                    .expect("fail to run sync command");
-            }
-            println!("Benchmark {} has been done.", config.run_name);
-        }
     }
 }
 
