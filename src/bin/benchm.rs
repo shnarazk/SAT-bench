@@ -14,7 +14,7 @@ use std::sync::RwLock;
 use std::{env, time};
 use structopt::StructOpt;
 
-const VERSION: &str = "benchbot 0.6.6";
+const VERSION: &str = "benchbot 0.6.7";
 
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
@@ -102,13 +102,19 @@ impl Default for Config {
             matrix_password: String::new(),
             matrix_room: String::new(),
             matrix_token: None,
-       }
+        }
     }
 }
 
 impl Config {
     fn post(&self, msg: &str) {
-        matrix::post(&self.matrix_room, &self.matrix_token, msg);
+        if let Ok(id) = RUN.read() {
+            matrix::post(
+                &self.matrix_room,
+                &self.matrix_token,
+                &format!("{}: {}", id, msg),
+            );
+        }
     }
 }
 
@@ -131,16 +137,15 @@ fn main() {
             .replace(&config.repo_dir.to_string_lossy(), &home[..])
             .to_string(),
     );
-    // Matrix
     if !config.matrix_id.is_empty() {
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("user", &config.matrix_id);
         map.insert("password", &config.matrix_password);
         config.matrix_token = matrix::get_token(&map);
-        println!("ready to post to matrix; user: {}, token: {:?}",
-                 config.matrix_id,
-                 config.matrix_token,
-                 );
+        println!(
+            "ready to post to matrix; user: {}, token: {:?}",
+            config.matrix_id, config.matrix_token,
+        );
     }
     config.post("A test post from benchm.");
     if let Ok(mut conf) = CONFIG.write() {
@@ -229,13 +234,15 @@ fn start_benchmark() {
         let (s, u) = report(&config).unwrap_or((0, 0));
         *answered = s + u;
     }
-    config.post(&format!("A new {} parallel benchmark starts.", config.num_jobs));
+    config.post(&format!(
+        "A new {} parallel benchmark starts.",
+        config.num_jobs
+    ));
     if !diff.is_empty() {
         config.post(&format!(
             "**WARNING: unregistered modifications**\n```diff\n{}```\n",
             diff
-        )
-        );
+        ));
     }
     crossbeam::scope(|s| {
         for i in 0..config.num_jobs {
@@ -245,7 +252,8 @@ fn start_benchmark() {
                 worker(c);
             });
         }
-    }).unwrap();
+    })
+    .unwrap();
 
     let (s, u) = report(&config).unwrap_or((0, 0));
     if let Ok(mut answered) = ANSWERED.write() {
@@ -268,7 +276,11 @@ fn start_benchmark() {
     }
     println!("Benchmark {} has been done.", config.run_name);
     let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-    config.post(&format!("Benchmark ended, {} problems, {} solutions", pro, s + u));
+    config.post(&format!(
+        "Benchmark ended, {} problems, {} solutions",
+        pro,
+        s + u
+    ));
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config.clone();
     }
@@ -355,8 +367,8 @@ fn execute(config: &Config, cnf: &PathBuf) {
             Err(_) => println!("Something happened to {}.", &target),
             Ok(r)
                 if String::from_utf8(r.stderr.clone())
-                .unwrap()
-                .contains("thread 'main' panicked") =>
+                    .unwrap()
+                    .contains("thread 'main' panicked") =>
             {
                 panic!("**Panic at {}.**", &target);
             }
