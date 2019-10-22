@@ -333,23 +333,17 @@ fn worker(config: Config) {
                 }
             }
         }
-        let p: PathBuf;
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
-                p = config.data_dir.join(top);
-                if q.is_empty() {
-                    break;
-                }
+                let p: PathBuf = config.data_dir.join(top);
                 if let Ok(mut processed) = PROCESSED.write() {
                     *processed = index;
                 }
+                execute(&config, &p);
             } else {
                 break;
             }
-        } else {
-            break;
         }
-        execute(&config, &p);
     }
 }
 
