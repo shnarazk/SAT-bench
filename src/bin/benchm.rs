@@ -253,7 +253,7 @@ fn start_benchmark() {
             });
         }
     })
-    .unwrap();
+    .expect("fail to exit crossbeam::scope");
 
     let (s, u) = report(&config).unwrap_or((0, 0));
     if let Ok(mut answered) = ANSWERED.write() {
