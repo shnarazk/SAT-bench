@@ -263,7 +263,7 @@ fn start_benchmark() {
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
     Command::new("tar")
         .args(&[
-            "cvf",
+            "cvJf",
             &tarfile.to_string_lossy(),
             &config.dump_dir.to_string_lossy(),
         ])
