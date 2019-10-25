@@ -1,4 +1,4 @@
-/// A simple SAT benchmarker
+/// A simple SAT benchmarker with Matrix monitor
 use lazy_static::lazy_static;
 use regex::Regex;
 use sat_bench::matrix;
@@ -301,8 +301,10 @@ fn worker(config: Config) {
             }
         }
         let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-        if config.timeout == 1000 && 4 <= config.num_jobs {
-            if (pro == 20 && 3 < ans)
+        let new_record =
+            config.timeout == 1000
+            && 4 <= config.num_jobs
+            && ((pro == 20 && 3 < ans)
                 || (pro == 40 && 4 < ans)
                 || (pro == 60 && 20 < ans)
                 || (pro == 80 && 26 < ans)
@@ -321,35 +323,34 @@ fn worker(config: Config) {
                 || (pro == 340 && 129 < ans)
                 || (pro == 360 && 141 < ans)
                 || (pro == 380 && 144 < ans)
-                || (pro == 400 && 145 < ans)
-            {
-                print!("*{:>3} problems,{:>3} solutions,", pro, ans);
-                config.post(&format!("*{:>3} problems,{:>3} solutions,", pro, ans));
-            } else {
-                print!(" {:>3} problems,{:>3} solutions,", pro, ans);
-                stdout().flush().unwrap();
-                if new_solution {
-                    config.post(&format!(" {:>3} problems,{:>3} solutions,", pro, ans));
-                }
-            }
-        }
-
+                || (pro == 400 && 145 < ans));
         let p: Option<PathBuf> =
-        if let Ok(mut q) = PQ.write() {
-            if let Some((index, top)) = q.pop() {
-                //p = config.data_dir.join(top);
-                if let Ok(mut processed) = PROCESSED.write() {
-                    *processed = index;
+            if let Ok(mut q) = PQ.write() {
+                if let Some((index, top)) = q.pop() {
+                    if let Ok(mut processed) = PROCESSED.write() {
+                        *processed = index;
+                    }
+                    Some(config.data_dir.join(top))
+                } else {
+                    None
                 }
-                Some(config.data_dir.join(top))
             } else {
                 None
-            }
-        } else {
-            None
-        };
+            };
         match p {
-            Some(p) => execute(&config, &p),
+            Some(p) => {
+                if new_record {
+                    config.post(&format!("*{:>3} problems,{:>3} solutions,", pro, ans));
+                    print!("*{:>3} problems,{:>3} solutions,", pro, ans);
+                } else if new_solution {
+                    config.post(&format!(" {:>3} problems,{:>3} solutions,", pro, ans));
+                    print!(" {:>3} problems,{:>3} solutions,", pro, ans);
+                } else {
+                    print!(" {:>3} problems,{:>3} solutions,", pro, ans);
+                }
+                stdout().flush().unwrap();
+                execute(&config, &p);
+            }
             None => return,
         }
     }
