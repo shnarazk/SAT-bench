@@ -1,10 +1,12 @@
 [package]
 name = "sat-bench"
-version = "0.6.7"
+version = "0.7.0"
 authors = ["Shuji Narazaki <shujinarazaki@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
+futures = "0.3"
+# async-std = "0.99"
 chrono ="^0.4"
 crossbeam = "0.7"
 lazy_static = "^1.4"
