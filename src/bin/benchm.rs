@@ -23,7 +23,8 @@ lazy_static! {
     pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
     pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
     pub static ref M: RwLock<String> = RwLock::new(String::new());
-    pub static ref RUN: RwLock<String> = RwLock::new(String::new());
+    pub static ref RUN_ID: RwLock<String> = RwLock::new(String::new());
+    pub static ref RUN_NAME: RwLock<String> = RwLock::new(String::new());
     pub static ref N: RwLock<usize> = RwLock::new(0);
 }
 
@@ -68,6 +69,9 @@ pub struct Config {
     pub dump_dir: PathBuf,
     /// Don't assign
     #[structopt(long = "run", default_value = "")]
+    pub run_id: String,
+    /// Don't assign
+    #[structopt(skip)]
     pub run_name: String,
     /// user id to post to Matrix
     #[structopt(long = "matrix-id", default_value = "")]
@@ -97,6 +101,7 @@ impl Default for Config {
             sync_dir: PathBuf::new(),
             sync_cmd: String::new(),
             dump_dir: PathBuf::new(),
+            run_id: String::new(),
             run_name: String::new(),
             matrix_id: String::new(),
             matrix_password: String::new(),
@@ -108,7 +113,7 @@ impl Default for Config {
 
 impl Config {
     fn post(&self, msg: &str) {
-        if let Ok(id) = RUN.read() {
+        if let Ok(id) = RUN_NAME.read() {
             matrix::post(
                 &self.matrix_room,
                 &self.matrix_token,
@@ -187,17 +192,18 @@ fn start_benchmark() {
             .stdout;
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
-    config.run_name = {
+    {
         let commit_id_u8 = Command::new("git")
             .current_dir(&config.repo_dir)
             .args(&["log", "-1", "--format=format:%h"])
             .output()
             .expect("fail to git")
             .stdout;
-        let commit_id = unsafe { String::from_utf8_unchecked(commit_id_u8) };
+        let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
         let timestamp = current_date_time().format("%F").to_string();
-        format!("{}-{}-{}-{}", config.solver, commit_id, timestamp, host)
-    };
+        config.run_name = format!("{}-{}", config.solver, commit_id);
+        config.run_id = format!("{}-{}-{}", config.run_name, timestamp, host);
+    }
     let diff = {
         let diff8 = Command::new("git")
             .current_dir(&config.repo_dir)
@@ -205,15 +211,18 @@ fn start_benchmark() {
             .output()
             .expect("fail to git diff")
             .stdout;
-        unsafe { String::from_utf8_unchecked(diff8) }
+        String::from_utf8(diff8).expect("strange diff")
     };
     if let Ok(mut d) = DIFF.write() {
         *d = diff.clone();
     }
-    if let Ok(mut run) = RUN.write() {
-        *run = config.run_name.clone();
+    if let Ok(mut id) = RUN_ID.write() {
+        *id = config.run_id.clone();
     }
-    config.dump_dir = PathBuf::from(&config.run_name);
+    if let Ok(mut name) = RUN_NAME.write() {
+        *name = config.run_name.clone();
+    }
+    config.dump_dir = PathBuf::from(&config.run_id);
     if config.dump_dir.exists() {
         println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
     } else {
@@ -260,7 +269,7 @@ fn start_benchmark() {
         let sum = s + u;
         *answered = sum;
     }
-    let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_name));
+    let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args(&[
             "cvJf",
@@ -274,7 +283,7 @@ fn start_benchmark() {
             .output()
             .expect("fail to run sync command");
     }
-    println!("Benchmark {} has been done.", config.run_name);
+    println!("Benchmark {} has been done.", config.run_id);
     let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
     config.post(&format!(
         "Benchmark ended, {} problems, {} solutions",
@@ -301,8 +310,7 @@ fn worker(config: Config) {
             }
         }
         let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-        let new_record =
-            config.timeout == 1000
+        let new_record = config.timeout == 1000
             && 4 <= config.num_jobs
             && ((pro == 20 && 3 < ans)
                 || (pro == 40 && 4 < ans)
@@ -324,19 +332,18 @@ fn worker(config: Config) {
                 || (pro == 360 && 141 < ans)
                 || (pro == 380 && 144 < ans)
                 || (pro == 400 && 145 < ans));
-        let p: Option<PathBuf> =
-            if let Ok(mut q) = PQ.write() {
-                if let Some((index, top)) = q.pop() {
-                    if let Ok(mut processed) = PROCESSED.write() {
-                        *processed = index;
-                    }
-                    Some(config.data_dir.join(top))
-                } else {
-                    None
+        let p: Option<PathBuf> = if let Ok(mut q) = PQ.write() {
+            if let Some((index, top)) = q.pop() {
+                if let Ok(mut processed) = PROCESSED.write() {
+                    *processed = index;
                 }
+                Some(config.data_dir.join(top))
             } else {
                 None
-            };
+            }
+        } else {
+            None
+        };
         match p {
             Some(p) => {
                 if new_record {
@@ -407,7 +414,7 @@ fn solver_command(config: &Config) -> Command {
 }
 
 fn report(config: &Config) -> std::io::Result<(usize, usize)> {
-    let outname = config.sync_dir.join(config.run_name.to_string() + ".csv");
+    let outname = config.sync_dir.join(config.run_id.to_string() + ".csv");
     let mut nsat = 0;
     let mut nunsat = 0;
     {
@@ -448,7 +455,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         writeln!(
             outbuf,
             "#{} by {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
-            config.run_name,
+            config.run_id,
             VERSION,
             config.target_from,
             config.target_to,
