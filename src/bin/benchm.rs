@@ -1,20 +1,34 @@
 /// A simple SAT benchmarker with Matrix monitor
-use lazy_static::lazy_static;
-use regex::Regex;
-use sat_bench::matrix;
-use sat_bench::utils::current_date_time;
-use sat_bench::{bench18::SCB, utils::parse_result};
-use std::collections::HashMap;
-use std::fs;
-use std::io::{stdout, BufWriter, Write};
-use std::path::PathBuf;
-use std::process::Command;
-use std::str;
-use std::sync::RwLock;
-use std::{env, time};
-use structopt::StructOpt;
+use {
+    lazy_static::lazy_static,
+    regex::Regex,
+    sat_bench::{
+        bench18::SCB,
+        matrix,
+        utils::{
+            current_date_time,
+            parse_result
+        }
+    },
+    std::{
+        collections::HashMap,
+        env,
+        fs,
+        io::{
+            stdout,
+            BufWriter,
+            Write
+        },
+        path::PathBuf,
+        process::Command,
+        str,
+        sync::RwLock,
+        time,
+    },
+    structopt::StructOpt,
+};
 
-const VERSION: &str = "benchbot 0.6.7";
+const VERSION: &str = "benchbot 0.6.8";
 
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
@@ -283,8 +297,9 @@ fn start_benchmark() {
             .output()
             .expect("fail to run sync command");
     }
-    println!("Benchmark {} has been done.", config.run_id);
+    println!("Benchmark {} finishes.", config.run_id);
     let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+    check_result(&config);
     config.post(&format!(
         "Benchmark ended, {} problems, {} solutions",
         pro,
@@ -297,93 +312,101 @@ fn start_benchmark() {
 
 fn worker(config: Config) {
     loop {
-        let mut new_solution = false;
-        let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-        if pro % config.num_jobs == 0 {
-            let (s, u) = report(&config).unwrap_or((0, 0));
-            if let Ok(mut answered) = ANSWERED.write() {
-                let sum = s + u;
-                if *answered < sum {
-                    new_solution = true;
-                    *answered = sum;
-                }
-            }
-        }
-        let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-        let new_record = config.timeout == 1000
-            && 4 <= config.num_jobs
-            && ((pro == 20 && 3 < ans)
-                || (pro == 40 && 4 < ans)
-                || (pro == 60 && 20 < ans)
-                || (pro == 80 && 26 < ans)
-                || (pro == 100 && 42 < ans)
-                || (pro == 120 && 54 < ans)
-                || (pro == 140 && 56 < ans)
-                || (pro == 160 && 58 < ans)
-                || (pro == 180 && 63 < ans)
-                || (pro == 200 && 70 < ans)
-                || (pro == 220 && 77 < ans)
-                || (pro == 240 && 88 < ans)
-                || (pro == 260 && 90 < ans)
-                || (pro == 280 && 97 < ans)
-                || (pro == 300 && 107 < ans)
-                || (pro == 320 && 117 < ans)
-                || (pro == 340 && 129 < ans)
-                || (pro == 360 && 141 < ans)
-                || (pro == 380 && 144 < ans)
-                || (pro == 400 && 145 < ans));
-        let p: Option<PathBuf> = if let Ok(mut q) = PQ.write() {
-            if let Some((index, top)) = q.pop() {
-                if let Ok(mut processed) = PROCESSED.write() {
-                    *processed = index;
-                }
-                Some(config.data_dir.join(top))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        match p {
+        match next_task(&config) {
             Some(p) => {
-                if new_record {
-                    config.post(&format!("*{:>3} problems,{:>3} solutions,", pro, ans));
-                    print!("*{:>3} problems,{:>3} solutions,", pro, ans);
-                } else if new_solution {
-                    config.post(&format!(" {:>3} problems,{:>3} solutions,", pro, ans));
-                    print!(" {:>3} problems,{:>3} solutions,", pro, ans);
-                } else {
-                    print!(" {:>3} problems,{:>3} solutions,", pro, ans);
-                }
-                stdout().flush().unwrap();
-                execute(&config, &p);
-            }
+                check_result(&config);
+                execute(&config, p);
+            },
             None => return,
         }
     }
 }
 
-fn execute(config: &Config, cnf: &PathBuf) {
-    let f = PathBuf::from(cnf);
-    if f.is_file() {
-        let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
-        println!("\x1B[032m{}\x1B[000m", target);
-        let mut command: Command = solver_command(config);
-        for opt in config.solver_options.split_whitespace() {
-            command.arg(&opt[opt.starts_with('\\') as usize..]);
-        }
-        let result = command.arg(f.as_os_str()).output();
-        match &result {
-            Err(_) => println!("Something happened to {}.", &target),
-            Ok(r)
-                if String::from_utf8(r.stderr.clone())
-                    .unwrap()
-                    .contains("thread 'main' panicked") =>
-            {
-                panic!("**Panic at {}.**", &target);
+fn next_task(config: &Config) -> Option<PathBuf> {
+    let p: Option<PathBuf> = if let Ok(mut q) = PQ.write() {
+        if let Some((index, top)) = q.pop() {
+            if let Ok(mut processed) = PROCESSED.write() {
+                *processed = index;
             }
-            _ => (),
+            Some(config.data_dir.join(top))
+        } else {
+            None
         }
+    } else {
+        None
+    };
+    p
+}
+
+fn check_result(config: &Config) {
+    let mut new_solution = false;
+    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+    if pro % config.num_jobs == 0 {
+        let (s, u) = report(&config).unwrap_or((0, 0));
+        if let Ok(mut answered) = ANSWERED.write() {
+            let sum = s + u;
+            if *answered < sum {
+                new_solution = true;
+                *answered = sum;
+            }
+        }
+    }
+    let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+    let new_record = config.timeout == 1000
+        && 4 <= config.num_jobs
+        && ((pro == 20 && 3 < ans)
+            || (pro == 40 && 4 < ans)
+            || (pro == 60 && 20 < ans)
+            || (pro == 80 && 26 < ans)
+            || (pro == 100 && 44 < ans)
+            || (pro == 120 && 54 < ans)
+            || (pro == 140 && 56 < ans)
+            || (pro == 160 && 59 < ans)
+            || (pro == 180 && 66 < ans)
+            || (pro == 200 && 73 < ans)
+            || (pro == 220 && 81 < ans)
+            || (pro == 240 && 92 < ans)
+            || (pro == 260 && 99 < ans)
+            || (pro == 280 && 104 < ans)
+            || (pro == 300 && 113 < ans)
+            || (pro == 320 && 123 < ans)
+            || (pro == 340 && 135 < ans)
+            || (pro == 360 && 148 < ans)
+            || (pro == 380 && 154 < ans)
+            || (pro == 400 && 155 < ans));
+    if new_record {
+        config.post(&format!("*{:>3},{:>3}", pro, ans));
+        print!("*");
+    } else {
+        if new_solution {
+            config.post(&format!(" {:>3},{:>3}", pro, ans));
+        }
+        print!(" ");
+    }
+    print!(" {:>3},{:>3},", pro, ans);
+    stdout().flush().unwrap();
+}
+
+fn execute(config: &Config, cnf: PathBuf) {
+    let f = PathBuf::from(cnf);
+    if !f.is_file() {
+        return;
+    }
+    let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
+    println!("\x1B[032m{}\x1B[000m", target);
+    let mut command: Command = solver_command(config);
+    for opt in config.solver_options.split_whitespace() {
+        command.arg(&opt[opt.starts_with('\\') as usize..]);
+    }
+    let result = command.arg(f.as_os_str()).output();
+    match &result {
+        Err(_) => println!("Something happened to {}.", &target),
+        Ok(r)
+            if String::from_utf8(r.stderr.clone())
+                .unwrap()
+                .contains("thread 'main' panicked") =>
+            panic!("**Panic at {}.**", &target),
+        _ => (),
     }
 }
 

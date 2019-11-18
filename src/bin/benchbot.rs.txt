@@ -399,7 +399,7 @@ fn worker(config: Config, http: &Http) {
                     .output()
                     .expect("fail to run sync command");
             }
-            println!("Benchmark {} has been done.", config.run_name);
+            println!("Benchmark {} finished.", config.run_name);
         }
     }
 }
