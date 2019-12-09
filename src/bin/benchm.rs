@@ -402,7 +402,7 @@ fn check_result(config: &Config) {
                     }
                     println!("{:>3},{:>3},{}", j, n.1, &r.0);
                 } else {
-                    print!("{}\x1B[032mRunning on {}th problem{}...\x1B[000m",
+                    print!("{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
                            CLEAR,
                            j,
                            SCB[j-1].1
