@@ -5,20 +5,12 @@ use {
     sat_bench::{
         bench18::SCB,
         matrix,
-        utils::{
-            current_date_time,
-            parse_result
-        }
+        utils::{current_date_time, parse_result},
     },
     std::{
         collections::HashMap,
-        env,
-        fs,
-        io::{
-            stdout,
-            BufWriter,
-            Write
-        },
+        env, fs,
+        io::{stdout, BufWriter, Write},
         path::PathBuf,
         process::Command,
         str,
@@ -29,6 +21,16 @@ use {
 };
 
 const VERSION: &str = "benchbot 0.6.8";
+const CLEAR: &str = "\x1B[1G\x1B[0K";
+
+/// Abnormal termination flags.
+#[derive(Debug)]
+pub enum SolverException {
+    TimeOut,
+    Abort,
+}
+
+type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
@@ -36,10 +38,10 @@ lazy_static! {
     pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
     pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
     pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
-    pub static ref M: RwLock<String> = RwLock::new(String::new());
     pub static ref RUN_ID: RwLock<String> = RwLock::new(String::new());
     pub static ref RUN_NAME: RwLock<String> = RwLock::new(String::new());
-    pub static ref N: RwLock<usize> = RwLock::new(0);
+    pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
+    pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((0, 0));
 }
 
 #[derive(Clone, Debug, StructOpt)]
@@ -139,7 +141,7 @@ impl Config {
 
 fn main() {
     let mut config = Config::from_args();
-    let tilde = Regex::new("~").expect("wrong reex");
+    let tilde = Regex::new("~").expect("wrong regex");
     let home = env::var("HOME").expect("No home");
     config.data_dir = PathBuf::from(
         tilde
@@ -243,9 +245,13 @@ fn start_benchmark() {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
     if let Ok(mut queue) = PQ.write() {
-        for s in SCB.iter().take(config.target_to).skip(config.target_from) {
-            if s.0 % config.target_step == 0 {
-                queue.push((s.0, s.1.to_string()));
+        if let Ok(mut v) = RESVEC.write() {
+            v.push(None);
+            for s in SCB.iter().take(config.target_to).skip(config.target_from) {
+                if s.0 % config.target_step == 0 {
+                    queue.push((s.0, s.1.to_string()));
+                }
+                v.push(None);
             }
         }
         queue.reverse();
@@ -312,23 +318,40 @@ fn start_benchmark() {
 
 fn worker(config: Config) {
     loop {
-        match next_task(&config) {
-            Some(p) => {
-                check_result(&config);
-                execute(&config, p);
-            },
-            None => return,
+        if let Some((i, p)) = next_task(&config) {
+            // check_result(&config);
+            let res: SolveResultPromise = execute(&config, p);
+            if let Ok(mut v) = RESVEC.write() {
+                v[i] = res;
+                if let Ok(mut n) = NREPORT.write() {
+                    for j in n.0 + 1..v.len() {
+                        if let Some(r) = &v[j] {
+                            n.0 = j;
+                            if r.1.is_ok() {
+                                n.1 += 1;
+                            }
+                            println!("{}{},{},{}", CLEAR, n.1, j, &r.0);
+                        } else {
+                            print!("{}\x1B[032mRunning on {}th problem...\x1B[000m", CLEAR, j);
+                            stdout().flush().unwrap();
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            return;
         }
     }
 }
 
-fn next_task(config: &Config) -> Option<PathBuf> {
-    let p: Option<PathBuf> = if let Ok(mut q) = PQ.write() {
+fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
+    let p: Option<(usize, PathBuf)> = if let Ok(mut q) = PQ.write() {
         if let Some((index, top)) = q.pop() {
             if let Ok(mut processed) = PROCESSED.write() {
                 *processed = index;
             }
-            Some(config.data_dir.join(top))
+            Some((index, config.data_dir.join(top)))
         } else {
             None
         }
@@ -387,27 +410,21 @@ fn check_result(config: &Config) {
     stdout().flush().unwrap();
 }
 
-fn execute(config: &Config, cnf: PathBuf) {
-    let f = PathBuf::from(cnf);
-    if !f.is_file() {
-        return;
-    }
-    let target: String = f.file_name().unwrap().to_str().unwrap().to_string();
-    println!("\x1B[032m{}\x1B[000m", target);
+fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
+    assert!(
+        cnf.is_file(),
+        format!("{} does not exist.", cnf.to_string_lossy())
+    );
+    let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
+    // println!("\x1B[032m{}\x1B[000m", target);
     let mut command: Command = solver_command(config);
     for opt in config.solver_options.split_whitespace() {
         command.arg(&opt[opt.starts_with('\\') as usize..]);
     }
-    let result = command.arg(f.as_os_str()).output();
-    match &result {
-        Err(_) => println!("Something happened to {}.", &target),
-        Ok(r)
-            if String::from_utf8(r.stderr.clone())
-                .unwrap()
-                .contains("thread 'main' panicked") =>
-            panic!("**Panic at {}.**", &target),
-        _ => (),
-    }
+    Some((
+        target,
+        command.arg(cnf.as_os_str()).to_result(&config.solver),
+    ))
 }
 
 fn solver_command(config: &Config) -> Command {
@@ -533,4 +550,57 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         Command::new(&config.sync_cmd).output()?;
     }
     Ok((nsat, nunsat))
+}
+
+trait SolverHandling {
+    fn set_solver(&mut self, solver: &str) -> &mut Self;
+    fn to_result(&mut self, solver: &str) -> Result<f64, SolverException>;
+}
+
+impl SolverHandling for Command {
+    fn set_solver(&mut self, solver: &str) -> &mut Command {
+        lazy_static! {
+            static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
+            // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
+            // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
+            // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
+            static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
+        }
+        if SPLR.is_match(solver) {
+            self.args(&[solver, "-r", "-"])
+        } else if GLUCOSE.is_match(solver) {
+            self.args(&[solver, "-verb=0"])
+        } else {
+            self.arg(solver)
+        }
+    }
+    fn to_result(&mut self, solver: &str) -> Result<f64, SolverException> {
+        lazy_static! {
+            static ref MINISAT_LIKE: Regex =
+                Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
+        }
+        let result = self.output();
+        match &result {
+            Ok(r)
+                if String::from_utf8(r.stderr.clone())
+                    .unwrap()
+                    .contains("thread 'main' panicked") =>
+            {
+                Err(SolverException::Abort)
+            }
+            Ok(r)
+                if String::from_utf8(r.stdout.clone())
+                    .unwrap()
+                    .contains("TimeOut") =>
+            {
+                Err(SolverException::TimeOut)
+            }
+            Ok(ref done) => match done.status.code() {
+                Some(0) => Ok(0.0),
+                Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
+                _ => return Err(SolverException::Abort),
+            },
+            Err(_) => Err(SolverException::Abort),
+        }
+    }
 }
