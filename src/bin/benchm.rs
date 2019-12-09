@@ -319,25 +319,10 @@ fn start_benchmark() {
 fn worker(config: Config) {
     loop {
         if let Some((i, p)) = next_task(&config) {
-            // check_result(&config);
+            check_result(&config);
             let res: SolveResultPromise = execute(&config, p);
             if let Ok(mut v) = RESVEC.write() {
                 v[i] = res;
-                if let Ok(mut n) = NREPORT.write() {
-                    for j in n.0 + 1..v.len() {
-                        if let Some(r) = &v[j] {
-                            n.0 = j;
-                            if r.1.is_ok() {
-                                n.1 += 1;
-                            }
-                            println!("{}{},{},{}", CLEAR, n.1, j, &r.0);
-                        } else {
-                            print!("{}\x1B[032mRunning on {}th problem...\x1B[000m", CLEAR, j);
-                            stdout().flush().unwrap();
-                            break;
-                        }
-                    }
-                }
             }
         } else {
             return;
@@ -363,51 +348,67 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
 
 fn check_result(config: &Config) {
     let mut new_solution = false;
-    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-    if pro % config.num_jobs == 0 {
-        let (s, u) = report(&config).unwrap_or((0, 0));
-        if let Ok(mut answered) = ANSWERED.write() {
-            let sum = s + u;
-            if *answered < sum {
-                new_solution = true;
-                *answered = sum;
+    let mut new_record = false;
+    if let Ok(mut n) = NREPORT.write() {
+        if let Ok(v) = RESVEC.read() {
+            for j in n.0 + 1..v.len() {
+                if let Some(r) = &v[j] {
+                    n.0 = j;
+                    if r.1.is_ok() {
+                        n.1 += 1;
+                        new_solution = true;
+                        if j % config.num_jobs == 0 {
+                            let (s, u) = report(&config).unwrap_or((0, 0));
+                            if let Ok(mut answered) = ANSWERED.write() {
+                                let sum = s + u;
+                                if *answered < sum {
+                                    new_solution = true;
+                                    *answered = sum;
+                                }
+                            }
+                        }
+                        new_record = config.timeout == 1000
+                            && 4 <= config.num_jobs
+                            && ((n.0 == 20 && 3 < n.1)
+                                || (n.0 == 40 && 4 < n.1)
+                                || (n.0 == 60 && 20 < n.1)
+                                || (n.0 == 80 && 26 < n.1)
+                                || (n.0 == 100 && 44 < n.1)
+                                || (n.0 == 120 && 54 < n.1)
+                                || (n.0 == 140 && 56 < n.1)
+                                || (n.0 == 160 && 59 < n.1)
+                                || (n.0 == 180 && 66 < n.1)
+                                || (n.0 == 200 && 73 < n.1)
+                                || (n.0 == 220 && 81 < n.1)
+                                || (n.0 == 240 && 92 < n.1)
+                                || (n.0 == 260 && 99 < n.1)
+                                || (n.0 == 280 && 104 < n.1)
+                                || (n.0 == 300 && 113 < n.1)
+                                || (n.0 == 320 && 123 < n.1)
+                                || (n.0 == 340 && 135 < n.1)
+                                || (n.0 == 360 && 148 < n.1)
+                                || (n.0 == 380 && 154 < n.1)
+                                || (n.0 == 400 && 155 < n.1));
+                    }
+                    print!("{}", CLEAR);
+                    if new_record {
+                        config.post(&format!("*{:>3},{:>3}", j, n.1));
+                        print!("*");
+                    } else {
+                        if new_solution {
+                            config.post(&format!(" {:>3},{:>3}", j, n.1));
+                        }
+                        print!(" ");
+                    }
+                    println!("{:>3},{:>3},{}", j, n.1, &r.0);
+                } else {
+                    print!("{}\x1B[032mRunning on {}th problem {}...\x1B[000m", CLEAR, j, n.1);
+                    stdout().flush().unwrap();
+                    break;
+                }
             }
         }
     }
-    let ans = ANSWERED.read().and_then(|v| Ok(*v)).unwrap_or(0);
-    let new_record = config.timeout == 1000
-        && 4 <= config.num_jobs
-        && ((pro == 20 && 3 < ans)
-            || (pro == 40 && 4 < ans)
-            || (pro == 60 && 20 < ans)
-            || (pro == 80 && 26 < ans)
-            || (pro == 100 && 44 < ans)
-            || (pro == 120 && 54 < ans)
-            || (pro == 140 && 56 < ans)
-            || (pro == 160 && 59 < ans)
-            || (pro == 180 && 66 < ans)
-            || (pro == 200 && 73 < ans)
-            || (pro == 220 && 81 < ans)
-            || (pro == 240 && 92 < ans)
-            || (pro == 260 && 99 < ans)
-            || (pro == 280 && 104 < ans)
-            || (pro == 300 && 113 < ans)
-            || (pro == 320 && 123 < ans)
-            || (pro == 340 && 135 < ans)
-            || (pro == 360 && 148 < ans)
-            || (pro == 380 && 154 < ans)
-            || (pro == 400 && 155 < ans));
-    if new_record {
-        config.post(&format!("*{:>3},{:>3}", pro, ans));
-        print!("*");
-    } else {
-        if new_solution {
-            config.post(&format!(" {:>3},{:>3}", pro, ans));
-        }
-        print!(" ");
-    }
-    print!(" {:>3},{:>3},", pro, ans);
-    stdout().flush().unwrap();
 }
 
 fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
