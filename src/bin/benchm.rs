@@ -303,7 +303,7 @@ fn start_benchmark() {
             .output()
             .expect("fail to run sync command");
     }
-    println!("Benchmark {} finishes.", config.run_id);
+    println!("Benchmark {} finished.", config.run_id);
     let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
     check_result(&config);
     config.post(&format!(
@@ -349,6 +349,7 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
 fn check_result(config: &Config) {
     let mut new_solution = false;
     let mut new_record = false;
+    let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
     if let Ok(mut n) = NREPORT.write() {
         if let Ok(v) = RESVEC.read() {
             for j in n.0 + 1..v.len() {
@@ -402,11 +403,20 @@ fn check_result(config: &Config) {
                     }
                     println!("{:>3},{:>3},{}", j, n.1, &r.0);
                 } else {
-                    print!("{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
-                           CLEAR,
-                           j,
-                           SCB[j-1].1
-                    );
+                    if j == processed {
+                        print!("{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
+                               CLEAR,
+                               j,
+                               SCB[j-1].1
+                        );
+                    } else {
+                        print!("{}\x1B[032mRunning on the {}-{} th problem {}...\x1B[000m",
+                               CLEAR,
+                               j,
+                               processed,
+                               SCB[j-1].1
+                        );
+                    }
                     stdout().flush().unwrap();
                     break;
                 }
