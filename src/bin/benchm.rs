@@ -3,7 +3,7 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
-        bench18::SCB,
+        bench19::SCB,
         matrix,
         utils::{current_date_time, parse_result},
     },
