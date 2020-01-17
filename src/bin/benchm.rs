@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchbot 0.6.8";
+const VERSION: &str = "benchbot 0.7.1";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -60,10 +60,10 @@ pub struct Config {
     #[structopt(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "1000")]
+    #[structopt(long = "timeout", short = "T", default_value = "3000")]
     pub timeout: usize,
     /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "4")]
+    #[structopt(long = "jobs", short = "j", default_value = "3")]
     pub num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
@@ -196,6 +196,7 @@ fn start_benchmark() {
                         .expect("fail to compile");
                     config.solver = splr;
                     println!("\x1B[032mdone.\x1B[000m");
+                    break;
                 }
             }
         }
