@@ -69,7 +69,7 @@ pub struct Config {
     #[structopt(long = "options", default_value = "")]
     pub solver_options: String,
     /// data directory
-    #[structopt(long = "data", default_value = "~/Library/SAT/SC18main")]
+    #[structopt(long = "data", default_value = "~/Library/SAT/SR19main")]
     pub data_dir: PathBuf,
     /// solver repository
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
