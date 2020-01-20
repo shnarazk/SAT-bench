@@ -1,3 +1,5 @@
+pub const BENCHMARK: &str = "SC19main";
+
 pub const SCB: [(usize, &str); 400] = [
     (1,  "001-80-12-sc2014.cnf"),
     (2,  "002-80-8-sc2014.cnf"),

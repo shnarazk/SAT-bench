@@ -3,7 +3,7 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
-        bench19::SCB,
+        bench19::{BENCHMARK, SCB},
         matrix,
         utils::{current_date_time, parse_result},
     },
@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchbot 0.7.1";
+const VERSION: &str = "benchbot 0.7.2";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -539,9 +539,10 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                 nsolved += 1;
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"SC18main/{}\",{:>3},{:>8.2},{},{}",
+                    "\"{}\",{},\"{}/{}\",{:>3},{:>8.2},{},{}",
                     config.dump_dir.to_string_lossy(),
                     i,
+                    BENCHMARK,
                     key,
                     nsolved,
                     v.0,
@@ -551,9 +552,10 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             } else {
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"SC18main/{}\",{:>3},{:>5},,",
+                    "\"{}\",{},\"{}/{}\",{:>3},{:>5},,",
                     config.dump_dir.to_string_lossy(),
                     i,
+                    BENCHMARK,
                     key,
                     nsolved,
                     config.timeout,
