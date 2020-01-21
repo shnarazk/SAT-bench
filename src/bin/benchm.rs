@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchbot 0.7.2";
+const VERSION: &str = "benchbot 0.7.3";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -60,7 +60,7 @@ pub struct Config {
     #[structopt(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "3000")]
+    #[structopt(long = "timeout", short = "T", default_value = "1800")]
     pub timeout: usize,
     /// number of workers
     #[structopt(long = "jobs", short = "j", default_value = "3")]
