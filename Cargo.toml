@@ -1,6 +1,6 @@
 [package]
 name = "sat-bench"
-version = "0.7.3"
+version = "0.7.4"
 authors = ["Shuji Narazaki <shujinarazaki@protonmail.com>"]
 edition = "2018"
 

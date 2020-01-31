@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchbot 0.7.3";
+const VERSION: &str = "benchbot 0.7.4";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -531,7 +531,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "solver, num, target, nsolved, time, strategy, satisfiability"
+            "solver,num,target,nsolved,time,strategy,satisfiability"
         )?;
         let mut nsolved = 0;
         for (i, key) in SCB.iter() {
