@@ -62,10 +62,10 @@ pub struct Config {
     #[structopt(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "1800")]
+    #[structopt(long = "timeout", short = "T", default_value = "600")]
     pub timeout: usize,
     /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "3")]
+    #[structopt(long = "jobs", short = "j", default_value = "4")]
     pub num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
