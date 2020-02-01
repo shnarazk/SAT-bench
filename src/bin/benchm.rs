@@ -41,6 +41,8 @@ lazy_static! {
     pub static ref RUN_ID: RwLock<String> = RwLock::new(String::new());
     pub static ref RUN_NAME: RwLock<String> = RwLock::new(String::new());
     pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
+    /// - the number of try: usize
+    /// - the number of solved: usize
     pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((0, 0));
 }
 
@@ -353,9 +355,9 @@ fn check_result(config: &Config) {
     let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
     if let Ok(mut n) = NREPORT.write() {
         if let Ok(v) = RESVEC.read() {
-            for j in n.0 + 1..v.len() {
+            for j in n.0 + 1..v.len() { // skip all the processed
                 if let Some(r) = &v[j] {
-                    n.0 = j;
+                    n.0 = j + 1; // j is an index; n.0 should hold: | 0..j | = j + 1.
                     if r.1.is_ok() {
                         n.1 += 1;
                         new_solution = true;
