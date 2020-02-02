@@ -541,7 +541,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                 nsolved += 1;
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}/{}\",{:>3},{:>8.2},{},{}",
+                    "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
                     config.dump_dir.to_string_lossy(),
                     i,
                     BENCHMARK,
@@ -554,7 +554,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
             } else {
                 writeln!(
                     outbuf,
-                    "\"{}\",{},\"{}/{}\",{:>3},{:>5},,",
+                    "\"{}\",{},\"{}/{}\",{},{},,",
                     config.dump_dir.to_string_lossy(),
                     i,
                     BENCHMARK,
