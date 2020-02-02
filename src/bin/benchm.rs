@@ -40,10 +40,10 @@ lazy_static! {
     pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
     pub static ref RUN_ID: RwLock<String> = RwLock::new(String::new());
     pub static ref RUN_NAME: RwLock<String> = RwLock::new(String::new());
-    pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
+    pub static ref RESULTS: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
     /// - the number of try: usize
     /// - the number of solved: usize
-    pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((0, 0));
+    pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((1, 0));
 }
 
 #[derive(Clone, Debug, StructOpt)]
@@ -248,7 +248,7 @@ fn start_benchmark() {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
     if let Ok(mut queue) = PQ.write() {
-        if let Ok(mut v) = RESVEC.write() {
+        if let Ok(mut v) = RESULTS.write() {
             v.push(None);
             for s in SCB.iter().take(config.target_to).skip(config.target_from) {
                 if s.0 % config.target_step == 0 {
@@ -324,7 +324,7 @@ fn worker(config: Config) {
         if let Some((i, p)) = next_task(&config) {
             check_result(&config);
             let res: SolveResultPromise = execute(&config, p);
-            if let Ok(mut v) = RESVEC.write() {
+            if let Ok(mut v) = RESULTS.write() {
                 v[i] = res;
             }
         } else {
@@ -352,12 +352,13 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
 fn check_result(config: &Config) {
     let mut new_solution = false;
     let mut new_record = false;
-    let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
     if let Ok(mut n) = NREPORT.write() {
-        // - n.0 -- target id to be checked firstly
+        // - n.0 -- target id to be checked firstly.
         // - n.1 -- the number of process teminated normally
-        if let Ok(v) = RESVEC.read() {
+        let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
+        if let Ok(v) = RESULTS.read() {
             for j in n.0..v.len() { // skip all the processed
+                // I have the resposibility to print the j-th result.
                 if let Some(r) = &v[j] {
                     n.0 = j + 1;
                     if r.1.is_ok() {
@@ -409,7 +410,8 @@ fn check_result(config: &Config) {
                     }
                     println!("{:>3},{:>3},{}", j + 1, n.1, &r.0);
                 } else {
-                    if j == processed {
+                    assert!(processed <= j);
+                    if processed == j {
                         print!(
                             "{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
                             CLEAR,
