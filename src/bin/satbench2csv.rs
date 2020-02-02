@@ -1,8 +1,14 @@
-use sat_bench::bench18::SCB;
-use sat_bench::utils::parse_result;
-use std::collections::HashMap;
-use std::fs;
-use structopt::StructOpt;
+use {
+    sat_bench::{
+        bench19::SCB,
+        utils::parse_result,
+    },
+    std::{
+        collections::HashMap,
+        fs,
+    },
+    structopt::StructOpt,
+};
 
 /// Configuration built from command line options
 #[derive(Debug, StructOpt)]
@@ -18,10 +24,10 @@ pub struct Config {
     #[structopt(long = "solver", default_value = "")]
     pub solver: String,
     /// value for instances timed out
-    #[structopt(long = "timeout", default_value = "3000")]
+    #[structopt(long = "timeout", default_value = "600")]
     pub timeout: usize,
     /// Name for the target set, ending with a delimitor
-    #[structopt(long = "target", default_value = "SC18main/")]
+    #[structopt(long = "target", default_value = "SR19main/")]
     pub target: String,
 }
 
@@ -72,18 +78,18 @@ fn main() -> std::io::Result<()> {
         nunsat,
         nsat + nunsat
     );
-    println!("solver, num, target, nsolved, time, strategy, satisfiability");
+    println!("solver,num,target,nsolved,time,strategy,satisfiability");
     let mut nsolved = 0;
     for (i, key) in SCB.iter() {
         if let Some(v) = hash.get(key) {
             nsolved += 1;
             println!(
-                "\"{}\",{},\"{}{}\",{:>3},{:>8.2},{},{}",
+                "\"{}\",{},\"{}{}\",{},{:.2},{},{}",
                 tag, i, config.target, key, nsolved, v.0, v.1, v.2,
             );
         } else {
             println!(
-                "\"{}\",{},\"{}{}\",{:3},{:>5},{},",
+                "\"{}\",{},\"{}{}\",{},{},{},",
                 tag, i, config.target, key, nsolved, config.timeout, "",
             );
         }
