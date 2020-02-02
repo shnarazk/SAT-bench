@@ -399,30 +399,30 @@ fn check_result(config: &Config) {
                     }
                     print!("{}", CLEAR);
                     if new_record {
-                        config.post(&format!("*{:>3},{:>3}", j, n.1));
+                        config.post(&format!("*{:>3},{:>3}", j + 1, n.1));
                         print!("*");
                     } else {
                         if new_solution {
-                            config.post(&format!(" {:>3},{:>3}", j, n.1));
+                            config.post(&format!(" {:>3},{:>3}", j + 1, n.1));
                         }
                         print!(" ");
                     }
-                    println!("{:>3},{:>3},{}", j, n.1, &r.0);
+                    println!("{:>3},{:>3},{}", j + 1, n.1, &r.0);
                 } else {
                     if j == processed {
                         print!(
                             "{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
                             CLEAR,
-                            j,
-                            SCB[j - 1].1
+                            j + 1,
+                            SCB[j].1
                         );
                     } else {
                         print!(
                             "{}\x1B[032mRunning on the {}-{} th problem {}...\x1B[000m",
                             CLEAR,
-                            j,
+                            j + 1,
                             processed,
-                            SCB[j - 1].1
+                            SCB[j].1
                         );
                     }
                     stdout().flush().unwrap();
