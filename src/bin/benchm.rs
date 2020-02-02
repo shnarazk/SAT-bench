@@ -88,6 +88,9 @@ pub struct Config {
     /// Don't assign
     #[structopt(long = "run", default_value = "")]
     pub run_id: String,
+    #[structopt(skip)]
+    /// host
+    pub host: String,
     /// Don't assign
     #[structopt(skip)]
     pub run_name: String,
@@ -120,6 +123,7 @@ impl Default for Config {
             sync_cmd: String::new(),
             dump_dir: PathBuf::new(),
             run_id: String::new(),
+            host: String::new(),
             run_name: String::new(),
             matrix_id: String::new(),
             matrix_password: String::new(),
@@ -203,7 +207,7 @@ fn start_benchmark() {
             }
         }
     }
-    let host = {
+    config.host = {
         let h = Command::new("hostname")
             .arg("-s")
             .output()
@@ -221,7 +225,7 @@ fn start_benchmark() {
         let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
         let timestamp = current_date_time().format("%F").to_string();
         config.run_name = format!("{}-{}", config.solver, commit_id);
-        config.run_id = format!("{}-{}-{}", config.run_name, timestamp, host);
+        config.run_id = format!("{}-{}", config.run_name, timestamp);
     }
     let diff = {
         let diff8 = Command::new("git")
@@ -519,8 +523,9 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         }
         writeln!(
             outbuf,
-            "#{} by {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            "#{} on {} by {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
             config.run_id,
+            config.host,
             VERSION,
             config.target_from,
             config.target_to,
