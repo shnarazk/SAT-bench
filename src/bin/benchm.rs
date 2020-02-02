@@ -354,10 +354,12 @@ fn check_result(config: &Config) {
     let mut new_record = false;
     let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
     if let Ok(mut n) = NREPORT.write() {
+        // - n.0 -- target id to be checked firstly
+        // - n.1 -- the number of process teminated normally
         if let Ok(v) = RESVEC.read() {
-            for j in n.0 + 1..v.len() { // skip all the processed
+            for j in n.0..v.len() { // skip all the processed
                 if let Some(r) = &v[j] {
-                    n.0 = j + 1; // j is an index; n.0 should hold: | 0..j | = j + 1.
+                    n.0 = j + 1;
                     if r.1.is_ok() {
                         n.1 += 1;
                         new_solution = true;
@@ -371,6 +373,7 @@ fn check_result(config: &Config) {
                                 }
                             }
                         }
+                        // TODO: this is for SR2018
                         new_record = config.timeout == 1000
                             && 4 <= config.num_jobs
                             && ((n.0 == 20 && 3 < n.1)
