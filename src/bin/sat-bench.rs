@@ -5,19 +5,26 @@
 /// - sat-bench -3 -U 225 -L 200 mios           # 3-SAT from 200 to 225 vars
 /// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
-use lazy_static::lazy_static;
-use regex::Regex;
-use sat_bench::utils::{current_date_time, system_time_to_date_time};
-use std::collections::VecDeque;
-use std::env;
-use std::fs;
-use std::io::{stdout, Write};
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::RwLock;
-use std::thread;
-use std::time::SystemTime;
-use structopt::StructOpt;
+use {
+    lazy_static::lazy_static,
+    regex::Regex,
+    sat_bench::utils::{
+        current_date_time,
+        system_time_to_date_time
+    },
+    std::{
+        collections::VecDeque,
+        env,
+        fs,
+        io::{stdout, Write},
+        path::PathBuf,
+        process::Command,
+        sync::RwLock,
+        thread,
+        time::SystemTime,
+    },
+    structopt::StructOpt,
+};
 
 const VERSION: &str = "sat-bench 0.6.1";
 
