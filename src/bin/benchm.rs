@@ -43,7 +43,7 @@ lazy_static! {
     pub static ref RESULTS: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
     /// - the number of try: usize
     /// - the number of solved: usize
-    pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((1, 0));
+    pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((0, 0));
 }
 
 #[derive(Clone, Debug, StructOpt)]
@@ -253,7 +253,6 @@ fn start_benchmark() {
     }
     if let Ok(mut queue) = PQ.write() {
         if let Ok(mut v) = RESULTS.write() {
-            v.push(None);
             for s in SCB.iter().take(config.target_to).skip(config.target_from) {
                 if s.0 % config.target_step == 0 {
                     queue.push((s.0, s.1.to_string()));
@@ -329,7 +328,7 @@ fn worker(config: Config) {
             check_result(&config);
             let res: SolveResultPromise = execute(&config, p);
             if let Ok(mut v) = RESULTS.write() {
-                v[i] = res;
+                v[i - 1] = res; // RESULTS starts from 0, while tasks start from 1.
             }
         } else {
             return;
@@ -359,10 +358,13 @@ fn check_result(config: &Config) {
     if let Ok(mut n) = NREPORT.write() {
         // - n.0 -- target id to be checked firstly.
         // - n.1 -- the number of process teminated normally
+
+        // processed -- the number of terminated or running tasks
         let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
         if let Ok(v) = RESULTS.read() {
             for j in n.0..v.len() { // skip all the processed
-                // I have the resposibility to print the j-th result.
+                // I have the resposibility to print the (j-1) th task's result.
+                let task_id = j + 1;
                 if let Some(r) = &v[j] {
                     n.0 = j + 1;
                     if r.1.is_ok() {
@@ -403,32 +405,35 @@ fn check_result(config: &Config) {
                                 || (n.0 == 400 && 155 < n.1));
                     }
                     print!("{}", CLEAR);
+                    // Note again: j is an index for RESULTS,
+                    // and it corresponds to (j + 1) th task.
                     if new_record {
-                        config.post(&format!("*{:>3},{:>3}", j + 1, n.1));
+                        config.post(&format!("*{:>3},{:>3}", task_id, n.1));
                         print!("*");
                     } else {
                         if new_solution {
-                            config.post(&format!(" {:>3},{:>3}", j + 1, n.1));
+                            config.post(&format!(" {:>3},{:>3}", task_id, n.1));
                         }
                         print!(" ");
                     }
-                    println!("{:>3},{:>3},{}", j + 1, n.1, &r.0);
+                    println!("{:>3},{:>3},{}", task_id, n.1, &r.0);
                 } else {
-                    assert!(processed <= j);
-                    if processed == j {
+                    // re display the current running task id(s)
+                    debug_assert!(task_id <= processed);
+                    if task_id == processed {
                         print!(
                             "{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
                             CLEAR,
-                            j + 1,
-                            SCB[j].1
+                            task_id,
+                            SCB[task_id].1
                         );
                     } else {
                         print!(
                             "{}\x1B[032mRunning on the {}-{} th problem {}...\x1B[000m",
                             CLEAR,
-                            j + 1,
+                            task_id,
                             processed,
-                            SCB[j].1
+                            SCB[task_id].1
                         );
                     }
                     stdout().flush().unwrap();
