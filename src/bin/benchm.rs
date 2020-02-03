@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchbot 0.7.5";
+const VERSION: &str = "benchbot 0.7.6";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -35,15 +35,13 @@ type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 lazy_static! {
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
     pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
+    /// problem queue
     pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
-    pub static ref PROCESSED: RwLock<usize> = RwLock::new(0);
-    pub static ref ANSWERED: RwLock<usize> = RwLock::new(0);
-    pub static ref RUN_ID: RwLock<String> = RwLock::new(String::new());
-    pub static ref RUN_NAME: RwLock<String> = RwLock::new(String::new());
-    pub static ref RESULTS: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
-    /// - the number of try: usize
+    /// - the number of tried: usize
+    /// - the number of reported: usize
     /// - the number of solved: usize
-    pub static ref NREPORT: RwLock<(usize, usize)> = RwLock::new((0, 0));
+    pub static ref PROCESSED: RwLock<(usize, usize, usize)> = RwLock::new((0, 0, 0));
+    pub static ref RESULTS: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
 }
 
 #[derive(Clone, Debug, StructOpt)]
@@ -134,14 +132,12 @@ impl Default for Config {
 }
 
 impl Config {
-    fn post(&self, msg: &str) {
-        if let Ok(id) = RUN_NAME.read() {
-            matrix::post(
-                &self.matrix_room,
-                &self.matrix_token,
-                &format!("{}: {}", id, msg),
-            );
-        }
+    fn post<S: AsRef<str>>(&self, msg: S) {
+        matrix::post(
+            &self.matrix_room,
+            &self.matrix_token,
+            &format!("{}: {}", self.run_name, msg.as_ref()),
+        );
     }
 }
 
@@ -176,7 +172,7 @@ fn main() {
     }
     config.post("A test post from benchm.");
     if let Ok(mut conf) = CONFIG.write() {
-        *conf = config.clone();
+        *conf = config;
     }
     start_benchmark();
 }
@@ -239,12 +235,6 @@ fn start_benchmark() {
     if let Ok(mut d) = DIFF.write() {
         *d = diff.clone();
     }
-    if let Ok(mut id) = RUN_ID.write() {
-        *id = config.run_id.clone();
-    }
-    if let Ok(mut name) = RUN_NAME.write() {
-        *name = config.run_name.clone();
-    }
     config.dump_dir = PathBuf::from(&config.run_id);
     if config.dump_dir.exists() {
         println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
@@ -263,18 +253,16 @@ fn start_benchmark() {
         queue.reverse();
     }
     if let Ok(mut processed) = PROCESSED.write() {
-        *processed = config.target_from;
-    }
-    if let Ok(mut answered) = ANSWERED.write() {
+        *processed = (config.target_from, 0, 0);
         let (s, u) = report(&config).unwrap_or((0, 0));
-        *answered = s + u;
+        processed.2 = s + u;
     }
-    config.post(&format!(
+    config.post(format!(
         "A new {} parallel benchmark starts.",
         config.num_jobs
     ));
     if !diff.is_empty() {
-        config.post(&format!(
+        config.post(format!(
             "**WARNING: unregistered modifications**\n```diff\n{}```\n",
             diff
         ));
@@ -291,9 +279,9 @@ fn start_benchmark() {
     .expect("fail to exit crossbeam::scope");
 
     let (s, u) = report(&config).unwrap_or((0, 0));
-    if let Ok(mut answered) = ANSWERED.write() {
+    if let Ok(mut p) = PROCESSED.write() {
         let sum = s + u;
-        *answered = sum;
+        p.2 = sum;
     }
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
@@ -310,15 +298,14 @@ fn start_benchmark() {
             .expect("fail to run sync command");
     }
     println!("Benchmark {} finished.", config.run_id);
-    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or(0);
+    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
     check_result(&config);
-    config.post(&format!(
+    config.post(format!(
         "Benchmark ended, {} problems, {} solutions",
-        pro,
-        s + u
+        pro.0, pro.2
     ));
     if let Ok(mut conf) = CONFIG.write() {
-        *conf = config.clone();
+        *conf = config;
     }
 }
 
@@ -340,7 +327,7 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
     let p: Option<(usize, PathBuf)> = if let Ok(mut q) = PQ.write() {
         if let Some((index, top)) = q.pop() {
             if let Ok(mut processed) = PROCESSED.write() {
-                *processed = index;
+                processed.0 = index;
             }
             Some((index, config.data_dir.join(top)))
         } else {
@@ -355,85 +342,64 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
 fn check_result(config: &Config) {
     let mut new_solution = false;
     let mut new_record = false;
-    if let Ok(mut n) = NREPORT.write() {
+    if let Ok(mut n) = PROCESSED.write() {
         // - n.0 -- target id to be checked firstly.
-        // - n.1 -- the number of process teminated normally
-
+        // - n.1 -- the number of reported.
+        // - n.2 -- the number of solved (process teminated normally).
         // processed -- the number of terminated or running tasks
-        let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
-        if let Ok(v) = RESULTS.read() {
-            for j in n.0..v.len() { // skip all the processed
+        if let Ok(v) = RESULTS.write() {
+            for j in n.1..v.len() {
+                // skip all the processed
                 // I have the resposibility to print the (j-1) th task's result.
                 let task_id = j + 1;
                 if let Some(r) = &v[j] {
-                    n.0 = j + 1;
+                    n.1 = j + 1;
                     if r.1.is_ok() {
-                        n.1 += 1;
+                        n.2 += 1;
                         new_solution = true;
                         if j % config.num_jobs == 0 {
                             let (s, u) = report(&config).unwrap_or((0, 0));
-                            if let Ok(mut answered) = ANSWERED.write() {
-                                let sum = s + u;
-                                if *answered < sum {
-                                    new_solution = true;
-                                    *answered = sum;
-                                }
-                            }
+                            assert_eq!(s + u, n.2);
                         }
                         // TODO: this is for SR2018
                         new_record = config.timeout == 1000
                             && 4 <= config.num_jobs
-                            && ((n.0 == 20 && 3 < n.1)
-                                || (n.0 == 40 && 4 < n.1)
-                                || (n.0 == 60 && 20 < n.1)
-                                || (n.0 == 80 && 26 < n.1)
-                                || (n.0 == 100 && 44 < n.1)
-                                || (n.0 == 120 && 54 < n.1)
-                                || (n.0 == 140 && 56 < n.1)
-                                || (n.0 == 160 && 59 < n.1)
-                                || (n.0 == 180 && 66 < n.1)
-                                || (n.0 == 200 && 73 < n.1)
-                                || (n.0 == 220 && 81 < n.1)
-                                || (n.0 == 240 && 92 < n.1)
-                                || (n.0 == 260 && 99 < n.1)
-                                || (n.0 == 280 && 104 < n.1)
-                                || (n.0 == 300 && 113 < n.1)
-                                || (n.0 == 320 && 123 < n.1)
-                                || (n.0 == 340 && 135 < n.1)
-                                || (n.0 == 360 && 148 < n.1)
-                                || (n.0 == 380 && 154 < n.1)
-                                || (n.0 == 400 && 155 < n.1));
+                            && ((n.1 == 40 && 3 < n.2)
+                                || (n.1 == 80 && 26 < n.2)
+                                || (n.1 == 120 && 54 < n.2)
+                                || (n.1 == 160 && 59 < n.2)
+                                || (n.1 == 200 && 73 < n.2)
+                                || (n.1 == 240 && 92 < n.2)
+                                || (n.1 == 280 && 104 < n.2)
+                                || (n.1 == 320 && 123 < n.2)
+                                || (n.1 == 360 && 148 < n.2)
+                                || (n.1 == 400 && 155 < n.2));
                     }
                     print!("{}", CLEAR);
                     // Note again: j is an index for RESULTS,
                     // and it corresponds to (j + 1) th task.
                     if new_record {
-                        config.post(&format!("*{:>3},{:>3}", task_id, n.1));
+                        config.post(format!("*{:>3},{:>3},{:?}", task_id, n.2, r));
                         print!("*");
                     } else {
                         if new_solution {
-                            config.post(&format!(" {:>3},{:>3}", task_id, n.1));
+                            config.post(format!(" {:>3},{:>3},{:?}", task_id, n.2, r));
                         }
                         print!(" ");
                     }
-                    println!("{:>3},{:>3},{}", task_id, n.1, &r.0);
+                    println!("{:>3},{:>3},{}", task_id, n.2, &r.0);
                 } else {
                     // re display the current running task id(s)
-                    debug_assert!(task_id <= processed);
-                    if task_id == processed {
+                    debug_assert!(task_id <= n.0);
+                    if task_id == n.0 {
                         print!(
                             "{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
-                            CLEAR,
-                            task_id,
-                            SCB[task_id].1
+                            CLEAR, task_id, SCB[task_id].1
                         );
                     } else {
                         print!(
                             "{}\x1B[032mRunning on the {}-{} th problem {}...\x1B[000m",
-                            CLEAR,
-                            task_id,
-                            processed,
-                            SCB[task_id].1
+                            CLEAR, task_id, n.0, SCB[task_id].1
                         );
                     }
                     stdout().flush().unwrap();
@@ -499,7 +465,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         let mut outbuf = BufWriter::new(outfile);
         let mut hash: HashMap<&str, (f64, String, bool)> = HashMap::new();
         let timeout = config.timeout as f64;
-        let processed = if let Ok(p) = PROCESSED.read() { *p } else { 0 };
+        let processed = if let Ok(p) = PROCESSED.read() { p.0 } else { 0 };
         for e in config.dump_dir.read_dir()? {
             let f = e?;
             if !f.file_type()?.is_file() {
@@ -635,7 +601,7 @@ impl SolverHandling for Command {
             Ok(ref done) => match done.status.code() {
                 Some(0) => Ok(0.0),
                 Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
-                _ => return Err(SolverException::Abort),
+                _ => Err(SolverException::Abort),
             },
             Err(_) => Err(SolverException::Abort),
         }
