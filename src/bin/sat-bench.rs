@@ -8,14 +8,10 @@
 use {
     lazy_static::lazy_static,
     regex::Regex,
-    sat_bench::utils::{
-        current_date_time,
-        system_time_to_date_time
-    },
+    sat_bench::utils::{current_date_time, system_time_to_date_time},
     std::{
         collections::VecDeque,
-        env,
-        fs,
+        env, fs,
         io::{stdout, Write},
         path::PathBuf,
         process::Command,

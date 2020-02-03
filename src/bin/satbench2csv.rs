@@ -1,12 +1,6 @@
 use {
-    sat_bench::{
-        bench19::SCB,
-        utils::parse_result,
-    },
-    std::{
-        collections::HashMap,
-        fs,
-    },
+    sat_bench::{bench19::SCB, utils::parse_result},
+    std::{collections::HashMap, fs},
     structopt::StructOpt,
 };
 
