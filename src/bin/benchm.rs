@@ -223,9 +223,9 @@ fn start_benchmark() {
             .expect("fail to git")
             .stdout;
         let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
-        let timestamp = current_date_time().format("%F").to_string();
+        let timestamp = current_date_time().format("%Y%m%d").to_string();
         config.run_name = format!("{}-{}", config.solver, commit_id);
-        config.run_id = format!("{}-{}", config.run_name, timestamp);
+        config.run_id = format!("{}-{}-{}", config.solver, timestamp, commit_id);
     }
     let diff = {
         let diff8 = Command::new("git")
