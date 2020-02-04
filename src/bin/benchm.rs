@@ -33,7 +33,6 @@ pub enum SolverException {
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
 lazy_static! {
-    pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
     pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
     /// problem queue
     pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
@@ -112,8 +111,8 @@ impl Default for Config {
             target_from: 0,
             target_to: 400,
             target_step: 1,
-            timeout: 5000,
-            num_jobs: 3,
+            timeout: 600,
+            num_jobs: 4,
             solver_options: String::new(),
             data_dir: PathBuf::new(),
             repo_dir: PathBuf::new(),
@@ -171,18 +170,6 @@ fn main() {
             config.matrix_id, config.matrix_token,
         );
     }
-    if let Ok(mut conf) = CONFIG.write() {
-        *conf = config;
-    }
-    start_benchmark();
-}
-
-fn start_benchmark() {
-    let mut config = if let Ok(conf) = CONFIG.read() {
-        conf.clone()
-    } else {
-        Config::from_args()
-    };
     if config.solver.is_empty() {
         config.solver = "splr".to_string();
         for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
@@ -223,6 +210,16 @@ fn start_benchmark() {
         config.run_name = format!("{}-{}", config.solver, commit_id);
         config.run_id = format!("{}-{}-{}", config.solver, timestamp, commit_id);
     }
+    config.dump_dir = PathBuf::from(&config.run_id);
+    /*
+    if let Ok(mut conf) = CONFIG.write() {
+        *conf = config;
+    }
+    */
+    start_benchmark(config);
+}
+
+fn start_benchmark(config: Config) {
     let diff = {
         let diff8 = Command::new("git")
             .current_dir(&config.repo_dir)
@@ -235,7 +232,6 @@ fn start_benchmark() {
     if let Ok(mut d) = DIFF.write() {
         *d = diff.clone();
     }
-    config.dump_dir = PathBuf::from(&config.run_id);
     if config.dump_dir.exists() {
         println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
     } else {
@@ -304,18 +300,15 @@ fn start_benchmark() {
         "Benchmark ended, {} problems, {} solutions",
         pro.0, pro.2
     ));
-    if let Ok(mut conf) = CONFIG.write() {
-        *conf = config;
-    }
 }
 
 fn worker(config: Config) {
     while let Some((i, p)) = next_task(&config) {
-            check_result(&config);
-            let res: SolveResultPromise = execute(&config, p);
-            if let Ok(mut v) = RESULTS.write() {
-                v[i - 1] = res; // RESULTS starts from 0, while tasks start from 1.
-            }
+        check_result(&config);
+        let res: SolveResultPromise = execute(&config, p);
+        if let Ok(mut v) = RESULTS.write() {
+            v[i - 1] = res; // RESULTS starts from 0, while tasks start from 1.
+        }
     }
 }
 
@@ -353,9 +346,6 @@ fn check_result(config: &Config) {
                     if r.1.is_ok() {
                         n.2 += 1;
                         new_solution = true;
-                        if j % config.num_jobs == 0 {
-                            report(&config, task_id).unwrap_or((0, 0));
-                        }
                         // TODO: this is for SR2018
                         new_record = config.timeout == 1000
                             && 4 <= config.num_jobs
@@ -383,18 +373,23 @@ fn check_result(config: &Config) {
                         print!(" ");
                     }
                     println!("{:>3},{:>3},{}", task_id, n.2, &r.0);
+                    if j % config.num_jobs == 0 {
+                        report(&config, task_id).unwrap_or((0, 0));
+                    }
                 } else {
                     // re display the current running task id(s)
                     debug_assert!(task_id <= n.0);
+                    let mut fname = SCB[task_id].1.to_string();
+                    fname.truncate(80);
                     if task_id == n.0 {
                         print!(
-                            "{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
-                            CLEAR, task_id, &SCB[task_id].1[..80]
+                            "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
+                            CLEAR, task_id, fname
                         );
                     } else {
                         print!(
-                            "{}\x1B[032mRunning on the {}-{} th problem {}...\x1B[000m",
-                            CLEAR, task_id, n.0, &SCB[task_id].1[..80]
+                            "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
+                            CLEAR, task_id, n.0, fname
                         );
                     }
                     stdout().flush().unwrap();
