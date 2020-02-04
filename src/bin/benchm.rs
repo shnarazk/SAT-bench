@@ -254,7 +254,7 @@ fn start_benchmark() {
     }
     if let Ok(mut processed) = PROCESSED.write() {
         *processed = (config.target_from, 0, 0);
-        let (s, u) = report(&config).unwrap_or((0, 0));
+        let (s, u) = report(&config, 0).unwrap_or((0, 0));
         processed.2 = s + u;
     }
     config.post(format!(
@@ -277,8 +277,8 @@ fn start_benchmark() {
         }
     })
     .expect("fail to exit crossbeam::scope");
-
-    let (s, u) = report(&config).unwrap_or((0, 0));
+    let processed = if let Ok(p) = PROCESSED.read() { p.0 } else { 0 };
+    let (s, u) = report(&config, processed).unwrap_or((0, 0));
     if let Ok(mut p) = PROCESSED.write() {
         let sum = s + u;
         p.2 = sum;
@@ -358,7 +358,7 @@ fn check_result(config: &Config) {
                         n.2 += 1;
                         new_solution = true;
                         if j % config.num_jobs == 0 {
-                            let (s, u) = report(&config).unwrap_or((0, 0));
+                            let (s, u) = report(&config, task_id).unwrap_or((0, 0));
                             assert_eq!(s + u, n.2);
                         }
                         // TODO: this is for SR2018
@@ -453,7 +453,7 @@ fn solver_command(config: &Config) -> Command {
     }
 }
 
-fn report(config: &Config) -> std::io::Result<(usize, usize)> {
+fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> {
     let outname = config.sync_dir.join(config.run_id.to_string() + ".csv");
     let mut nsat = 0;
     let mut nunsat = 0;
@@ -465,7 +465,6 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
         let mut outbuf = BufWriter::new(outfile);
         let mut hash: HashMap<&str, (f64, String, bool)> = HashMap::new();
         let timeout = config.timeout as f64;
-        let processed = if let Ok(p) = PROCESSED.read() { p.0 } else { 0 };
         for e in config.dump_dir.read_dir()? {
             let f = e?;
             if !f.file_type()?.is_file() {
