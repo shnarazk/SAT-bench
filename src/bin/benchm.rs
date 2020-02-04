@@ -310,16 +310,12 @@ fn start_benchmark() {
 }
 
 fn worker(config: Config) {
-    loop {
-        if let Some((i, p)) = next_task(&config) {
+    while let Some((i, p)) = next_task(&config) {
             check_result(&config);
             let res: SolveResultPromise = execute(&config, p);
             if let Ok(mut v) = RESULTS.write() {
                 v[i - 1] = res; // RESULTS starts from 0, while tasks start from 1.
             }
-        } else {
-            return;
-        }
     }
 }
 
