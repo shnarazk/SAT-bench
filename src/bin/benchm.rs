@@ -389,12 +389,12 @@ fn check_result(config: &Config) {
                     if task_id == n.0 {
                         print!(
                             "{}\x1B[032mRunning on the {} th problem {}...\x1B[000m",
-                            CLEAR, task_id, SCB[task_id].1
+                            CLEAR, task_id, &SCB[task_id].1[..80]
                         );
                     } else {
                         print!(
                             "{}\x1B[032mRunning on the {}-{} th problem {}...\x1B[000m",
-                            CLEAR, task_id, n.0, SCB[task_id].1
+                            CLEAR, task_id, n.0, &SCB[task_id].1[..80]
                         );
                     }
                     stdout().flush().unwrap();
