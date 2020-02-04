@@ -141,6 +141,7 @@ impl Config {
     }
 }
 
+#[allow(clippy::trivial_regex)]
 fn main() {
     let mut config = Config::from_args();
     let tilde = Regex::new("~").expect("wrong regex");
@@ -164,13 +165,12 @@ fn main() {
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("user", &config.matrix_id);
         map.insert("password", &config.matrix_password);
-        config.matrix_token = matrix::get_token(&map);
+        config.matrix_token = matrix::get_token(&mut map);
         println!(
             "ready to post to matrix; user: {}, token: {:?}",
             config.matrix_id, config.matrix_token,
         );
     }
-    config.post("A test post from benchm.");
     if let Ok(mut conf) = CONFIG.write() {
         *conf = config;
     }

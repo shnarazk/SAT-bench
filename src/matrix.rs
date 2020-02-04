@@ -2,9 +2,8 @@
 use serde_json::Value;
 use std::collections::HashMap;
 
-pub fn get_token(map: &HashMap<&str, &str>) -> Option<String> {
+pub fn get_token<S: ::std::hash::BuildHasher>(map: &mut HashMap<&str, &str, S>) -> Option<String> {
     let url = "https://matrix.org/_matrix/client/r0/login";
-    let mut map: HashMap<&str, &str> = map.clone();
     map.insert("type", "m.login.password");
     let client = reqwest::Client::new();
     let res = client.post(url).json(&map).send();

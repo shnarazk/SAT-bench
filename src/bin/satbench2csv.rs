@@ -83,8 +83,8 @@ fn main() -> std::io::Result<()> {
             );
         } else {
             println!(
-                "\"{}\",{},\"{}{}\",{},{},{},",
-                tag, i, config.target, key, nsolved, config.timeout, "",
+                "\"{}\",{},\"{}{}\",{},{},,",
+                tag, i, config.target, key, nsolved, config.timeout,
             );
         }
     }

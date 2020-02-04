@@ -621,7 +621,7 @@ fn print_solver(solver: &str) -> Option<String> {
     } else {
         println!();
     }
-    Some(which.to_string())
+    Some(which)
 }
 
 #[allow(unused_variables)]
