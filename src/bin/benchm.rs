@@ -347,7 +347,7 @@ fn check_result(config: &Config) {
         // - n.1 -- the number of reported.
         // - n.2 -- the number of solved (process teminated normally).
         // processed -- the number of terminated or running tasks
-        if let Ok(v) = RESULTS.write() {
+        if let Ok(v) = RESULTS.read() {
             for j in n.1..v.len() {
                 // skip all the processed
                 // I have the resposibility to print the (j-1) th task's result.
