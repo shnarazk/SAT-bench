@@ -354,8 +354,7 @@ fn check_result(config: &Config) {
                         n.2 += 1;
                         new_solution = true;
                         if j % config.num_jobs == 0 {
-                            let (s, u) = report(&config, task_id).unwrap_or((0, 0));
-                            assert_eq!(s + u, n.2);
+                            report(&config, task_id).unwrap_or((0, 0));
                         }
                         // TODO: this is for SR2018
                         new_record = config.timeout == 1000
@@ -375,11 +374,11 @@ fn check_result(config: &Config) {
                     // Note again: j is an index for RESULTS,
                     // and it corresponds to (j + 1) th task.
                     if new_record {
-                        config.post(format!("*{:>3},{:>3},{:?}", task_id, n.2, r));
+                        config.post(format!("*{:>3},{:>3}", task_id, n.2));
                         print!("*");
                     } else {
                         if new_solution {
-                            config.post(format!(" {:>3},{:>3},{:?}", task_id, n.2, r));
+                            config.post(format!(" {:>3},{:>3}", task_id, n.2));
                         }
                         print!(" ");
                     }
