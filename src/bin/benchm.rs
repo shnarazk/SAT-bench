@@ -59,10 +59,10 @@ pub struct Config {
     #[structopt(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "600")]
+    #[structopt(long = "timeout", short = "T", default_value = "120")]
     pub timeout: usize,
     /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "4")]
+    #[structopt(long = "jobs", short = "j", default_value = "1")]
     pub num_jobs: usize,
     /// arguments passed to solvers
     #[structopt(long = "options", default_value = "")]
@@ -111,8 +111,8 @@ impl Default for Config {
             target_from: 0,
             target_to: 400,
             target_step: 1,
-            timeout: 600,
-            num_jobs: 4,
+            timeout: 120,
+            num_jobs: 1,
             solver_options: String::new(),
             data_dir: PathBuf::new(),
             repo_dir: PathBuf::new(),
