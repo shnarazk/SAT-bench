@@ -379,20 +379,22 @@ fn check_result(config: &Config) {
                 } else {
                     // re display the current running task id(s)
                     debug_assert!(task_id <= n.0);
-                    let mut fname = SCB[task_id].1.to_string();
-                    fname.truncate(40);
-                    if task_id == n.0 {
-                        print!(
-                            "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
-                            CLEAR, task_id, fname
-                        );
-                    } else {
-                        print!(
-                            "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
-                            CLEAR, task_id, n.0, fname
-                        );
+                    if task_id < SCB.len() {
+                        let mut fname = SCB[task_id].1.to_string();
+                        fname.truncate(40);
+                        if task_id == n.0 {
+                            print!(
+                                "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
+                                CLEAR, task_id, fname
+                            );
+                        } else {
+                            print!(
+                                "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
+                                CLEAR, task_id, n.0, fname
+                            );
+                        }
+                        stdout().flush().unwrap();
                     }
-                    stdout().flush().unwrap();
                     break;
                 }
             }
