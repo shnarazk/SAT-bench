@@ -532,7 +532,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                     BENCHMARK,
                     key,
                     nsolved,
-                    config.timeout,
+                    config.timeout + 1, // Sometimes a run ends in just the timeout secs.
                 )?;
             }
         }
