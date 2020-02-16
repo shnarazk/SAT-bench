@@ -263,6 +263,7 @@ fn start_benchmark(config: Config) {
             diff
         ));
     }
+    println!("Benchmark: {}", &config.run_id);
     crossbeam::scope(|s| {
         for i in 0..config.num_jobs {
             let c = config.clone();
