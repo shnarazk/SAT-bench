@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchbot 0.7.7";
+const VERSION: &str = "benchm 0.7.8";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
