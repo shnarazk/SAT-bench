@@ -574,28 +574,31 @@ impl SolverHandling for Command {
             static ref MINISAT_LIKE: Regex =
                 Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
         }
-        let result = self.output();
-        match &result {
-            Ok(r)
-                if String::from_utf8(r.stderr.clone())
-                    .unwrap()
-                    .contains("thread 'main' panicked") =>
-            {
+        match &self.output() {
+            Ok(r) => {
+                match (
+                    r.status.code(),
+                    String::from_utf8_lossy(&r.stdout),
+                    String::from_utf8_lossy(&r.stdout),
+                ) {
+                    (Some(0), s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
+                    (Some(0), s, _) if s.contains("UNSAT: ") => Ok(0.0),
+                    (_, s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
+                    (_, _, e) if e.contains("thread 'main' panicked") => {
+                        Err(SolverException::Abort)
+                    }
+                    (Some(10), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
+                    (Some(20), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
+                    (_, s, e) => {
+                        println!("{}{}", s, e);
+                        Err(SolverException::Abort)
+                    }
+                }
+            }
+            Err(r) => {
+                println!("{}", r);
                 Err(SolverException::Abort)
             }
-            Ok(r)
-                if String::from_utf8(r.stdout.clone())
-                    .unwrap()
-                    .contains("TimeOut") =>
-            {
-                Err(SolverException::TimeOut)
-            }
-            Ok(ref done) => match done.status.code() {
-                Some(0) => Ok(0.0),
-                Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
-                _ => Err(SolverException::Abort),
-            },
-            Err(_) => Err(SolverException::Abort),
         }
     }
 }
