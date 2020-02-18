@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchm 0.7.8";
+const VERSION: &str = "benchm 0.8.0";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -590,7 +590,11 @@ impl SolverHandling for Command {
                     (Some(10), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
                     (Some(20), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
                     (_, s, e) => {
-                        println!("{}{}", s, e);
+                        if s == e {
+                            println!("{}", s);
+                        } else {
+                            println!("{}{}", s, e);
+                        }
                         Err(SolverException::Abort)
                     }
                 }

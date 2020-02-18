@@ -1,7 +1,7 @@
 [package]
 name = "sat-bench"
-version = "0.7.8"
-authors = ["Shuji Narazaki <shujinarazaki@protonmail.com>"]
+version = "0.8.0"
+authors = ["Narazaki Shuji <shujinarazaki@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
