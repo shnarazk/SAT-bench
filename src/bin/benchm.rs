@@ -5,7 +5,7 @@ use {
     sat_bench::{
         bench19::{BENCHMARK, SCB},
         matrix,
-        utils::{current_date_time, parse_result},
+        utils::{current_date_time, parse_result, print_validator},
     },
     std::{
         collections::HashMap,
@@ -20,7 +20,7 @@ use {
     structopt::StructOpt,
 };
 
-const VERSION: &str = "benchm 0.8.0";
+const VERSION: &str = "benchm 0.8.1";
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
@@ -301,6 +301,7 @@ fn start_benchmark(config: Config) {
         "Benchmark ended, {} problems, {} solutions",
         pro.0, pro.2
     ));
+    print_validator(&SCB, config.repo_dir);
 }
 
 fn worker(config: Config) {
@@ -581,10 +582,10 @@ impl SolverHandling for Command {
                     String::from_utf8_lossy(&r.stdout),
                     String::from_utf8_lossy(&r.stdout),
                 ) {
-                    (Some(0), s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
-                    (Some(0), s, _) if s.contains("UNSAT: ") => Ok(0.0),
-                    (_, s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
-                    (_, _, e) if e.contains("thread 'main' panicked") => {
+                    (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
+                    (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
+                    (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
+                    (_, _, ref e) if e.contains("thread 'main' panicked") => {
                         Err(SolverException::Abort)
                     }
                     (Some(10), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),

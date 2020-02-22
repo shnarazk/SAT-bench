@@ -1,10 +1,13 @@
-use chrono::offset::TimeZone;
-use chrono::{DateTime, Local};
-use regex::Regex;
-use std::fs::File;
-use std::io::*;
-use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
+use {
+    chrono::{offset::TimeZone, DateTime, Local},
+    regex::Regex,
+    std::{
+        fs::File,
+        io::*,
+        path::{Path, PathBuf},
+        time::{SystemTime, UNIX_EPOCH},
+    },
+};
 
 pub fn parse_result(fname: PathBuf) -> Option<(f64, bool, String)> {
     let f;
@@ -69,4 +72,43 @@ pub fn system_time_to_date_time(t: SystemTime) -> DateTime<Local> {
 
 pub fn current_date_time() -> DateTime<Local> {
     system_time_to_date_time(SystemTime::now())
+}
+
+pub fn print_validator<P: AsRef<Path>>(problems: &[(usize, &str)] ,path: P) {
+    let path = path.as_ref();
+    let mut sats = Vec::new();
+    let mut unsats = Vec::new();
+
+    for (n, key) in problems.iter() {
+        let fname = PathBuf::from(format!(".ans_{}", key));
+        if fname.exists() {
+            if let Some((_, s, _)) = parse_result(fname) {
+                if s {
+                    sats.push((n, key));
+                } else {
+                    unsats.push((n, key));
+                }
+            }
+        }
+    }
+    println!("# SAT");
+    for (n, (i, p)) in sats.iter().enumerate() {
+        println!("# - SAT:{}, {:>3}, {}", n + 1, i, p);
+        // let key = format!("~/Library/SAT/SR19main/{}", p);
+        let key = path.join(p);
+        let f = key.to_string_lossy();
+        println!("    dmcr {}", f);
+    }
+    println!("# UNSAT");
+    for (n, (i, p)) in unsats.iter().enumerate() {
+        // let key = format!("~/Library/SAT/SR19main/{}", p);
+        let key = path.join(p);
+        let f = key.to_string_lossy();
+        println!("# - UNSAT:{}, {:>3}, {}", n, i, p);
+        println!("    echo '# UNSAT:{}, {:>3}, {}'", n, i, p);
+        println!("    splr -c {} > /dev/null", f);
+        println!("    egrep -v '^[cs]' < proof.out > {}.drat", p);
+        println!("    gratgen {} {}.drat -o {}.grad -j 4 > /dev/null", f, p, p);
+        println!("    gratchk unsat {} {}.grad", f, p);
+    }
 }
