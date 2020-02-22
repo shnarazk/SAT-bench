@@ -1,10 +1,5 @@
-use {
-    sat_bench::{
-        bench19::SCB,
-        utils::print_validator,
-    },
-};
+use sat_bench::{bench19::SCB, utils::make_verifier};
 
 fn main() {
-    print_validator(&SCB, "~/Library/SAT/SR19main");
+    make_verifier(&SCB, "~/Library/SAT/SR19main").expect("fail to create verify.sh");
 }

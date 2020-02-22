@@ -2,7 +2,7 @@ use {
     chrono::{offset::TimeZone, DateTime, Local},
     regex::Regex,
     std::{
-        fs::File,
+        fs::{File, OpenOptions},
         io::*,
         path::{Path, PathBuf},
         time::{SystemTime, UNIX_EPOCH},
@@ -74,7 +74,13 @@ pub fn current_date_time() -> DateTime<Local> {
     system_time_to_date_time(SystemTime::now())
 }
 
-pub fn print_validator<P: AsRef<Path>>(problems: &[(usize, &str)] ,path: P) {
+pub fn make_verifier<P: AsRef<Path>>(problems: &[(usize, &str)], path: P) -> std::io::Result<()> {
+    let outname = "verify.sh";
+    let mut outfile = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(&outname)
+        .expect("fail to create velify.sh");
     let path = path.as_ref();
     let mut sats = Vec::new();
     let mut unsats = Vec::new();
@@ -91,24 +97,27 @@ pub fn print_validator<P: AsRef<Path>>(problems: &[(usize, &str)] ,path: P) {
             }
         }
     }
-    println!("# SAT");
+    writeln!(outfile, "# SAT")?;
     for (n, (i, p)) in sats.iter().enumerate() {
-        println!("# - SAT:{}, {:>3}, {}", n + 1, i, p);
-        // let key = format!("~/Library/SAT/SR19main/{}", p);
         let key = path.join(p);
         let f = key.to_string_lossy();
-        println!("    dmcr {}", f);
+        writeln!(outfile, "# - SAT:{}, {:>3}, {}", n + 1, i, p)?;
+        writeln!(outfile, "    dmcr {}", f)?;
     }
-    println!("# UNSAT");
+    writeln!(outfile, "# UNSAT")?;
     for (n, (i, p)) in unsats.iter().enumerate() {
-        // let key = format!("~/Library/SAT/SR19main/{}", p);
         let key = path.join(p);
         let f = key.to_string_lossy();
-        println!("# - UNSAT:{}, {:>3}, {}", n, i, p);
-        println!("    echo '# UNSAT:{}, {:>3}, {}'", n, i, p);
-        println!("    splr -c {} > /dev/null", f);
-        println!("    egrep -v '^[cs]' < proof.out > {}.drat", p);
-        println!("    gratgen {} {}.drat -o {}.grad -j 4 > /dev/null", f, p, p);
-        println!("    gratchk unsat {} {}.grad", f, p);
+        writeln!(outfile, "# - UNSAT:{}, {:>3}, {}", n, i, p)?;
+        writeln!(outfile, "    echo '# UNSAT:{}, {:>3}, {}'", n, i, p)?;
+        writeln!(outfile, "    splr -c {} > /dev/null", f)?;
+        writeln!(outfile, "    egrep -v '^[cs]' < proof.out > {}.drat", p)?;
+        writeln!(
+            outfile,
+            "    gratgen {} {}.drat -o {}.grad -j 4 > /dev/null",
+            f, p, p
+        )?;
+        writeln!(outfile, "    gratchk unsat {} {}.grad", f, p)?;
     }
+    Ok(())
 }

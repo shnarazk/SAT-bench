@@ -5,7 +5,7 @@ use {
     sat_bench::{
         bench19::{BENCHMARK, SCB},
         matrix,
-        utils::{current_date_time, parse_result, print_validator},
+        utils::{current_date_time, make_verifier, parse_result},
     },
     std::{
         collections::HashMap,
@@ -280,6 +280,14 @@ fn start_benchmark(config: Config) {
         let sum = s + u;
         p.2 = sum;
     }
+    println!("Benchmark {} finished.", config.run_id);
+    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
+    check_result(&config);
+    config.post(format!(
+        "Benchmark ended, {} problems, {} solutions",
+        pro.0, pro.2
+    ));
+    make_verifier(&SCB, config.repo_dir).expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args(&[
@@ -294,14 +302,6 @@ fn start_benchmark(config: Config) {
             .output()
             .expect("fail to run sync command");
     }
-    println!("Benchmark {} finished.", config.run_id);
-    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
-    check_result(&config);
-    config.post(format!(
-        "Benchmark ended, {} problems, {} solutions",
-        pro.0, pro.2
-    ));
-    print_validator(&SCB, config.repo_dir);
 }
 
 fn worker(config: Config) {
