@@ -287,7 +287,7 @@ fn start_benchmark(config: Config) {
         "Benchmark ended, {} problems, {} solutions",
         pro.0, pro.2
     ));
-    make_verifier(&SCB, config.repo_dir).expect("fail to create verify.sh");
+    make_verifier(&SCB, &config.sync_dir, &config.repo_dir).expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args(&[

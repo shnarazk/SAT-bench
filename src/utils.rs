@@ -74,14 +74,18 @@ pub fn current_date_time() -> DateTime<Local> {
     system_time_to_date_time(SystemTime::now())
 }
 
-pub fn make_verifier<P: AsRef<Path>>(problems: &[(usize, &str)], path: P) -> std::io::Result<()> {
-    let outname = "verify.sh";
+pub fn make_verifier<P: AsRef<Path>>(
+    problems: &[(usize, &str)],
+    sync_dir: P,
+    repo_dir: P,
+) -> std::io::Result<()> {
+    let outname = sync_dir.as_ref().join("verify.sh");
     let mut outfile = OpenOptions::new()
         .write(true)
         .create(true)
         .open(&outname)
         .expect("fail to create velify.sh");
-    let path = path.as_ref();
+    let path = repo_dir.as_ref();
     let mut sats = Vec::new();
     let mut unsats = Vec::new();
 
