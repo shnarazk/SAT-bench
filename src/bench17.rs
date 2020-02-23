@@ -1,4 +1,4 @@
-pub const BENCHMARK: &str = "SC17main";
+pub const BENCHMARK: &str = "SC17";
 
 pub const SCB: [&str; 350] = [
     "g2-ACG-15-10p1.cnf",

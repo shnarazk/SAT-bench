@@ -1,4 +1,4 @@
-pub const BENCHMARK: &str = "SR19main";
+pub const BENCHMARK: &str = "SR19";
 
 pub const SCB: [(usize, &str); 400] = [
     (1, "001-80-12-sc2014.cnf"),
