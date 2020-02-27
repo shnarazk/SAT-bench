@@ -348,19 +348,7 @@ fn check_result(config: &Config) {
                     if r.1.is_ok() {
                         n.2 += 1;
                         new_solution = true;
-                        // TODO: this is for SR2018
-                        new_record = config.timeout == 1000
-                            && 4 <= config.num_jobs
-                            && ((n.1 == 40 && 3 < n.2)
-                                || (n.1 == 80 && 26 < n.2)
-                                || (n.1 == 120 && 54 < n.2)
-                                || (n.1 == 160 && 59 < n.2)
-                                || (n.1 == 200 && 73 < n.2)
-                                || (n.1 == 240 && 92 < n.2)
-                                || (n.1 == 280 && 104 < n.2)
-                                || (n.1 == 320 && 123 < n.2)
-                                || (n.1 == 360 && 148 < n.2)
-                                || (n.1 == 400 && 155 < n.2));
+                        new_record = config.is_new_record(BENCHMARK, &n);
                     }
                     print!("{}", CLEAR);
                     // Note again: j is an index for RESULTS,
@@ -548,6 +536,52 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
     Ok((nsat, nunsat))
 }
 
+impl Config {
+    fn is_new_record(&self, bench: &str, r: &(usize, usize, usize)) -> bool {
+        match (bench, self.timeout) {
+            ("SR19", 100) => match r.1 {
+                40 => 4 < r.2,
+                80 => 5 < r.2,
+                120 => 10 < r.2,
+                160 => 10 < r.2,
+                200 => 10 < r.2,
+                240 => 14 < r.2,
+                280 => 15 < r.2,
+                320 => 16 < r.2,
+                360 => 20 < r.2,
+                400 => 26 < r.2,
+                _ => false,
+            },
+            ("SR19", 200) => match r.1 {
+                40 => 6 < r.2,
+                80 => 8 < r.2,
+                120 => 12 < r.2,
+                160 => 14 < r.2,
+                200 => 14 < r.2,
+                240 => 18 < r.2,
+                280 => 21 < r.2,
+                320 => 23 < r.2,
+                360 => 35 < r.2,
+                400 => 36 < r.2,
+                _ => false,
+            },
+            ("SR19", 400) => match r.1 {
+                40 => 9 < r.2,
+                80 => 13 < r.2,
+                120 => 21 < r.2,
+                160 => 24 < r.2,
+                200 => 26 < r.2,
+                240 => 33 < r.2,
+                280 => 39 < r.2,
+                320 => 43 < r.2,
+                360 => 50 < r.2,
+                400 => 69 < r.2,
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+}
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
     fn to_result(&mut self, solver: &str) -> Result<f64, SolverException>;
