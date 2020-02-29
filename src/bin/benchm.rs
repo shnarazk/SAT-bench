@@ -287,7 +287,8 @@ fn start_benchmark(config: Config) {
         "Benchmark ended, {} problems, {} solutions",
         pro.0, pro.2
     ));
-    make_verifier(&SCB, &config.sync_dir, &config.repo_dir).expect("fail to create verify.sh");
+    make_verifier(&SCB, &config.sync_dir.join(&config.run_id), &config.repo_dir)
+        .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args(&[
@@ -332,7 +333,6 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
 
 fn check_result(config: &Config) {
     let mut new_solution = false;
-    let mut new_record = false;
     if let Ok(mut n) = PROCESSED.write() {
         // - n.0 -- target id to be checked firstly.
         // - n.1 -- the number of reported.
@@ -348,12 +348,11 @@ fn check_result(config: &Config) {
                     if r.1.is_ok() {
                         n.2 += 1;
                         new_solution = true;
-                        new_record = config.is_new_record(BENCHMARK, &n);
                     }
                     print!("{}", CLEAR);
                     // Note again: j is an index for RESULTS,
                     // and it corresponds to (j + 1) th task.
-                    if new_record {
+                    if config.is_new_record(BENCHMARK, &n) {
                         config.post(format!("*{:>3},{:>3}", task_id, n.2));
                         print!("*");
                     } else {
