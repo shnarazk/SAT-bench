@@ -581,6 +581,7 @@ impl Config {
         }
     }
 }
+
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
     fn to_result(&mut self, solver: &str) -> Result<f64, SolverException>;
