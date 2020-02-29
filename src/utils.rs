@@ -90,7 +90,7 @@ pub fn make_verifier<P: AsRef<Path>>(
     let mut unsats = Vec::new();
 
     for (n, key) in problems.iter() {
-        let fname = PathBuf::from(format!(".ans_{}", key));
+        let fname = sync_dir.as_ref().join(PathBuf::from(format!(".ans_{}", key)));
         if fname.exists() {
             if let Some((_, s, _)) = parse_result(fname) {
                 if s {
