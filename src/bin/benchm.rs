@@ -359,9 +359,8 @@ fn check_result(config: &Config) {
                         if new_solution {
                             config.post(format!(" {:>3},{:>3}", task_id, n.2));
                         }
-                        print!(" ");
+                        println!(" {:>3},{:>3},{}", task_id, n.2, &r.0);
                     }
-                    println!("{:>3},{:>3},{}", task_id, n.2, &r.0);
                     if j % config.num_jobs == 0 {
                         report(&config, task_id).unwrap_or((0, 0));
                     }
