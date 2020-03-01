@@ -354,11 +354,9 @@ fn check_result(config: &Config) {
                     // and it corresponds to (j + 1) th task.
                     if config.is_new_record(BENCHMARK, &n) {
                         config.post(format!("*{:>3},{:>3}", task_id, n.2));
-                        print!("*");
-                    } else {
-                        if new_solution {
-                            config.post(format!(" {:>3},{:>3}", task_id, n.2));
-                        }
+                        println!("*{:>3},{:>3},{}", task_id, n.2, &r.0);
+                    } else if new_solution {
+                        config.post(format!(" {:>3},{:>3}", task_id, n.2));
                         println!(" {:>3},{:>3},{}", task_id, n.2, &r.0);
                     }
                     if j % config.num_jobs == 0 {
