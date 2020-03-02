@@ -441,7 +441,8 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             .create(true)
             .open(&outname)?;
         let mut outbuf = BufWriter::new(outfile);
-        let mut hash: HashMap<&str, (f64, String, bool)> = HashMap::new();
+        let mut problem: HashMap<&str, (f64, String, bool)> = HashMap::new();
+        let mut strategy: HashMap<String, usize> = HashMap::new();
         let timeout = config.timeout as f64;
         for e in config.dump_dir.read_dir()? {
             let f = e?;
@@ -453,7 +454,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                 let cnf = &fname[5..];
                 for (_n, key) in SCB.iter() {
                     if *key == cnf {
-                        if None != hash.get(key) {
+                        if None != problem.get(key) {
                             panic!("duplicated {}", cnf);
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {
@@ -462,7 +463,12 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                             } else {
                                 nunsat += 1;
                             }
-                            hash.insert(key, (timeout.min(t), m, s));
+                            if let Some(p) = strategy.get_mut(&m.to_string()) {
+                                *p += 1;
+                            } else {
+                                strategy.insert(m.clone(), 0);
+                            }
+                            problem.insert(key, (timeout.min(t), m, s));
                             break;
                         }
                     }
@@ -489,13 +495,18 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                 writeln!(outbuf, "# {}", l)?;
             }
         }
+        write!(outbuf, "# ")?;
+        for (s, n) in &strategy {
+            write!(outbuf, "{}:{}, ", s, n)?;
+        }
+        writeln!(outbuf, "")?;
         writeln!(
             outbuf,
             "solver,num,target,nsolved,time,strategy,satisfiability"
         )?;
         let mut nsolved = 0;
         for (i, key) in SCB.iter() {
-            if let Some(v) = hash.get(key) {
+            if let Some(v) = problem.get(key) {
                 nsolved += 1;
                 writeln!(
                     outbuf,
