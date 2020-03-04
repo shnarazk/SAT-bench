@@ -466,7 +466,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                             if let Some(p) = strategy.get_mut(&m.to_string()) {
                                 *p += 1;
                             } else {
-                                strategy.insert(m.clone(), 0);
+                                strategy.insert(m.clone(), 1);
                             }
                             problem.insert(key, (timeout.min(t), m, s));
                             break;
