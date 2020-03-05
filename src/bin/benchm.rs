@@ -316,19 +316,15 @@ fn worker(config: Config) {
 }
 
 fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
-    let p: Option<(usize, PathBuf)> = if let Ok(mut q) = PQ.write() {
-        if let Some((index, top)) = q.pop() {
-            if let Ok(mut processed) = PROCESSED.write() {
+    if let Ok(mut processed) = PROCESSED.write() {
+        if let Ok(mut q) = PQ.write() {
+            if let Some((index, top)) = q.pop() {
                 processed.0 = index;
+                return Some((index, config.data_dir.join(top)))
             }
-            Some((index, config.data_dir.join(top)))
-        } else {
-            None
         }
-    } else {
-        None
-    };
-    p
+    }
+    None
 }
 
 fn check_result(config: &Config) {
