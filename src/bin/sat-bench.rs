@@ -537,7 +537,7 @@ impl SolverHandling for Command {
             static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
         }
         if SPLR.is_match(solver) {
-            self.args(&[solver, "-r", "-"])
+            self.args(&[solver, "-r", "-", "-q"])
         } else if GLUCOSE.is_match(solver) {
             self.args(&[solver, "-verb=0"])
         } else {

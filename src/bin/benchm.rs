@@ -416,6 +416,7 @@ fn solver_command(config: &Config) -> Command {
             &format!("{}", config.timeout),
             "-o",
             &config.dump_dir.to_string_lossy(),
+            "-q",
         ]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
