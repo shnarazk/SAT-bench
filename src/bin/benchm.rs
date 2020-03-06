@@ -3,7 +3,6 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
-        bench_c19::{BENCHMARK, SCB},
         matrix,
         utils::{current_date_time, make_verifier, parse_result},
     },
@@ -46,6 +45,12 @@ lazy_static! {
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "Run the SAT Competition benchmark")]
 pub struct Config {
+    /// the problem
+    #[structopt(long = "benchmark", short = "B", default_value = "SR19Core")]
+    pub benchmark_name: String,
+    /// the problem
+    #[structopt(skip)]
+    pub benchmark: &'static [(usize, &'static str)],
     /// solver names
     #[structopt(long = "solver", short = "s", default_value = "")]
     pub solver: String,
@@ -107,6 +112,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
+            benchmark_name: sat_bench::bench_c19::SCB.0.to_string(),
+            benchmark: &sat_bench::bench_c19::SCB.1,
             solver: String::from("splr"),
             target_from: 0,
             target_to: 400,
@@ -145,6 +152,18 @@ fn main() {
     let mut config = Config::from_args();
     let tilde = Regex::new("~").expect("wrong regex");
     let home = env::var("HOME").expect("No home");
+    config.benchmark_name = match config.benchmark_name.as_str() {
+        "SR19Core" => config.benchmark_name,
+        "SR19" => config.benchmark_name,
+        "SC18" => config.benchmark_name,
+        _ => "SR19Core".to_string(),
+    };
+    config.benchmark = match config.benchmark_name.as_str() {
+        "SR19Core" => &sat_bench::bench_c19::SCB.1,
+        "SC19" => &sat_bench::bench19::SCB,
+        "SR18" => &sat_bench::bench18::SCB,
+        _ => &sat_bench::bench_c19::SCB.1,
+    };
     config.data_dir = PathBuf::from(
         tilde
             .replace(&config.data_dir.to_string_lossy(), &home[..])
@@ -160,7 +179,7 @@ fn main() {
             .replace(&config.repo_dir.to_string_lossy(), &home[..])
             .to_string(),
     );
-    config.target_to = config.target_to.max(SCB.len());
+    config.target_to = config.target_to.max(config.benchmark.len());
     if !config.matrix_id.is_empty() {
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("user", &config.matrix_id);
@@ -240,7 +259,7 @@ fn start_benchmark(config: Config) {
     }
     if let Ok(mut queue) = PQ.write() {
         if let Ok(mut v) = RESULTS.write() {
-            for s in SCB.iter().take(config.target_to).skip(config.target_from) {
+            for s in config.benchmark.iter().take(config.target_to).skip(config.target_from) {
                 if s.0 % config.target_step == 0 {
                     queue.push((s.0, s.1.to_string()));
                 }
@@ -288,7 +307,7 @@ fn start_benchmark(config: Config) {
         "Benchmark ended, {} problems, {} solutions",
         pro.0, pro.2
     ));
-    make_verifier(&SCB, &config.sync_dir.join(&config.run_id), &config.repo_dir)
+    make_verifier(&config.benchmark, &config.sync_dir.join(&config.run_id), &config.repo_dir)
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
@@ -349,7 +368,7 @@ fn check_result(config: &Config) {
                     print!("{}", CLEAR);
                     // Note again: j is an index for RESULTS,
                     // and it corresponds to (j + 1) th task.
-                    if config.is_new_record(BENCHMARK, &n) {
+                    if config.is_new_record(&config.benchmark_name, &n) {
                         config.post(format!("*{:>3},{:>3}", task_id, n.2));
                         println!("*{:>3},{:>3},{}", task_id, n.2, &r.0);
                     } else if new_solution {
@@ -362,8 +381,8 @@ fn check_result(config: &Config) {
                 } else {
                     // re display the current running task id(s)
                     debug_assert!(task_id <= n.0);
-                    if task_id < SCB.len() {
-                        let mut fname = SCB[task_id].1.to_string();
+                    if task_id < config.benchmark.len() {
+                        let mut fname = config.benchmark[task_id].1.to_string();
                         fname.truncate(40);
                         if task_id == n.0 {
                             print!(
@@ -450,7 +469,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             let fname = f.file_name().to_string_lossy().to_string();
             if fname.starts_with(".ans_") {
                 let cnf = &fname[5..];
-                for (_n, key) in SCB.iter() {
+                for (_n, key) in config.benchmark.iter() {
                     if *key == cnf {
                         if None != problem.get(key) {
                             panic!("duplicated {}", cnf);
@@ -503,7 +522,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             "solver,num,target,nsolved,time,strategy,satisfiability"
         )?;
         let mut nsolved = 0;
-        for (i, key) in SCB.iter() {
+        for (i, key) in config.benchmark.iter() {
             if let Some(v) = problem.get(key) {
                 nsolved += 1;
                 writeln!(
@@ -511,7 +530,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                     "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
                     config.dump_dir.to_string_lossy(),
                     i,
-                    BENCHMARK,
+                    config.benchmark_name,
                     key,
                     nsolved,
                     v.0,
@@ -524,7 +543,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                     "\"{}\",{},\"{}/{}\",{},{},,",
                     config.dump_dir.to_string_lossy(),
                     i,
-                    BENCHMARK,
+                    config.benchmark_name,
                     key,
                     nsolved,
                     config.timeout + 10, // Sometimes a run ends in just the timeout.
