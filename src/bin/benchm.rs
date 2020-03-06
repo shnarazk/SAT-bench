@@ -160,6 +160,7 @@ fn main() {
             .replace(&config.repo_dir.to_string_lossy(), &home[..])
             .to_string(),
     );
+    config.target_to = config.target_to.max(SCB.len());
     if !config.matrix_id.is_empty() {
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("user", &config.matrix_id);
@@ -496,7 +497,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         for (s, n) in &strategy {
             write!(outbuf, "{}:{}, ", s, n)?;
         }
-        writeln!(outbuf, "")?;
+        writeln!(outbuf)?;
         writeln!(
             outbuf,
             "solver,num,target,nsolved,time,strategy,satisfiability"
