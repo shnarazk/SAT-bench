@@ -3,7 +3,7 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
-        bench19::{BENCHMARK, SCB},
+        bench_c19::{BENCHMARK, SCB},
         matrix,
         utils::{current_date_time, make_verifier, parse_result},
     },
@@ -544,7 +544,7 @@ impl Config {
         match (bench, self.timeout) {
             ("SR19", 100) => match r.1 {
                 40 => 4 < r.2,
-                80 => 5 < r.2,
+                80 => 6 < r.2,
                 120 => 10 < r.2,
                 160 => 10 < r.2,
                 200 => 10 < r.2,
