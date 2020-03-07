@@ -513,8 +513,10 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             }
         }
         write!(outbuf, "# ")?;
-        for (s, n) in &strategy {
-            write!(outbuf, "{}:{}, ", s, n)?;
+        let mut sv = strategy.iter().collect::<Vec<_>>();
+        sv.sort();
+        for (s, n) in &sv {
+            write!(outbuf, "{}:{}, ", *s, *n)?;
         }
         writeln!(outbuf)?;
         writeln!(
