@@ -563,6 +563,19 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
 impl Config {
     fn is_new_record(&self, bench: &str, r: &(usize, usize, usize)) -> bool {
         match (bench, self.timeout) {
+            ("SR19Core", 300) => match r.1 {
+                10 => 2 < r.2,
+                20 => 8 < r.2,
+                30 => 8 < r.2,
+                40 => 8 < r.2,
+                50 => 12 < r.2,
+                60 => 12 < r.2,
+                70 => 13 < r.2,
+                80 => 18 < r.2,
+                90 => 21 < r.2,
+                100 => 23 < r.2,
+                _ => false,
+            },
             ("SR19", 100) => match r.1 {
                 40 => 4 < r.2,
                 80 => 6 < r.2,
