@@ -156,10 +156,10 @@ const MATH_PROBLEMS: [(&str, &str); 20] = [
     ),
 ];
 const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
-    ("SR2015/itox", "SatR2015/itox_vc1130.cnf"),
-    ("SR2015/m283", "SatR2015/manthey_DimacsSorter_28_3.cnf"),
-    ("SR2015/38b", "SatR2015/38bits_10.dimacs.cnf"),
-    ("SR2015/44b", "SatR2015/44bits_11.dimacs.cnf"),
+    ("SR2015/itox", "SatRace2015/itox_vc1130.cnf"),
+    ("SR2015/m283", "SatRace2015/manthey_DimacsSorter_28_3.cnf"),
+    ("SR2015/38b", "SatRace2015/38bits_10.dimacs.cnf"),
+    ("SR2015/44b", "SatRace2015/44bits_11.dimacs.cnf"),
 ];
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
