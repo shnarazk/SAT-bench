@@ -9,7 +9,7 @@ use {
     },
 };
 
-pub fn parse_result(fname: PathBuf) -> Option<(f64, bool, String)> {
+pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
     let f;
     match File::open(fname) {
         Ok(fin) => f = fin,
@@ -46,10 +46,7 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, bool, String)> {
         }
         buf.clear();
     }
-    match (time, found) {
-        (Some(t), Some(f)) => Some((t, f, strategy)),
-        _ => None,
-    }
+    time.map(|t| (t, found, strategy))
 }
 
 // See https://users.rust-lang.org/t/convert-std-time-systemtime-to-chrono-datetime-datetime
@@ -93,10 +90,10 @@ pub fn make_verifier<P: AsRef<Path>>(
         let fname = sync_dir.as_ref().join(PathBuf::from(format!(".ans_{}", key)));
         if fname.exists() {
             if let Some((_, s, _)) = parse_result(fname) {
-                if s {
-                    sats.push((n, key));
-                } else {
-                    unsats.push((n, key));
+                match s {
+                    Some(true) => sats.push((n, key)),
+                    Some(false) => unsats.push((n, key)),
+                    _ => (),
                 }
             }
         }

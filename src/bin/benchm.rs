@@ -459,7 +459,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             .open(&outname)?;
         let mut outbuf = BufWriter::new(outfile);
         let mut problem: HashMap<&str, (f64, String, bool)> = HashMap::new();
-        let mut strategy: HashMap<String, usize> = HashMap::new();
+        let mut strategy: HashMap<String, (usize, usize)> = HashMap::new();
         let timeout = config.timeout as f64;
         for e in config.dump_dir.read_dir()? {
             let f = e?;
@@ -475,19 +475,30 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                             panic!("duplicated {}", cnf);
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {
-                            if s {
-                                nsat += 1;
-                            } else {
-                                nunsat += 1;
+                            match s {
+                                Some(b) => {
+                                    if b {
+                                        nsat += 1;
+                                    } else {
+                                        nunsat += 1;
+                                    }
+                                    if let Some(p) = strategy.get_mut(&m.to_string()) {
+                                        p.0 += 1;
+                                    } else {
+                                        strategy.insert(m.clone(), (1, 0));
+                                    }
+                                    problem.insert(key, (timeout.min(t), m, b));
+                                }
+                                None => {
+                                    if let Some(p) = strategy.get_mut(&m.to_string()) {
+                                        p.1 += 1;
+                                    } else {
+                                        strategy.insert(m.clone(), (0, 1));
+                                    }
+                                }
                             }
-                            if let Some(p) = strategy.get_mut(&m.to_string()) {
-                                *p += 1;
-                            } else {
-                                strategy.insert(m.clone(), 1);
-                            }
-                            problem.insert(key, (timeout.min(t), m, s));
-                            break;
                         }
+                        break;
                     }
                 }
             }
@@ -516,7 +527,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         let mut sv = strategy.iter().collect::<Vec<_>>();
         sv.sort();
         for (s, n) in &sv {
-            write!(outbuf, "{}:{}, ", *s, *n)?;
+            write!(outbuf, "{}:{:?}, ", *s, *n)?;
         }
         writeln!(outbuf)?;
         writeln!(

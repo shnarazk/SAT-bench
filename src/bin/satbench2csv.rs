@@ -53,15 +53,17 @@ fn main() -> std::io::Result<()> {
                     if None != hash.get(key) {
                         panic!("duplicated {}", cnf);
                     }
-                    if let Some((t, s, m)) = parse_result(f.path()) {
-                        if s {
-                            nsat += 1;
-                        } else {
-                            nunsat += 1;
+                    if let Some((t, ss, m)) = parse_result(f.path()) {
+                        if let Some(s) = ss {
+                            if s {
+                                nsat += 1;
+                            } else {
+                                nunsat += 1;
+                            }
+                            hash.insert(key, (timeout.min(t), s, m));
                         }
-                        hash.insert(key, (timeout.min(t), s, m));
-                        break;
                     }
+                    break;
                 }
             }
         }
