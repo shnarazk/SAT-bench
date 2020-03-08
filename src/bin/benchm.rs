@@ -179,7 +179,7 @@ fn main() {
             .replace(&config.repo_dir.to_string_lossy(), &home[..])
             .to_string(),
     );
-    config.target_to = config.target_to.max(config.benchmark.len());
+    config.target_to = config.target_to.min(config.benchmark.len());
     if !config.matrix_id.is_empty() {
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("user", &config.matrix_id);
