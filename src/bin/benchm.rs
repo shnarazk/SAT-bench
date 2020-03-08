@@ -458,7 +458,12 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             .create(true)
             .open(&outname)?;
         let mut outbuf = BufWriter::new(outfile);
-        let mut problem: HashMap<&str, (f64, String, bool)> = HashMap::new();
+        // * key: problem name
+        // * value:
+        //    * elapsed time or None
+        //    * used strategy
+        //    * satisfiability or None
+        let mut problem: HashMap<&str, (Option<f64>, String, Option<bool>)> = HashMap::new();
         let mut strategy: HashMap<String, (usize, usize)> = HashMap::new();
         let timeout = config.timeout as f64;
         for e in config.dump_dir.read_dir()? {
@@ -487,7 +492,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                                     } else {
                                         strategy.insert(m.clone(), (1, 0));
                                     }
-                                    problem.insert(key, (timeout.min(t), m, b));
+                                    problem.insert(key, (Some(timeout.min(t)), m, Some(b)));
                                 }
                                 None => {
                                     if let Some(p) = strategy.get_mut(&m.to_string()) {
@@ -495,6 +500,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                                     } else {
                                         strategy.insert(m.clone(), (0, 1));
                                     }
+                                    problem.insert(key, (None, m, None));
                                 }
                             }
                         }
@@ -538,18 +544,33 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         for (i, key) in config.benchmark.iter() {
             if let Some(v) = problem.get(key) {
                 nsolved += 1;
-                writeln!(
-                    outbuf,
-                    "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
-                    config.dump_dir.to_string_lossy(),
-                    i,
-                    config.benchmark_name,
-                    key,
-                    nsolved,
-                    v.0,
-                    v.1,
-                    v.2,
-                )?;
+                match v {
+                    (Some(time_), str_, Some(sat_)) =>
+                        writeln!(
+                            outbuf,
+                            "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
+                            config.dump_dir.to_string_lossy(),
+                            i,
+                            config.benchmark_name,
+                            key,
+                            nsolved,
+                            time_,
+                            str_,
+                            sat_,
+                        )?,
+                    (_, str_, _) =>
+                        writeln!(
+                            outbuf,
+                            "\"{}\",{},\"{}/{}\",{},{},{},",
+                            config.dump_dir.to_string_lossy(),
+                            i,
+                            config.benchmark_name,
+                            key,
+                            nsolved,
+                            config.timeout + 10, // Sometimes a run ends in just the timeout.
+                            str_
+                        )?,
+                }
             } else {
                 writeln!(
                     outbuf,
