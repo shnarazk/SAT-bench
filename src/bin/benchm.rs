@@ -543,9 +543,9 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         let mut nsolved = 0;
         for (i, key) in config.benchmark.iter() {
             if let Some(v) = problem.get(key) {
-                nsolved += 1;
                 match v {
-                    (Some(time_), str_, Some(sat_)) =>
+                    (Some(time_), str_, Some(sat_)) => {
+                        nsolved += 1;
                         writeln!(
                             outbuf,
                             "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
@@ -557,7 +557,8 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                             time_,
                             str_,
                             sat_,
-                        )?,
+                        )?;
+                    }
                     (_, str_, _) =>
                         writeln!(
                             outbuf,
