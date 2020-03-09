@@ -337,6 +337,9 @@ fn worker(config: Config) {
 
 fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
     if let Ok(mut processed) = PROCESSED.write() {
+        // - processed.0 -- the last queued task id.
+        // - processed.1 -- the number of reported.
+        // - processed.2 -- the number of solved (process teminated normally).
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
                 processed.0 = index;
@@ -349,42 +352,41 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
 
 fn check_result(config: &Config) {
     let mut new_solution = false;
-    if let Ok(mut n) = PROCESSED.write() {
-        // - n.0 -- target id to be checked firstly.
-        // - n.1 -- the number of reported.
-        // - n.2 -- the number of solved (process teminated normally).
-        // processed -- the number of terminated or running tasks
+    if let Ok(mut processed) = PROCESSED.write() {
+        // - processed.0 -- the last queued task id.
+        // - processed.1 -- the number of reported.
+        // - processed.2 -- the number of solved (process teminated normally).
         if let Ok(v) = RESULTS.read() {
-            for j in n.1..v.len() {
+            for j in processed.1..v.len() {
                 // skip all the processed
                 // I have the resposibility to print the (j-1) th task's result.
                 let task_id = j + 1;
                 if let Some(r) = &v[j] {
-                    n.1 = j + 1;
+                    processed.1 = j + 1;
                     if r.1.is_ok() {
-                        n.2 += 1;
+                        processed.2 += 1;
                         new_solution = true;
                     }
                     print!("{}", CLEAR);
                     // Note again: j is an index for RESULTS,
                     // and it corresponds to (j + 1) th task.
-                    if config.is_new_record(&config.benchmark_name, &n) {
-                        config.post(format!("*{:>3},{:>3}", task_id, n.2));
-                        println!("*{:>3},{:>3},{}", task_id, n.2, &r.0);
+                    if config.is_new_record(&config.benchmark_name, &processed) {
+                        config.post(format!("*{:>3},{:>3}", task_id, processed.2));
+                        println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
                     } else if new_solution {
-                        config.post(format!(" {:>3},{:>3}", task_id, n.2));
-                        println!(" {:>3},{:>3},{}", task_id, n.2, &r.0);
+                        config.post(format!(" {:>3},{:>3}", task_id, processed.2));
+                        println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
                     }
                     if j % config.num_jobs == 0 {
                         report(&config, task_id).unwrap_or((0, 0));
                     }
                 } else {
                     // re display the current running task id(s)
-                    debug_assert!(task_id <= n.0);
+                    debug_assert!(task_id <= processed.0);
                     if task_id < config.benchmark.len() {
                         let mut fname = config.benchmark[task_id].1.to_string();
                         fname.truncate(40);
-                        if task_id == n.0 {
+                        if task_id == processed.0 {
                             print!(
                                 "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
                                 CLEAR, task_id, fname
@@ -392,7 +394,7 @@ fn check_result(config: &Config) {
                         } else {
                             print!(
                                 "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
-                                CLEAR, task_id, n.0, fname
+                                CLEAR, task_id, processed.0, fname
                             );
                         }
                         stdout().flush().unwrap();
