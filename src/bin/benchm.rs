@@ -511,6 +511,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                 }
             }
         }
+        // show summary of solutions
         writeln!(
             outbuf,
             "#{} on {} by {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
@@ -526,11 +527,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             nsat,
             nunsat,
         )?;
-        if let Ok(diff) = DIFF.write() {
-            for l in diff.lines() {
-                writeln!(outbuf, "# {}", l)?;
-            }
-        }
+        // show summary of each strategy
         write!(outbuf, "# ")?;
         let mut sv = strategy.iter().collect::<Vec<_>>();
         sv.sort();
@@ -538,6 +535,12 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             write!(outbuf, "{}:{:?}, ", *s, *n)?;
         }
         writeln!(outbuf)?;
+        // show diff
+        if let Ok(diff) = DIFF.write() {
+            for l in diff.lines() {
+                writeln!(outbuf, "# {}", l)?;
+            }
+        }
         writeln!(
             outbuf,
             "solver,num,target,nsolved,time,strategy,satisfiability"
