@@ -565,7 +565,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                         writeln!(
                             outbuf,
                             "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
-                            config.dump_dir.to_string_lossy(),
+                            config.run_id,
                             i,
                             config.benchmark_name,
                             key,
@@ -579,7 +579,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                         writeln!(
                             outbuf,
                             "\"{}\",{},\"{}/{}\",{},{},{},",
-                            config.dump_dir.to_string_lossy(),
+                            config.run_id,
                             i,
                             config.benchmark_name,
                             key,
@@ -592,7 +592,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                 writeln!(
                     outbuf,
                     "\"{}\",{},\"{}/{}\",{},{},,",
-                    config.dump_dir.to_string_lossy(),
+                    config.run_id,
                     i,
                     config.benchmark_name,
                     key,
