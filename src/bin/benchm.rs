@@ -194,7 +194,7 @@ fn main() {
             config.matrix_id, config.matrix_token,
         );
     }
-    if config.solver.is_empty() {
+    if config.solver.is_empty() && config.rereport.is_empty() {
         config.solver = "splr".to_string();
         for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
             if let Ok(f) = e {
