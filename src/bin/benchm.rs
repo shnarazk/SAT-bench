@@ -222,7 +222,7 @@ fn main() {
             .stdout;
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
-    if !config.rereport.is_empty() {
+    if config.rereport.is_empty() {
         let commit_id_u8 = Command::new("git")
             .current_dir(&config.repo_dir)
             .args(&["log", "-1", "--format=format:%h"])
@@ -233,20 +233,12 @@ fn main() {
         let timestamp = current_date_time().format("%Y%m%d").to_string();
         config.run_name = format!("{}-{}", config.solver, commit_id);
         config.run_id = format!("{}-{}-{}", config.solver, timestamp, commit_id);
-    }
-    config.dump_dir = PathBuf::from(&config.run_id);
-    /*
-    if let Ok(mut conf) = CONFIG.write() {
-        *conf = config;
-    }
-    */
-    if !config.rereport.is_empty() {
+        config.dump_dir = PathBuf::from(&config.run_id);
+        start_benchmark(config);
+    } else {
         config.run_id = config.rereport.clone();
-        // config.dump_dir = PathBuf::from(config.sync_dir).join(PathBuf::from(&config.run_id));
         config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
         report(&config, config.target_to).expect("fail to execute");
-    } else {
-        start_benchmark(config);
     }
 }
 
