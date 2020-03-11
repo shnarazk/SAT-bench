@@ -100,13 +100,13 @@ pub struct Config {
     #[structopt(skip)]
     pub run_name: String,
     /// user id to post to Matrix
-    #[structopt(long = "matrix-id", default_value = "")]
+    #[structopt(long = "mid", default_value = "")]
     pub matrix_id: String,
     /// user password to post to Matrix
-    #[structopt(long = "matrix-password", default_value = "")]
+    #[structopt(long = "mpasswd", default_value = "")]
     pub matrix_password: String,
     /// The Matrix room
-    #[structopt(long = "matrix-room", default_value = "")]
+    #[structopt(long = "mroom", default_value = "")]
     pub matrix_room: String,
     #[structopt(skip)]
     pub matrix_token: Option<String>,
