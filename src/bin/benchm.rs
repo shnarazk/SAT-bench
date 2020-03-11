@@ -84,6 +84,9 @@ pub struct Config {
     /// cloud sync command
     #[structopt(long = "sync-cmd", default_value = "")]
     pub sync_cmd: String,
+    /// Rebuild report
+    #[structopt(long = "rereport", default_value = "")]
+    pub rereport: String,
     /// Don't assign
     #[structopt(long = "dump", default_value = "")]
     pub dump_dir: PathBuf,
@@ -125,6 +128,7 @@ impl Default for Config {
             repo_dir: PathBuf::new(),
             sync_dir: PathBuf::new(),
             sync_cmd: String::new(),
+            rereport: "".to_string(),
             dump_dir: PathBuf::new(),
             run_id: String::new(),
             host: String::new(),
@@ -218,7 +222,7 @@ fn main() {
             .stdout;
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
-    {
+    if !config.rereport.is_empty() {
         let commit_id_u8 = Command::new("git")
             .current_dir(&config.repo_dir)
             .args(&["log", "-1", "--format=format:%h"])
@@ -236,7 +240,14 @@ fn main() {
         *conf = config;
     }
     */
-    start_benchmark(config);
+    if !config.rereport.is_empty() {
+        config.run_id = config.rereport.clone();
+        // config.dump_dir = PathBuf::from(config.sync_dir).join(PathBuf::from(&config.run_id));
+        config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
+        report(&config, config.target_to).expect("fail to execute");
+    } else {
+        start_benchmark(config);
+    }
 }
 
 fn start_benchmark(config: Config) {
