@@ -96,9 +96,6 @@ pub struct Config {
     #[structopt(skip)]
     /// host
     pub host: String,
-    /// Don't assign
-    #[structopt(skip)]
-    pub run_name: String,
     /// user id to post to Matrix
     #[structopt(long = "mid", default_value = "")]
     pub matrix_id: String,
@@ -132,7 +129,6 @@ impl Default for Config {
             dump_dir: PathBuf::new(),
             run_id: String::new(),
             host: String::new(),
-            run_name: String::new(),
             matrix_id: String::new(),
             matrix_password: String::new(),
             matrix_room: String::new(),
@@ -146,7 +142,7 @@ impl Config {
         matrix::post(
             &self.matrix_room,
             &self.matrix_token,
-            &format!("{}: {}", self.run_name, msg.as_ref()),
+            &format!("{}: {}", self.run_id, msg.as_ref()),
         );
     }
 }
@@ -231,7 +227,6 @@ fn main() {
             .stdout;
         let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
         let timestamp = current_date_time().format("%Y%m%d").to_string();
-        config.run_name = format!("{}-{}", config.solver, commit_id);
         config.run_id = format!("{}-{}-{}", config.solver, timestamp, commit_id);
         config.dump_dir = PathBuf::from(&config.run_id);
         start_benchmark(config);
