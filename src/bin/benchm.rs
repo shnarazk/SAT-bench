@@ -257,7 +257,12 @@ fn start_benchmark(config: Config) {
     }
     if let Ok(mut queue) = PQ.write() {
         if let Ok(mut v) = RESULTS.write() {
-            for s in config.benchmark.iter().take(config.target_to).skip(config.target_from) {
+            for s in config
+                .benchmark
+                .iter()
+                .take(config.target_to)
+                .skip(config.target_from)
+            {
                 if s.0 % config.target_step == 0 {
                     queue.push((s.0, s.1.to_string()));
                 }
@@ -305,8 +310,12 @@ fn start_benchmark(config: Config) {
         "Benchmark ended, {} problems, {} solutions",
         pro.0, pro.2
     ));
-    make_verifier(&config.benchmark, &config.sync_dir.join(&config.run_id), &config.repo_dir)
-        .expect("fail to create verify.sh");
+    make_verifier(
+        &config.benchmark,
+        &config.sync_dir.join(&config.run_id),
+        &config.repo_dir,
+    )
+    .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args(&[
@@ -341,7 +350,7 @@ fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
                 processed.0 = index;
-                return Some((index, config.data_dir.join(top)))
+                return Some((index, config.data_dir.join(top)));
             }
         }
     }
@@ -562,18 +571,17 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                             sat_,
                         )?;
                     }
-                    (_, str_, _) =>
-                        writeln!(
-                            outbuf,
-                            "\"{}\",{},\"{}/{}\",{},{},{},",
-                            config.run_id,
-                            i,
-                            config.benchmark_name,
-                            key,
-                            nsolved,
-                            config.timeout + 10, // Sometimes a run ends in just the timeout.
-                            str_
-                        )?,
+                    (_, str_, _) => writeln!(
+                        outbuf,
+                        "\"{}\",{},\"{}/{}\",{},{},{},",
+                        config.run_id,
+                        i,
+                        config.benchmark_name,
+                        key,
+                        nsolved,
+                        config.timeout + 10, // Sometimes a run ends in just the timeout.
+                        str_
+                    )?,
                 }
             } else {
                 writeln!(
@@ -601,14 +609,18 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
 impl Config {
     fn is_new_record(&self, bench: &str, r: &(usize, usize, usize)) -> bool {
         match (bench, self.timeout) {
-            ("SR19Core", 300) if r.1 % 10 == 0 =>
-                [2, 9, 10, 10, 16, 16, 16, 23, 28, 28][r.1 / 10 - 1] < r.2,
-            ("SR19", 100) if r.1 % 40 == 0 =>
-                [4, 6, 10, 10, 10, 14, 15, 16, 20, 26][r.1 / 40 - 1] < r.2,
-            ("SR19", 200) if r.1 % 40 == 0 =>
-                [6, 8, 12, 14, 14, 18, 21, 23, 35, 36][r.1 / 40 - 1] < r.2,
-            ("SR19", 400) if r.1 % 40 == 0 =>
-                [10, 15, 17, 19, 20, 25, 28, 32, 37, 37][r.1 / 40 - 1] < r.2,
+            ("SR19Core", 300) if r.1 % 10 == 0 => {
+                [2, 9, 10, 10, 16, 16, 16, 23, 28, 28][r.1 / 10 - 1] < r.2
+            }
+            ("SR19", 100) if r.1 % 40 == 0 => {
+                [4, 6, 10, 10, 10, 14, 15, 16, 20, 26][r.1 / 40 - 1] < r.2
+            }
+            ("SR19", 200) if r.1 % 40 == 0 => {
+                [6, 8, 12, 14, 14, 18, 21, 23, 35, 36][r.1 / 40 - 1] < r.2
+            }
+            ("SR19", 400) if r.1 % 40 == 0 => {
+                [10, 15, 17, 19, 20, 25, 28, 32, 37, 37][r.1 / 40 - 1] < r.2
+            }
             _ => false,
         }
     }
