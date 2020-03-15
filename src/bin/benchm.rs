@@ -658,7 +658,7 @@ impl SolverHandling for Command {
                 match (
                     r.status.code(),
                     String::from_utf8_lossy(&r.stdout),
-                    String::from_utf8_lossy(&r.stdout),
+                    String::from_utf8_lossy(&r.stderr),
                 ) {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
