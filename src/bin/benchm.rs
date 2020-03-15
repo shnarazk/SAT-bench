@@ -610,7 +610,7 @@ impl Config {
     fn is_new_record(&self, bench: &str, r: &(usize, usize, usize)) -> bool {
         match (bench, self.timeout) {
             ("SR19Core", 300) if r.1 % 10 == 0 => {
-                [2, 9, 10, 10, 16, 16, 16, 23, 28, 28][r.1 / 10 - 1] < r.2
+                [2, 8, 11, 11, 16, 16, 17, 24, 31, 32][r.1 / 10 - 1] < r.2
             }
             ("SR19", 100) if r.1 % 40 == 0 => {
                 [4, 6, 10, 10, 10, 14, 15, 16, 20, 26][r.1 / 40 - 1] < r.2
