@@ -87,14 +87,14 @@ pub struct Config {
     /// Rebuild report
     #[structopt(long = "rereport", default_value = "")]
     pub rereport: String,
-    /// Don't assign
-    #[structopt(long = "dump", default_value = "")]
-    pub dump_dir: PathBuf,
-    /// Don't assign
-    #[structopt(long = "run", default_value = "")]
-    pub run_id: String,
+    /// a directory to place the result under `sync_dir`
     #[structopt(skip)]
+    pub dump_dir: PathBuf,
+    /// an identifier for benchmarking
+    #[structopt(skip)]
+    pub run_id: String,
     /// host
+    #[structopt(skip)]
     pub host: String,
     /// user id to post to Matrix
     #[structopt(long = "mid", default_value = "")]
