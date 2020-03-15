@@ -43,7 +43,7 @@ lazy_static! {
 }
 
 #[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "Run the SAT Competition benchmark")]
+#[structopt(name = "sat-bench", about = "A SAT Competition benchmark runner")]
 pub struct Config {
     /// the problem
     #[structopt(long = "benchmark", short = "B", default_value = "SR19Core")]
@@ -166,17 +166,17 @@ fn main() {
     };
     config.data_dir = PathBuf::from(
         tilde
-            .replace(&config.data_dir.to_string_lossy(), &home[..])
+            .replace(&config.data_dir.to_string_lossy(), home.as_str())
             .to_string(),
     );
     config.sync_dir = PathBuf::from(
         tilde
-            .replace(&config.sync_dir.to_string_lossy(), &home[..])
+            .replace(&config.sync_dir.to_string_lossy(), home.as_str())
             .to_string(),
     );
     config.repo_dir = PathBuf::from(
         tilde
-            .replace(&config.repo_dir.to_string_lossy(), &home[..])
+            .replace(&config.repo_dir.to_string_lossy(), home.as_str())
             .to_string(),
     );
     config.target_to = config.target_to.min(config.benchmark.len());
@@ -521,7 +521,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         // show summary of solutions
         writeln!(
             outbuf,
-            "#{} on {} by {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            "#{} on {} by benchm.rs {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
             config.run_id,
             config.host,
             VERSION,
