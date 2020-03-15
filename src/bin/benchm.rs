@@ -160,8 +160,8 @@ fn main() {
     };
     config.benchmark = match config.benchmark_name.as_str() {
         "SR19Core" => &sat_bench::bench_c19::SCB.1,
-        "SC19" => &sat_bench::bench19::SCB,
-        "SR18" => &sat_bench::bench18::SCB,
+        "SR19" => &sat_bench::bench19::SCB,
+        "SC18" => &sat_bench::bench18::SCB,
         _ => &sat_bench::bench_c19::SCB.1,
     };
     config.data_dir = PathBuf::from(
