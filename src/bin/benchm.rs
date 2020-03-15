@@ -385,7 +385,10 @@ fn check_result(config: &Config) {
                         println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
                     }
                     if j % config.num_jobs == 0 {
-                        report(&config, task_id).unwrap_or((0, 0));
+                        if let Ok((s, u)) = report(&config, task_id) {
+                            // synchronize the counter
+                            processed.2 = s + u;
+                        }
                     }
                 } else {
                     // re display the current running task id(s)
