@@ -48,6 +48,9 @@ pub struct Config {
     /// the problem
     #[structopt(long = "benchmark", short = "B", default_value = "SR19Core")]
     pub benchmark_name: String,
+    /// a branch number
+    #[structopt(long = "number", short = "N", default_value = "0")]
+    pub seq_num: usize,
     /// the problem
     #[structopt(skip)]
     pub benchmark: &'static [(usize, &'static str)],
@@ -113,6 +116,7 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             benchmark_name: sat_bench::bench_c19::SCB.0.to_string(),
+            seq_num: 0,
             benchmark: &sat_bench::bench_c19::SCB.1,
             solver: String::from("splr"),
             target_from: 0,
@@ -227,7 +231,13 @@ fn main() {
             .stdout;
         let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
         let timestamp = current_date_time().format("%Y%m%d").to_string();
-        config.run_id = format!("{}-{}-{}", config.solver, timestamp, commit_id);
+        config.run_id = format!("{}-{}-{}{}", config.solver, timestamp, commit_id,
+                                if config.seq_num == 0 {
+                                    "".to_string()
+                                } else {
+                                    format!("-{}", config.seq_num)
+                                },
+        );
         config.dump_dir = PathBuf::from(&config.run_id);
         start_benchmark(config);
     } else {
@@ -461,7 +471,9 @@ fn solver_command(config: &Config) -> Command {
 }
 
 fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> {
-    let outname = config.sync_dir.join(config.run_id.to_string() + ".csv");
+    let outname = config
+        .sync_dir
+        .join(format!("{}-{}.csv", config.run_id, config.benchmark_name,));
     let mut nsat = 0;
     let mut nunsat = 0;
     {
