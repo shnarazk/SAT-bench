@@ -189,10 +189,7 @@ fn main() {
         map.insert("user", &config.matrix_id);
         map.insert("password", &config.matrix_password);
         config.matrix_token = matrix::get_token(&mut map);
-        println!(
-            "ready to post to matrix; user: {}, token: {:?}",
-            config.matrix_id, config.matrix_token,
-        );
+        println!("ready to post to matrix; user: {}", config.matrix_id);
     }
     if config.solver.is_empty() && config.rereport.is_empty() {
         config.solver = "splr".to_string();
