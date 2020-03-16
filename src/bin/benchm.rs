@@ -533,10 +533,11 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         // show summary of solutions
         writeln!(
             outbuf,
-            "#{} on {} by benchm.rs {}: from {} to {}\n# process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            "#{} on {} by benchm.rs {}\n# benchmark: {} from {} to {}, process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
             config.run_id,
             config.host,
             VERSION,
+            config.benchmark_name,
             config.target_from,
             config.target_to,
             config.num_jobs,
