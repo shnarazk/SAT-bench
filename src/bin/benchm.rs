@@ -156,6 +156,7 @@ fn main() {
     let mut config = Config::from_args();
     let tilde = Regex::new("~").expect("wrong regex");
     let home = env::var("HOME").expect("No home");
+    let compiled_solver = config.solver.starts_with('/');
     config.benchmark_name = match config.benchmark_name.as_str() {
         "SR19Core" => config.benchmark_name,
         "SR19" => config.benchmark_name,
@@ -191,7 +192,7 @@ fn main() {
         config.matrix_token = matrix::get_token(&mut map);
         println!("ready to post to matrix; user: {}", config.matrix_id);
     }
-    if config.solver.is_empty() && config.rereport.is_empty() {
+    if !compiled_solver && config.solver.is_empty() && config.rereport.is_empty() {
         config.solver = "splr".to_string();
         for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
             if let Ok(f) = e {
@@ -220,25 +221,38 @@ fn main() {
         String::from_utf8_lossy(&h[..h.len() - 1]).to_string()
     };
     if config.rereport.is_empty() {
-        let commit_id_u8 = Command::new("git")
-            .current_dir(&config.repo_dir)
-            .args(&["log", "-1", "--format=format:%h"])
-            .output()
-            .expect("fail to git")
-            .stdout;
-        let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
         let timestamp = current_date_time().format("%Y%m%d").to_string();
-        config.run_id = format!(
-            "{}-{}-{}{}",
-            config.solver,
-            timestamp,
-            commit_id,
-            if config.seq_num == 0 {
-                "".to_string()
-            } else {
-                format!("-{}", config.seq_num)
-            },
-        );
+        if compiled_solver {
+            config.run_id = format!(
+                "{}-{}{}",
+                PathBuf::from(&config.solver).file_name().unwrap().to_string_lossy(),
+                timestamp,
+                if config.seq_num == 0 {
+                    "".to_string()
+                } else {
+                    format!("-{}", config.seq_num)
+                },
+            );
+        } else {
+            let commit_id_u8 = Command::new("git")
+                .current_dir(&config.repo_dir)
+                .args(&["log", "-1", "--format=format:%h"])
+                .output()
+                .expect("fail to git")
+                .stdout;
+            let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
+            config.run_id = format!(
+                "{}-{}-{}{}",
+                config.solver,
+                timestamp,
+                commit_id,
+                if config.seq_num == 0 {
+                    "".to_string()
+                } else {
+                    format!("-{}", config.seq_num)
+                },
+            );
+        }
         config.dump_dir = PathBuf::from(&config.run_id);
         start_benchmark(config);
     } else {
