@@ -1,6 +1,7 @@
-# SATbench, small utilities about SAT benchmark
+# SAT-bench, small utilities about SAT benchmark
 
-- sat-bench
+- benchm  -- for running SAT Competition
+- sat-bench -- running micro benchmark(s)
 - satbench2csv
 
 ## Nix Overlay
