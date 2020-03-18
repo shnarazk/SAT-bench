@@ -272,8 +272,10 @@ fn start_benchmark(config: Config) {
             .stdout;
         String::from_utf8(diff8).expect("strange diff")
     };
-    if let Ok(mut d) = DIFF.write() {
-        *d = diff.clone();
+    if !config.solver.starts_with('/') {
+        if let Ok(mut d) = DIFF.write() {
+            *d = diff.clone();
+        }
     }
     if config.dump_dir.exists() {
         println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
