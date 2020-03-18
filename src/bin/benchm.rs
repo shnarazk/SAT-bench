@@ -450,7 +450,7 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
     );
     let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
     // println!("\x1B[032m{}\x1B[000m", target);
-    let mut command: Command = solver_command(config);
+    let mut command: Command = solver_command(config, &cnf);
     for opt in config.solver_options.split_whitespace() {
         command.arg(&opt[opt.starts_with('\\') as usize..]);
     }
@@ -460,7 +460,7 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
     ))
 }
 
-fn solver_command(config: &Config) -> Command {
+fn solver_command(config: &Config, cnf: &PathBuf) -> Command {
     lazy_static! {
         static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
         static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
@@ -481,7 +481,12 @@ fn solver_command(config: &Config) -> Command {
         command
     } else if CADICAL.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
-        command.args(&["-q", "-t", &format!("{}", config.timeout)]);
+        command.args(&["-q",
+                       "-o",
+                       &format!(".ans_{}", cnf.to_string_lossy()),
+                       "-t",
+                       &format!("{}", config.timeout)
+        ]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
@@ -701,6 +706,10 @@ impl SolverHandling for Command {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
                     (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
+                    (_, ref s, _) if MINISAT_LIKE.is_match(solver) && s.contains("c UNKNOWN") =>
+                    {
+                        Err(SolverException::TimeOut)
+                    }
                     (_, _, ref e) if e.contains("thread 'main' panicked") => {
                         Err(SolverException::Abort)
                     }
