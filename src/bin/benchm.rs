@@ -228,12 +228,16 @@ fn main() {
             .stdout;
         let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
         let timestamp = current_date_time().format("%Y%m%d").to_string();
-        config.run_id = format!("{}-{}-{}{}", config.solver, timestamp, commit_id,
-                                if config.seq_num == 0 {
-                                    "".to_string()
-                                } else {
-                                    format!("-{}", config.seq_num)
-                                },
+        config.run_id = format!(
+            "{}-{}-{}{}",
+            config.solver,
+            timestamp,
+            commit_id,
+            if config.seq_num == 0 {
+                "".to_string()
+            } else {
+                format!("-{}", config.seq_num)
+            },
         );
         config.dump_dir = PathBuf::from(&config.run_id);
         start_benchmark(config);
@@ -370,7 +374,7 @@ fn check_result(config: &Config) {
         // - processed.0 -- the last queued task id.
         // - processed.1 -- the number of reported.
         // - processed.2 -- the number of solved (process teminated normally).
-        if let Ok(v) = RESULTS.read() {
+        if let Ok(v) = RESULTS.write() {
             for j in processed.1..v.len() {
                 // skip all the processed
                 // I have the resposibility to print the (j-1) th task's result.
@@ -442,6 +446,7 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
 
 fn solver_command(config: &Config) -> Command {
     lazy_static! {
+        static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
         static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
         // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
         // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
@@ -457,6 +462,10 @@ fn solver_command(config: &Config) -> Command {
             &config.dump_dir.to_string_lossy(),
             "-q",
         ]);
+        command
+    } else if CADICAL.is_match(&config.solver) {
+        let mut command = Command::new(&config.solver);
+        command.args(&["-q", "-t", &format!("{}", config.timeout)]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
@@ -664,7 +673,7 @@ impl SolverHandling for Command {
     fn to_result(&mut self, solver: &str) -> Result<f64, SolverException> {
         lazy_static! {
             static ref MINISAT_LIKE: Regex =
-                Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
+                Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
         }
         match &self.output() {
             Ok(r) => {
@@ -679,14 +688,22 @@ impl SolverHandling for Command {
                     (_, _, ref e) if e.contains("thread 'main' panicked") => {
                         Err(SolverException::Abort)
                     }
-                    (Some(10), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
-                    (Some(20), _, _) if MINISAT_LIKE.is_match(solver) => Ok(0.0),
+                    (Some(10), ref s, _)
+                        if MINISAT_LIKE.is_match(solver) && s.contains("s SATISFIABLE") =>
+                    {
+                        Ok(0.0)
+                    }
+                    (Some(20), ref s, _)
+                        if MINISAT_LIKE.is_match(solver) && s.contains("s UNSATISFIABLE") =>
+                    {
+                        Ok(0.0)
+                    }
+                    (_, s, e) if s == e => {
+                        println!("{}", s);
+                        Err(SolverException::Abort)
+                    }
                     (_, s, e) => {
-                        if s == e {
-                            println!("{}", s);
-                        } else {
-                            println!("{}{}", s, e);
-                        }
+                        println!("{}{}", s, e);
                         Err(SolverException::Abort)
                     }
                 }
