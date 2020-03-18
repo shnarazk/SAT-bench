@@ -483,7 +483,7 @@ fn solver_command(config: &Config, cnf: &PathBuf) -> Command {
         let mut command = Command::new(&config.solver);
         command.args(&["-q",
                        "-o",
-                       &format!(".ans_{}", cnf.to_string_lossy()),
+                       &format!(".ans_{}", cnf.file_name().unwrap().to_string_lossy()),
                        "-t",
                        &format!("{}", config.timeout)
         ]);
