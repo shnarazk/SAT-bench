@@ -594,6 +594,10 @@ fn report(config: &Config, _processed: usize) -> std::io::Result<(usize, usize)>
             write!(outbuf, "{}:{:?}, ", *s, *n)?;
         }
         writeln!(outbuf)?;
+        // show options
+        if !config.solver_options.is_empty() {
+            writeln!(outbuf, "# options: {}", config.solver_options)?;
+        }
         // show diff
         if let Ok(diff) = DIFF.write() {
             for l in diff.lines() {
