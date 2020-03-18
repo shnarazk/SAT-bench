@@ -504,7 +504,7 @@ fn solver_command(config: &Config) -> Command {
     }
 }
 
-fn report(config: &Config, _processed: usize) -> std::io::Result<(usize, usize)> {
+fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)> {
     let outname = config
         .sync_dir
         .join(format!("{}-{}.csv", config.run_id, config.benchmark_name,));
@@ -572,7 +572,7 @@ fn report(config: &Config, _processed: usize) -> std::io::Result<(usize, usize)>
         // show summary of solutions
         writeln!(
             outbuf,
-            "#{} on {} by benchm.rs {}\n# benchmark: {} from {} to {}, process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far",
+            "#{} on {} by benchm.rs {}\n# benchmark: {} from {} to {}, process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far (found {})",
             config.run_id,
             config.host,
             VERSION,
@@ -581,10 +581,11 @@ fn report(config: &Config, _processed: usize) -> std::io::Result<(usize, usize)>
             config.target_to,
             config.num_jobs,
             config.timeout,
-            found, //  processed,
+            nprocessed,
             nsat + nunsat,
             nsat,
             nunsat,
+            found,
         )?;
         // show summary of each strategy
         write!(outbuf, "# ")?;
