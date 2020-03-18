@@ -149,6 +149,18 @@ impl Config {
             &format!("{}: {}", self.run_id, msg.as_ref()),
         );
     }
+    fn dump_stream(&self, cnf: &PathBuf, stream: &str) -> std::io::Result<()> {
+        let outname = self
+            .dump_dir
+            .join(format!(".ans_{}", cnf.file_name().unwrap().to_string_lossy()));
+        let outfile = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&outname)?;
+        let mut outbuf = BufWriter::new(outfile);
+        write!(outbuf, "{}", stream)?;
+        Ok(())
+    }
 }
 
 #[allow(clippy::trivial_regex)]
@@ -450,17 +462,17 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
     );
     let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
     // println!("\x1B[032m{}\x1B[000m", target);
-    let mut command: Command = solver_command(config, &cnf);
+    let mut command: Command = solver_command(config);
     for opt in config.solver_options.split_whitespace() {
         command.arg(&opt[opt.starts_with('\\') as usize..]);
     }
     Some((
         target,
-        command.arg(cnf.as_os_str()).to_result(&config.solver),
+        command.arg(cnf.as_os_str()).to_result(config, &cnf),
     ))
 }
 
-fn solver_command(config: &Config, cnf: &PathBuf) -> Command {
+fn solver_command(config: &Config) -> Command {
     lazy_static! {
         static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
         static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
@@ -481,14 +493,7 @@ fn solver_command(config: &Config, cnf: &PathBuf) -> Command {
         command
     } else if CADICAL.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
-        command.args(&["-q",
-                       "-o",
-                       &format!("{}/.ans_{}",
-                                config.dump_dir.to_string_lossy(),
-                                cnf.file_name().unwrap().to_string_lossy()),
-                       "-t",
-                       &format!("{}", config.timeout)
-        ]);
+        command.args(&["-t", &format!("{}", config.timeout)]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
@@ -499,7 +504,7 @@ fn solver_command(config: &Config, cnf: &PathBuf) -> Command {
     }
 }
 
-fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> {
+fn report(config: &Config, _processed: usize) -> std::io::Result<(usize, usize)> {
     let outname = config
         .sync_dir
         .join(format!("{}-{}.csv", config.run_id, config.benchmark_name,));
@@ -518,6 +523,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
         //    * satisfiability or None
         let mut problem: HashMap<&str, (Option<f64>, String, Option<bool>)> = HashMap::new();
         let mut strategy: HashMap<String, (usize, usize)> = HashMap::new();
+        let mut found = 0;
         let timeout = config.timeout as f64;
         for e in config.dump_dir.read_dir()? {
             let f = e?;
@@ -533,6 +539,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
                             panic!("duplicated {}", cnf);
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {
+                            found += 1;
                             match s {
                                 Some(b) => {
                                     if b {
@@ -574,7 +581,7 @@ fn report(config: &Config, processed: usize) -> std::io::Result<(usize, usize)> 
             config.target_to,
             config.num_jobs,
             config.timeout,
-            processed,
+            found, //  processed,
             nsat + nunsat,
             nsat,
             nunsat,
@@ -673,7 +680,7 @@ impl Config {
 
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
-    fn to_result(&mut self, solver: &str) -> Result<f64, SolverException>;
+    fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
@@ -693,7 +700,7 @@ impl SolverHandling for Command {
             self.arg(solver)
         }
     }
-    fn to_result(&mut self, solver: &str) -> Result<f64, SolverException> {
+    fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException> {
         lazy_static! {
             static ref MINISAT_LIKE: Regex =
                 Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
@@ -708,21 +715,24 @@ impl SolverHandling for Command {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
                     (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
-                    (_, ref s, _) if MINISAT_LIKE.is_match(solver) && s.contains("c UNKNOWN") =>
+                    (_, ref s, _) if MINISAT_LIKE.is_match(&config.solver) && s.contains("s UNKNOWN") =>
                     {
+                        config.dump_stream(cnf, s).unwrap();
                         Err(SolverException::TimeOut)
                     }
                     (_, _, ref e) if e.contains("thread 'main' panicked") => {
                         Err(SolverException::Abort)
                     }
                     (Some(10), ref s, _)
-                        if MINISAT_LIKE.is_match(solver) && s.contains("s SATISFIABLE") =>
+                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("s SATISFIABLE") =>
                     {
+                        config.dump_stream(cnf, s).unwrap();
                         Ok(0.0)
                     }
                     (Some(20), ref s, _)
-                        if MINISAT_LIKE.is_match(solver) && s.contains("s UNSATISFIABLE") =>
+                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("s UNSATISFIABLE") =>
                     {
+                        config.dump_stream(cnf, s).unwrap();
                         Ok(0.0)
                     }
                     (_, s, e) if s == e => {

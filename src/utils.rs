@@ -9,6 +9,7 @@ use {
     },
 };
 
+#[allow(clippy::trivial_regex)]
 pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
     let f;
     match File::open(fname) {
@@ -16,10 +17,13 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
         Err(_) => return None,
     }
     let mut input = BufReader::new(f);
-    let sat = Regex::new(r"\bSATISFIABLE\b").expect("wrong regex");
-    let unsat = Regex::new(r"\bUNSATISFIABLE\b").expect("wrong regex");
+    let cadical_sat = Regex::new(r"^s SATISFIABLE").expect("wrong regex");
+    let cadical_unsat = Regex::new(r"^s UNSATISFIABLE").expect("wrong regex");
+    let sat = Regex::new(r"\bSATISFIABLE:\b").expect("wrong regex");
+    let unsat = Regex::new(r"\bUNSATISFIABLE:\b").expect("wrong regex");
     let splr = Regex::new(r"^c +Strategy\|mode: +([^,]+), time: +([.0-9]+)").expect("wrong regex");
     let glucose = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
+    let cadical_time = Regex::new(r"c total real time since initialization: +([.0-9]+) +seconds").expect("wrong regex");
     let mut buf = String::new();
     let mut time: Option<f64> = None;
     let mut found: Option<bool> = None;
@@ -27,16 +31,26 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
     while let Ok(k) = input.read_line(&mut buf) {
         if k == 0 {
             break;
-        }
-        if sat.is_match(&buf) {
+        } else if sat.is_match(&buf) {
             assert_eq!(found, None);
             found = Some(true);
         } else if unsat.is_match(&buf) {
             assert_eq!(found, None);
             found = Some(false);
+        } else if cadical_sat.is_match(&buf) {
+            assert_eq!(found, None);
+            found = Some(true);
+            strategy = "unknown".to_string();
+        } else if cadical_unsat.is_match(&buf) {
+            found = Some(false);
+            strategy = "unknown".to_string();
         } else if let Some(c) = splr.captures(&buf) {
             strategy = c[1].to_string();
             if let Ok(v) = c[2].parse() {
+                time = Some(v);
+            }
+        } else if let Some(c) = cadical_time.captures(&buf) {
+            if let Ok(v) = c[1].parse() {
                 time = Some(v);
             }
         } else if let Some(c) = glucose.captures(&buf) {
