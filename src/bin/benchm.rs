@@ -715,7 +715,7 @@ impl SolverHandling for Command {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
                     (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
-                    (_, ref s, _) if MINISAT_LIKE.is_match(&config.solver) && s.contains("s UNKNOWN") =>
+                    (_, ref s, _) if MINISAT_LIKE.is_match(&config.solver) && s.contains("c UNKNOWN") =>
                     {
                         config.dump_stream(cnf, s).unwrap();
                         Err(SolverException::TimeOut)
