@@ -21,17 +21,13 @@ use {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
-
-/// Abnormal termination flags.
-#[derive(Debug)]
-pub enum SolverException {
-    TimeOut,
-    Abort,
-}
-
-type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
-
 lazy_static! {
+    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
+    static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
+    static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
+    static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
+    static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
+    static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
     pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
     /// problem queue
     pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
@@ -41,6 +37,15 @@ lazy_static! {
     pub static ref PROCESSED: RwLock<(usize, usize, usize)> = RwLock::new((0, 0, 0));
     pub static ref RESULTS: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
 }
+
+/// Abnormal termination flags.
+#[derive(Debug)]
+pub enum SolverException {
+    TimeOut,
+    Abort,
+}
+
+type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "A SAT Competition benchmark runner")]
@@ -473,14 +478,6 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
 }
 
 fn solver_command(config: &Config) -> Command {
-    lazy_static! {
-        static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
-        static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-        // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-        // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-        // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
-        static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-    }
     if SPLR.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
         command.args(&[
@@ -493,7 +490,10 @@ fn solver_command(config: &Config) -> Command {
         command
     } else if CADICAL.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
-        command.args(&["-t", &format!("{}", config.timeout)]);
+        command.args(&["-t",
+                       &format!("{}", config.timeout),
+                       "--report=false",
+        ]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
@@ -684,32 +684,11 @@ impl Config {
 }
 
 trait SolverHandling {
-    fn set_solver(&mut self, solver: &str) -> &mut Self;
     fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
-    fn set_solver(&mut self, solver: &str) -> &mut Command {
-        lazy_static! {
-            static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-            // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-            // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-            // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
-            static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-        }
-        if SPLR.is_match(solver) {
-            self.args(&[solver, "-r", "-"])
-        } else if GLUCOSE.is_match(solver) {
-            self.args(&[solver, "-verb=0"])
-        } else {
-            self.arg(solver)
-        }
-    }
     fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException> {
-        lazy_static! {
-            static ref MINISAT_LIKE: Regex =
-                Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
-        }
         match &self.output() {
             Ok(r) => {
                 match (
