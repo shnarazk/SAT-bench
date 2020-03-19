@@ -27,7 +27,7 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
     let mut buf = String::new();
     let mut time: Option<f64> = None;
     let mut found: Option<bool> = None;
-    let mut strategy: String = "".to_string();
+    let mut strategy: String = "unknown".to_string();
     while let Ok(k) = input.read_line(&mut buf) {
         if k == 0 {
             break;
@@ -40,10 +40,8 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
         } else if cadical_sat.is_match(&buf) {
             assert_eq!(found, None);
             found = Some(true);
-            strategy = "unknown".to_string();
         } else if cadical_unsat.is_match(&buf) {
             found = Some(false);
-            strategy = "unknown".to_string();
         } else if let Some(c) = splr.captures(&buf) {
             strategy = c[1].to_string();
             if let Ok(v) = c[2].parse() {
