@@ -270,11 +270,21 @@ fn main() {
                 },
             );
         }
-        config.dump_dir = PathBuf::from(&config.run_id);
+        config.dump_dir = PathBuf::from(
+            format!("{}-{}",
+                    &config.run_id,
+                    &config.benchmark_name,
+            )
+        );
         start_benchmark(config);
     } else {
         config.run_id = config.rereport.clone();
-        config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
+        config.dump_dir = PathBuf::from(&config.sync_dir).join(
+            format!("{}-{}",
+                    &config.run_id,
+                    &config.benchmark_name,
+            )
+        );
         report(&config, config.target_to).expect("fail to execute");
     }
 }
