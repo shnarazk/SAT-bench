@@ -21,6 +21,22 @@ use {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
+lazy_static! {
+    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
+    static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
+    static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
+    static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
+    static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
+    static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
+    pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
+    /// problem queue
+    pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
+    /// - the number of tried: usize
+    /// - the number of reported: usize
+    /// - the number of solved: usize
+    pub static ref PROCESSED: RwLock<(usize, usize, usize)> = RwLock::new((0, 0, 0));
+    pub static ref RESULT: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
+}
 
 /// Abnormal termination flags.
 #[derive(Debug)]
@@ -30,17 +46,6 @@ pub enum SolverException {
 }
 
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
-
-lazy_static! {
-    pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
-    /// problem queue
-    pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
-    /// - the number of tried: usize
-    /// - the number of reported: usize
-    /// - the number of solved: usize
-    pub static ref PROCESSED: RwLock<(usize, usize, usize)> = RwLock::new((0, 0, 0));
-    pub static ref RESULTS: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
-}
 
 #[derive(Clone, Debug, StructOpt)]
 #[structopt(name = "sat-bench", about = "A SAT Competition benchmark runner")]
@@ -295,7 +300,7 @@ fn start_benchmark(config: Config) {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
     if let Ok(mut queue) = PQ.write() {
-        if let Ok(mut v) = RESULTS.write() {
+        if let Ok(mut v) = RESULT.write() {
             for s in config
                 .benchmark
                 .iter()
@@ -375,8 +380,8 @@ fn worker(config: Config) {
     while let Some((i, p)) = next_task(&config) {
         check_result(&config);
         let res: SolveResultPromise = execute(&config, p);
-        if let Ok(mut v) = RESULTS.write() {
-            v[i - 1] = res; // RESULTS starts from 0, while tasks start from 1.
+        if let Ok(mut v) = RESULT.write() {
+            v[i - 1] = res; // RESULT starts from 0, while tasks start from 1.
         }
     }
 }
@@ -402,7 +407,7 @@ fn check_result(config: &Config) {
         // - processed.0 -- the last queued task id.
         // - processed.1 -- the number of reported.
         // - processed.2 -- the number of solved (process teminated normally).
-        if let Ok(v) = RESULTS.write() {
+        if let Ok(v) = RESULT.write() {
             for j in processed.1..v.len() {
                 // skip all the processed
                 // I have the resposibility to print the (j-1) th task's result.
@@ -414,7 +419,7 @@ fn check_result(config: &Config) {
                         new_solution = true;
                     }
                     print!("{}", CLEAR);
-                    // Note again: j is an index for RESULTS,
+                    // Note again: j is an index for RESULT,
                     // and it corresponds to (j + 1) th task.
                     if config.is_new_record(&config.benchmark_name, &processed) {
                         config.post(format!("*{:>3},{:>3}", task_id, processed.2));
@@ -473,14 +478,6 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
 }
 
 fn solver_command(config: &Config) -> Command {
-    lazy_static! {
-        static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
-        static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-        // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-        // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-        // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
-        static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-    }
     if SPLR.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
         command.args(&[
@@ -493,7 +490,10 @@ fn solver_command(config: &Config) -> Command {
         command
     } else if CADICAL.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
-        command.args(&["-t", &format!("{}", config.timeout)]);
+        command.args(&["-t",
+                       &format!("{}", config.timeout),
+                       "--report=false",
+        ]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
@@ -684,32 +684,11 @@ impl Config {
 }
 
 trait SolverHandling {
-    fn set_solver(&mut self, solver: &str) -> &mut Self;
     fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
-    fn set_solver(&mut self, solver: &str) -> &mut Command {
-        lazy_static! {
-            static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-            // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-            // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-            // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
-            static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-        }
-        if SPLR.is_match(solver) {
-            self.args(&[solver, "-r", "-"])
-        } else if GLUCOSE.is_match(solver) {
-            self.args(&[solver, "-verb=0"])
-        } else {
-            self.arg(solver)
-        }
-    }
     fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException> {
-        lazy_static! {
-            static ref MINISAT_LIKE: Regex =
-                Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
-        }
         match &self.output() {
             Ok(r) => {
                 match (
