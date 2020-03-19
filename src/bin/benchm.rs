@@ -607,7 +607,12 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
         writeln!(outbuf)?;
         // show options
         if !config.solver_options.is_empty() {
-            writeln!(outbuf, "# options: {}", config.solver_options)?;
+            if config.solver_options.starts_with('/') {
+                let str = config.solver_options.chars().skip(1).collect::<String>();
+                writeln!(outbuf, "# options: {}", &str)?;
+            } else {
+                writeln!(outbuf, "# options: {}", &config.solver_options)?;
+            }
         }
         // show diff
         if let Ok(diff) = DIFF.write() {
