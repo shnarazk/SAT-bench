@@ -85,10 +85,10 @@ pub fn current_date_time() -> DateTime<Local> {
 
 pub fn make_verifier<P: AsRef<Path>>(
     problems: &[(usize, &str)],
-    sync_dir: P,
+    dump_dir: P,
     repo_dir: P,
 ) -> std::io::Result<()> {
-    let outname = sync_dir.as_ref().join("verify.sh");
+    let outname = dump_dir.as_ref().join("verify.sh");
     let mut outfile = OpenOptions::new()
         .write(true)
         .create(true)
@@ -99,7 +99,7 @@ pub fn make_verifier<P: AsRef<Path>>(
     let mut unsats = Vec::new();
 
     for (n, key) in problems.iter() {
-        let fname = sync_dir.as_ref().join(PathBuf::from(format!(".ans_{}", key)));
+        let fname = dump_dir.as_ref().join(PathBuf::from(format!(".ans_{}", key)));
         if fname.exists() {
             if let Some((_, s, _)) = parse_result(fname) {
                 match s {

@@ -508,9 +508,7 @@ fn solver_command(config: &Config) -> Command {
 }
 
 fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)> {
-    let outname = config
-        .sync_dir
-        .join(format!("{}-{}.csv", config.run_id, config.benchmark_name,));
+    let outname = config.sync_dir.join(format!("{}.csv", config.run_id));
     let mut nsat = 0;
     let mut nunsat = 0;
     {
