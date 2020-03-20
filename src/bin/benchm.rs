@@ -167,6 +167,23 @@ impl Config {
         write!(outbuf, "{}", stream)?;
         Ok(())
     }
+    fn is_new_record(&self, r: &(usize, usize, usize)) -> bool {
+         match (self.benchmark_name.as_str(), self.timeout) {
+            ("SR19Core", 300) => {
+                [2, 8, 11, 11, 16, 16, 17, 24, 31, 32][(r.1 - 1)/ 10] < r.2
+            }
+            ("SR19", 100) => {
+                [6, 8, 11, 12, 12, 16, 17, 18, 22, 29][(r.1 - 1)/ 40] < r.2
+            }
+            ("SR19", 200) => {
+                [6, 8, 12, 14, 14, 18, 21, 23, 35, 36][(r.1 - 1)/ 40] < r.2
+            }
+            ("SR19", 400) => {
+                [10, 15, 17, 19, 20, 25, 28, 32, 37, 37][(r.1 - 1)/ 40] < r.2
+            }
+            _ => false,
+        }
+    }
 }
 
 #[allow(clippy::trivial_regex)]
@@ -420,7 +437,7 @@ fn check_result(config: &Config) {
                     // Note again: j is an index for RESULT,
                     // and it corresponds to (j + 1) th task.
                     if new_solution {
-                        if config.is_new_record(&config.benchmark_name, &processed) {
+                        if config.is_new_record(&processed) {
                             config.post(format!("*{:>3},{:>3}", task_id, processed.2));
                             println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
                         } else {
@@ -668,26 +685,6 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
         Command::new(&config.sync_cmd).output()?;
     }
     Ok((nsat, nunsat))
-}
-
-impl Config {
-    fn is_new_record(&self, bench: &str, r: &(usize, usize, usize)) -> bool {
-        match (bench, self.timeout) {
-            ("SR19Core", 300) => {
-                [2, 8, 11, 11, 16, 16, 17, 24, 31, 32][(r.1 - 1)/ 10] < r.2
-            }
-            ("SR19", 100) => {
-                [6, 8, 11, 12, 12, 16, 17, 18, 22, 29][(r.1 - 1)/ 40] < r.2
-            }
-            ("SR19", 200) => {
-                [6, 8, 12, 14, 14, 18, 21, 23, 35, 36][(r.1 - 1)/ 40] < r.2
-            }
-            ("SR19", 400) => {
-                [10, 15, 17, 19, 20, 25, 28, 32, 37, 37][(r.1 - 1)/ 40] < r.2
-            }
-            _ => false,
-        }
-    }
 }
 
 trait SolverHandling {
