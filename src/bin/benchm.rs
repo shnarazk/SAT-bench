@@ -155,9 +155,10 @@ impl Config {
         );
     }
     fn dump_stream(&self, cnf: &PathBuf, stream: &str) -> std::io::Result<()> {
-        let outname = self
-            .dump_dir
-            .join(format!(".ans_{}", cnf.file_name().unwrap().to_string_lossy()));
+        let outname = self.dump_dir.join(format!(
+            ".ans_{}",
+            cnf.file_name().unwrap().to_string_lossy()
+        ));
         let outfile = fs::OpenOptions::new()
             .write(true)
             .create(true)
@@ -242,7 +243,10 @@ fn main() {
         if compiled_solver {
             config.run_id = format!(
                 "{}-{}{}",
-                PathBuf::from(&config.solver).file_name().unwrap().to_string_lossy(),
+                PathBuf::from(&config.solver)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy(),
                 timestamp,
                 if config.seq_num == 0 {
                     "".to_string()
@@ -270,21 +274,12 @@ fn main() {
                 },
             );
         }
-        config.dump_dir = PathBuf::from(
-            format!("{}-{}",
-                    &config.run_id,
-                    &config.benchmark_name,
-            )
-        );
+        config.dump_dir = PathBuf::from(format!("{}-{}", &config.run_id, &config.benchmark_name,));
         start_benchmark(config);
     } else {
         config.run_id = config.rereport.clone();
-        config.dump_dir = PathBuf::from(&config.sync_dir).join(
-            format!("{}-{}",
-                    &config.run_id,
-                    &config.benchmark_name,
-            )
-        );
+        config.dump_dir = PathBuf::from(&config.sync_dir)
+            .join(format!("{}-{}", &config.run_id, &config.benchmark_name,));
         report(&config, config.target_to).expect("fail to execute");
     }
 }
@@ -481,10 +476,7 @@ fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
     for opt in config.solver_options.split_whitespace() {
         command.arg(&opt[opt.starts_with('\\') as usize..]);
     }
-    Some((
-        target,
-        command.arg(cnf.as_os_str()).to_result(config, &cnf),
-    ))
+    Some((target, command.arg(cnf.as_os_str()).to_result(config, &cnf)))
 }
 
 fn solver_command(config: &Config) -> Command {
@@ -500,10 +492,7 @@ fn solver_command(config: &Config) -> Command {
         command
     } else if CADICAL.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
-        command.args(&["-t",
-                       &format!("{}", config.timeout),
-                       "--report=false",
-        ]);
+        command.args(&["-t", &format!("{}", config.timeout), "--report=false"]);
         command
     } else if GLUCOSE.is_match(&config.solver) {
         let mut command = Command::new(&config.solver);
@@ -579,18 +568,26 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
                 }
             }
         }
-        // show summary of solutions
+        // show header line
         writeln!(
             outbuf,
-            "#{} on {} by benchm.rs {}\n# benchmark: {} from {} to {}, process: {}, timeout: {}\n# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far (found {})",
-            config.run_id,
-            config.host,
-            VERSION,
+            "#{} on {} by benchm.rs {}",
+            config.run_id, config.host, VERSION,
+        )?;
+        // show summary of settings
+        writeln!(
+            outbuf,
+            "# benchmark: {} from {} to {}, process: {}, timeout: {}",
             config.benchmark_name,
             config.target_from,
             config.target_to,
             config.num_jobs,
             config.timeout,
+        )?;
+        // show summary of solutions
+        writeln!(
+            outbuf,
+            "# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far (found {})",
             nprocessed,
             nsat + nunsat,
             nsat,
@@ -714,7 +711,8 @@ impl SolverHandling for Command {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
                     (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
-                    (_, ref s, _) if MINISAT_LIKE.is_match(&config.solver) && s.contains("c UNKNOWN") =>
+                    (_, ref s, _)
+                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("c UNKNOWN") =>
                     {
                         config.dump_stream(cnf, s).unwrap();
                         Err(SolverException::TimeOut)
@@ -729,7 +727,8 @@ impl SolverHandling for Command {
                         Ok(0.0)
                     }
                     (Some(20), ref s, _)
-                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("s UNSATISFIABLE") =>
+                        if MINISAT_LIKE.is_match(&config.solver)
+                            && s.contains("s UNSATISFIABLE") =>
                     {
                         config.dump_stream(cnf, s).unwrap();
                         Ok(0.0)
