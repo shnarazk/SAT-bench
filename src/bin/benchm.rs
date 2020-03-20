@@ -606,7 +606,7 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
         writeln!(outbuf)?;
         // show options
         if !config.solver_options.is_empty() {
-            if config.solver_options.starts_with('/') {
+            if config.solver_options.starts_with('\\') {
                 let str = config.solver_options.chars().skip(1).collect::<String>();
                 writeln!(outbuf, "# options: {}", &str)?;
             } else {
