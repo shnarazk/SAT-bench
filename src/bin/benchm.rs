@@ -387,7 +387,7 @@ fn worker(config: Config) {
 fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
     if let Ok(mut processed) = PROCESSED.write() {
         // - processed.0 -- the last queued task id.
-        // - processed.1 -- the number of reported.
+        // - processed.1 -- the index to check from.
         // - processed.2 -- the number of solved (process teminated normally).
         if let Ok(mut q) = PQ.write() {
             if let Some((index, top)) = q.pop() {
@@ -403,7 +403,7 @@ fn check_result(config: &Config) {
     let mut new_solution = false;
     if let Ok(mut processed) = PROCESSED.write() {
         // - processed.0 -- the last queued task id.
-        // - processed.1 -- the number of reported.
+        // - processed.1 -- the index to check from.
         // - processed.2 -- the number of solved (process teminated normally).
         if let Ok(v) = RESULT.write() {
             for j in processed.1..v.len() {
@@ -427,10 +427,10 @@ fn check_result(config: &Config) {
                         println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
                     }
                     if j % config.num_jobs == 0 {
-                        if let Ok((s, u)) = report(&config, task_id) {
-                            // synchronize the counter
-                            processed.2 = s + u;
-                        }
+                        // The other processes might dump further results already.
+                        // So `report` may return a larger number than `processed.2`.
+                        // We should not update.
+                        report(&config, task_id).unwrap();
                     }
                 } else {
                     // re display the current running task id(s)
