@@ -48,7 +48,7 @@ fn main() -> std::io::Result<()> {
         let fname = f.file_name().to_string_lossy().to_string();
         if fname.starts_with(".ans_") {
             let cnf = &fname[5..];
-            for (_n, key) in SCB.iter() {
+            for (_n, key) in SCB.1.iter() {
                 if *key == cnf {
                     if None != hash.get(key) {
                         panic!("duplicated {}", cnf);
@@ -76,7 +76,7 @@ fn main() -> std::io::Result<()> {
     );
     println!("solver,num,target,nsolved,time,strategy,satisfiability");
     let mut nsolved = 0;
-    for (i, key) in SCB.iter() {
+    for (i, key) in SCB.1.iter() {
         if let Some(v) = hash.get(key) {
             nsolved += 1;
             println!(

@@ -120,9 +120,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            benchmark_name: sat_bench::bench_c19::SCB.0.to_string(),
+            benchmark_name: sat_bench::bench19core::SCB.0.to_string(),
             seq_num: 0,
-            benchmark: &sat_bench::bench_c19::SCB.1,
+            benchmark: &sat_bench::bench19core::SCB.1,
             solver: String::from("splr"),
             target_from: 0,
             target_to: 400,
@@ -182,10 +182,10 @@ fn main() {
         _ => "SR19Core".to_string(),
     };
     config.benchmark = match config.benchmark_name.as_str() {
-        "SR19Core" => &sat_bench::bench_c19::SCB.1,
-        "SR19" => &sat_bench::bench19::SCB,
-        "SC18" => &sat_bench::bench18::SCB,
-        _ => &sat_bench::bench_c19::SCB.1,
+        "SR19Core" => &sat_bench::bench19core::SCB.1,
+        "SR19" => &sat_bench::bench19::SCB.1,
+        "SC18" => &sat_bench::bench18::SCB.1,
+        _ => &sat_bench::bench19core::SCB.1,
     };
     config.data_dir = PathBuf::from(
         tilde
