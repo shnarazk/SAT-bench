@@ -1,8 +1,15 @@
 # SAT-bench, small utilities about SAT benchmark
 
-- benchm  -- for running SAT Competition
+- benchm  -- for running a SAT Competition's benchmark
 - sat-bench -- running micro benchmark(s)
 - satbench2csv
+
+#### Examples
+
+* `benchm -B SR19Core -T 300 --options \\-E\ \--rt\ 0.9 --repo ~/Repository/splr`
+	to compile and run a solver in the repository for a Rust project with options: `-E --rt 0.9`.
+* `benchm -B SR19 -T 100 --options \\--lucky=false --solver ~/.nix-profile/bin/cadical`
+  to run a compiled solver with option: `--lucky=false`.
 
 ## Nix Overlay
 
