@@ -354,6 +354,7 @@ fn start_benchmark(config: Config) {
         }
     })
     .expect("fail to exit crossbeam::scope");
+    check_result(&config);
     let mut np = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
     let (s, u) = report(&config, np.1).unwrap_or((0, 0));
     np.2 = s + u;
