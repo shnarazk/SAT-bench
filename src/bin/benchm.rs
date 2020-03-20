@@ -240,20 +240,15 @@ fn main() {
     };
     if config.rereport.is_empty() {
         let timestamp = current_date_time().format("%Y%m%d").to_string();
-        if compiled_solver {
-            config.run_id = format!(
-                "{}-{}{}",
+        let solver_id = if compiled_solver {
+            format!(
+                "{}-{}",
                 PathBuf::from(&config.solver)
                     .file_name()
                     .unwrap()
                     .to_string_lossy(),
-                timestamp,
-                if config.seq_num == 0 {
-                    "".to_string()
-                } else {
-                    format!("-{}", config.seq_num)
-                },
-            );
+                timestamp
+            )
         } else {
             let commit_id_u8 = Command::new("git")
                 .current_dir(&config.repo_dir)
@@ -262,24 +257,32 @@ fn main() {
                 .expect("fail to git")
                 .stdout;
             let commit_id = String::from_utf8(commit_id_u8).expect("strange commit id");
-            config.run_id = format!(
-                "{}-{}-{}{}",
-                config.solver,
-                timestamp,
-                commit_id,
-                if config.seq_num == 0 {
-                    "".to_string()
-                } else {
-                    format!("-{}", config.seq_num)
-                },
-            );
-        }
-        config.dump_dir = PathBuf::from(format!("{}-{}", &config.run_id, &config.benchmark_name,));
+            format!("{}-{}-{}", config.solver, timestamp, commit_id)
+        };
+        config.run_id = format!(
+            "{}{}-{}",
+            solver_id,
+            if config.seq_num == 0 {
+                "".to_string()
+            } else {
+                format!("-{}", config.seq_num)
+            },
+            &config.benchmark_name,
+        );
+        config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
         start_benchmark(config);
     } else {
-        config.run_id = config.rereport.clone();
-        config.dump_dir = PathBuf::from(&config.sync_dir)
-            .join(format!("{}-{}", &config.run_id, &config.benchmark_name,));
+        config.run_id = format!(
+            "{}{}-{}",
+            &config.rereport,
+            if config.seq_num == 0 {
+                "".to_string()
+            } else {
+                format!("-{}", config.seq_num)
+            },
+            &config.benchmark_name,
+        );
+        config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
         report(&config, config.target_to).expect("fail to execute");
     }
 }
@@ -320,11 +323,7 @@ fn start_benchmark(config: Config) {
         }
         queue.reverse();
     }
-    if let Ok(mut processed) = PROCESSED.write() {
-        *processed = (config.target_from, 0, 0);
-        let (s, u) = report(&config, 0).unwrap_or((0, 0));
-        processed.2 = s + u;
-    }
+    report(&config, 0).unwrap();
     config.post(format!(
         "A new {} parallel benchmark starts.",
         config.num_jobs
@@ -346,25 +345,19 @@ fn start_benchmark(config: Config) {
         }
     })
     .expect("fail to exit crossbeam::scope");
-    let processed = if let Ok(p) = PROCESSED.read() { p.0 } else { 0 };
-    let (s, u) = report(&config, processed).unwrap_or((0, 0));
-    if let Ok(mut p) = PROCESSED.write() {
-        let sum = s + u;
-        p.2 = sum;
-    }
-    println!("Benchmark {} finished.", config.run_id);
-    let pro = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
-    check_result(&config);
+    let mut np = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
+    let (s, u) = report(&config, np.1).unwrap_or((0, 0));
+    np.2 = s + u;
+    println!(
+        "Benchmark {} finished, {} problems, {} solutions",
+        config.run_id, np.1, np.2
+    );
     config.post(format!(
-        "Benchmark ended, {} problems, {} solutions",
-        pro.0, pro.2
+        "Benchmark {} ended, {} problems, {} solutions",
+        config.run_id, np.1, np.2
     ));
-    make_verifier(
-        &config.benchmark,
-        &config.sync_dir.join(&config.run_id),
-        &config.repo_dir,
-    )
-    .expect("fail to create verify.sh");
+    make_verifier(&config.benchmark, &config.dump_dir, &config.repo_dir)
+        .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args(&[
