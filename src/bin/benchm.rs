@@ -176,6 +176,65 @@ impl Config {
             _ => false,
         }
     }
+    fn next_task(&self) -> Option<(usize, PathBuf)> {
+        if let Ok(mut processed) = PROCESSED.write() {
+            // - processed.0 -- the last queued task id.
+            // - processed.1 -- the index to check from.
+            // - processed.2 -- the number of solved (process teminated normally).
+            if let Ok(mut q) = PQ.write() {
+                if let Some((index, top)) = q.pop() {
+                    processed.0 = index;
+                    return Some((index, self.data_dir.join(top)));
+                }
+            }
+        }
+        None
+    }
+    fn solver_command(&self) -> Command {
+        if SPLR.is_match(&self.solver) {
+            let mut command = Command::new(&self.solver);
+            command.args(&[
+                "--to",
+                &format!("{}", self.timeout),
+                "-o",
+                &self.dump_dir.to_string_lossy(),
+                "-q",
+            ]);
+            command
+        } else if CADICAL.is_match(&self.solver) {
+            let mut command = Command::new(&self.solver);
+            command.args(&["-t", &format!("{}", self.timeout), "--report=false"]);
+            command
+        } else if GLUCOSE.is_match(&self.solver) {
+            let mut command = Command::new(&self.solver);
+            command.args(&["-verb=0", &format!("-cpu-lim={}", self.timeout)]);
+            command
+        } else {
+            Command::new(&self.solver)
+        }
+    }
+    fn worker(self) {
+        while let Some((i, p)) = self.next_task() {
+            check_result(&self);
+            let res: SolveResultPromise = self.execute(p);
+            if let Ok(mut v) = RESULT.write() {
+                v[i - 1] = res; // RESULT starts from 0, while tasks start from 1.
+            }
+        }
+    }
+    fn execute(&self, cnf: PathBuf) -> SolveResultPromise {
+        assert!(
+            cnf.is_file(),
+            format!("{} does not exist.", cnf.to_string_lossy())
+        );
+        let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
+        // println!("\x1B[032m{}\x1B[000m", target);
+        let mut command: Command = self.solver_command();
+        for opt in self.solver_options.split_whitespace() {
+            command.arg(&opt[opt.starts_with('\\') as usize..]);
+        }
+        Some((target, command.arg(cnf.as_os_str()).to_result(self, &cnf)))
+    }
 }
 
 #[allow(clippy::trivial_regex)]
@@ -349,7 +408,7 @@ fn start_benchmark(config: Config) {
             let c = config.clone();
             s.spawn(move |_| {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-                worker(c);
+                c.worker();
             });
         }
     })
@@ -382,31 +441,6 @@ fn start_benchmark(config: Config) {
             .output()
             .expect("fail to run sync command");
     }
-}
-
-fn worker(config: Config) {
-    while let Some((i, p)) = next_task(&config) {
-        check_result(&config);
-        let res: SolveResultPromise = execute(&config, p);
-        if let Ok(mut v) = RESULT.write() {
-            v[i - 1] = res; // RESULT starts from 0, while tasks start from 1.
-        }
-    }
-}
-
-fn next_task(config: &Config) -> Option<(usize, PathBuf)> {
-    if let Ok(mut processed) = PROCESSED.write() {
-        // - processed.0 -- the last queued task id.
-        // - processed.1 -- the index to check from.
-        // - processed.2 -- the number of solved (process teminated normally).
-        if let Ok(mut q) = PQ.write() {
-            if let Some((index, top)) = q.pop() {
-                processed.0 = index;
-                return Some((index, config.data_dir.join(top)));
-            }
-        }
-    }
-    None
 }
 
 fn check_result(config: &Config) {
@@ -467,44 +501,6 @@ fn check_result(config: &Config) {
                 }
             }
         }
-    }
-}
-
-fn execute(config: &Config, cnf: PathBuf) -> SolveResultPromise {
-    assert!(
-        cnf.is_file(),
-        format!("{} does not exist.", cnf.to_string_lossy())
-    );
-    let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
-    // println!("\x1B[032m{}\x1B[000m", target);
-    let mut command: Command = solver_command(config);
-    for opt in config.solver_options.split_whitespace() {
-        command.arg(&opt[opt.starts_with('\\') as usize..]);
-    }
-    Some((target, command.arg(cnf.as_os_str()).to_result(config, &cnf)))
-}
-
-fn solver_command(config: &Config) -> Command {
-    if SPLR.is_match(&config.solver) {
-        let mut command = Command::new(&config.solver);
-        command.args(&[
-            "--to",
-            &format!("{}", config.timeout),
-            "-o",
-            &config.dump_dir.to_string_lossy(),
-            "-q",
-        ]);
-        command
-    } else if CADICAL.is_match(&config.solver) {
-        let mut command = Command::new(&config.solver);
-        command.args(&["-t", &format!("{}", config.timeout), "--report=false"]);
-        command
-    } else if GLUCOSE.is_match(&config.solver) {
-        let mut command = Command::new(&config.solver);
-        command.args(&["-verb=0", &format!("-cpu-lim={}", config.timeout)]);
-        command
-    } else {
-        Command::new(&config.solver)
     }
 }
 
