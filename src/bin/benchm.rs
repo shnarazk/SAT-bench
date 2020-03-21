@@ -168,14 +168,14 @@ impl Config {
         Ok(())
     }
     fn is_new_record(&self, r: &(usize, usize, usize)) -> bool {
-        match (self.benchmark_name.as_str(), self.timeout) {
+        (match (self.benchmark_name.as_str(), self.timeout) {
             ("SR19Core", 100) => [5, 12, 17, 24, 28, 28, 29, 31, 37, 37][(r.1 - 1) / 10],
-            ("SR19Core", 300) => [5, 13, 18, 22, 26, 27, 31, 37, 44, 51][(r.1 - 1) / 10],
+            ("SR19Core", 300) => [5, 14, 21, 29, 36, 38, 40, 45, 51, 59][(r.1 - 1) / 10],
             ("SR19", 100) => [6, 8, 11, 12, 12, 16, 17, 18, 22, 29][(r.1 - 1) / 40],
             ("SR19", 200) => [6, 8, 12, 14, 14, 18, 21, 23, 35, 36][(r.1 - 1) / 40],
             ("SR19", 400) => [10, 15, 17, 19, 20, 25, 28, 32, 37, 37][(r.1 - 1) / 40],
             _ => r.2,
-        } < r.2
+        }) < r.2
     }
     fn next_task(&self) -> Option<(usize, PathBuf)> {
         if let Ok(mut processed) = PROCESSED.write() {
