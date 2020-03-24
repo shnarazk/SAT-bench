@@ -385,7 +385,7 @@ fn start_benchmark(config: Config) {
                 .skip(config.target_from)
             {
                 if s.0 % config.target_step == 0 {
-                    queue.push((s.0, s.1.to_string()));
+                    queue.push((s.0 - config.target_from, s.1.to_string()));
                 }
                 v.push(None);
             }
