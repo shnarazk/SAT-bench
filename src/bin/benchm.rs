@@ -587,12 +587,12 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
         // show summary of solutions
         writeln!(
             outbuf,
-            "# Procesed: {}, total answers: {} (SAT: {}, UNSAT: {}) so far (found {})",
+            "# Procesed: {} (found {}), total answers: {} (SAT: {}, UNSAT: {}) so far",
             nprocessed,
+            found,
             nsat + nunsat,
             nsat,
             nunsat,
-            found,
         )?;
         // show summary of each strategy
         write!(outbuf, "# ")?;
