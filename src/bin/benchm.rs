@@ -697,7 +697,14 @@ impl SolverHandling for Command {
                         config.dump_stream(cnf, s).unwrap();
                         Err(SolverException::TimeOut)
                     }
+                    (_, ref s, _) if s.contains("thread 'main' panicked") => {
+                        println!("{}", s);
+                        // config.dump_stream(cnf, s).unwrap();
+                        Err(SolverException::Abort)
+                    }
                     (_, _, ref e) if e.contains("thread 'main' panicked") => {
+                        println!("{}", e);
+                        // config.dump_stream(cnf, e).unwrap();
                         Err(SolverException::Abort)
                     }
                     (Some(10), ref s, _)
