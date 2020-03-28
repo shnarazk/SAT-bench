@@ -568,7 +568,8 @@ impl SolverHandling for Command {
                 match done.status.code() {
                     Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
                     Some(0) => (),
-                    _ => {
+                    e => {
+                        println!("unknown exit code {:?}", e);
                         println!("Abort stdout => {}", String::from_utf8_lossy(&done.stdout));
                         println!("Abort stderr => {}", String::from_utf8_lossy(&done.stderr));
                         return Err(SolverException::Abort);
