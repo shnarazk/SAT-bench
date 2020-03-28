@@ -23,6 +23,15 @@ use {
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+lazy_static! {
+    static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
+    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(cadical|glucose|minisat)").expect("wrong regex");
+    static ref LINGELING: Regex = Regex::new(r"\blingeling").expect("wrong regex");
+    static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
+    static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
+    static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
+    static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
+}
 
 /// Abnormal termination flags.
 #[derive(Debug)]
@@ -529,15 +538,10 @@ trait SolverHandling {
 
 impl SolverHandling for Command {
     fn set_solver(&mut self, solver: &str) -> &mut Command {
-        lazy_static! {
-            static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-            // static ref lingeling: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-            // static ref minisat: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-            // static ref mios: Regex = Regex::new(r"\bmios").expect("wrong regex");
-            static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-        }
         if SPLR.is_match(solver) {
             self.args(&[solver, "-r", "-", "-q"])
+        } else if CADICAL.is_match(solver) {
+            self.args(&[solver, "-f"])
         } else if GLUCOSE.is_match(solver) {
             self.args(&[solver, "-verb=0"])
         } else {
@@ -550,10 +554,6 @@ impl SolverHandling for Command {
         start: &SystemTime,
         timeout: f64,
     ) -> Result<f64, SolverException> {
-        lazy_static! {
-            static ref MINISAT_LIKE: Regex =
-                Regex::new(r"\b(glucose|minisat)").expect("wrong regex");
-        }
         let result = self.output();
         match &result {
             Ok(r)
