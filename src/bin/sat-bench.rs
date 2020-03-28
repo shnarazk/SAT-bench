@@ -567,7 +567,11 @@ impl SolverHandling for Command {
                 match done.status.code() {
                     Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
                     Some(0) => (),
-                    _ => return Err(SolverException::Abort),
+                    _ => {
+                        println!("Abort stdout => {}", String::from_utf8_lossy(&done.stdout));
+                        println!("Abort stderr => {}", String::from_utf8_lossy(&done.stderr));
+                        return Err(SolverException::Abort);
+                    }
                 }
                 match start.elapsed() {
                     Ok(e) => {
@@ -581,7 +585,10 @@ impl SolverHandling for Command {
                     Err(_) => Err(SolverException::Abort),
                 }
             }
-            Err(_) => Err(SolverException::Abort),
+            Err(e) => {
+                println!("Abort by {}", e);
+                Err(SolverException::Abort)
+            }
         }
     }
 }
