@@ -22,7 +22,7 @@ use {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 lazy_static! {
-    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(glucose|minisat|cadical)").expect("wrong regex");
+    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(glucose|minisat|cadical|splr)").expect("wrong regex");
     static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
     static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
     static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
@@ -690,6 +690,19 @@ impl SolverHandling for Command {
                 ) {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
+                    (Some(10), ref s, _)
+                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("s SATISFIABLE") =>
+                    {
+                        config.dump_stream(cnf, s).unwrap();
+                        Ok(0.0)
+                    }
+                    (Some(20), ref s, _)
+                        if MINISAT_LIKE.is_match(&config.solver)
+                            && s.contains("s UNSATISFIABLE") =>
+                    {
+                        config.dump_stream(cnf, s).unwrap();
+                        Ok(0.0)
+                    }
                     (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
                     (_, ref s, _)
                         if MINISAT_LIKE.is_match(&config.solver) && s.contains("c UNKNOWN") =>
@@ -706,19 +719,6 @@ impl SolverHandling for Command {
                         println!("{}", e);
                         // config.dump_stream(cnf, e).unwrap();
                         Err(SolverException::Abort)
-                    }
-                    (Some(10), ref s, _)
-                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("s SATISFIABLE") =>
-                    {
-                        config.dump_stream(cnf, s).unwrap();
-                        Ok(0.0)
-                    }
-                    (Some(20), ref s, _)
-                        if MINISAT_LIKE.is_match(&config.solver)
-                            && s.contains("s UNSATISFIABLE") =>
-                    {
-                        config.dump_stream(cnf, s).unwrap();
-                        Ok(0.0)
                     }
                     (_, s, e) if s == e => {
                         println!("{}", s);

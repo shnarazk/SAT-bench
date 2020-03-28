@@ -25,7 +25,8 @@ use {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 lazy_static! {
     static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(cadical|glucose|minisat)").expect("wrong regex");
+    static ref MINISAT_LIKE: Regex =
+        Regex::new(r"\b(cadical|glucose|minisat|splr)").expect("wrong regex");
     static ref LINGELING: Regex = Regex::new(r"\blingeling").expect("wrong regex");
     static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
     static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
