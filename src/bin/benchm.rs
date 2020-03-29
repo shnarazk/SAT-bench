@@ -195,7 +195,7 @@ impl Config {
         if SPLR.is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
             command.args(&[
-                "--to",
+                "--timeout",
                 &format!("{}", self.timeout),
                 "-o",
                 &self.dump_dir.to_string_lossy(),
