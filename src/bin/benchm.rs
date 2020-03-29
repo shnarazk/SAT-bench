@@ -690,24 +690,23 @@ impl SolverHandling for Command {
                 ) {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
-                    (Some(10), ref s, _)
-                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("s SATISFIABLE") =>
-                    {
-                        config.dump_stream(cnf, s).unwrap();
+                    (Some(10), ref s, _) if s.contains("s SATISFIABLE") => {
+                        if !SPLR.is_match(&config.solver) {
+                            config.dump_stream(cnf, s).unwrap();
+                        }
                         Ok(0.0)
                     }
-                    (Some(20), ref s, _)
-                        if MINISAT_LIKE.is_match(&config.solver)
-                            && s.contains("s UNSATISFIABLE") =>
-                    {
-                        config.dump_stream(cnf, s).unwrap();
+                    (Some(20), ref s, _) if s.contains("s UNSATISFIABLE") => {
+                        if !SPLR.is_match(&config.solver) {
+                            config.dump_stream(cnf, s).unwrap();
+                        }
                         Ok(0.0)
                     }
                     (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
-                    (_, ref s, _)
-                        if MINISAT_LIKE.is_match(&config.solver) && s.contains("c UNKNOWN") =>
-                    {
-                        config.dump_stream(cnf, s).unwrap();
+                    (_, ref s, _) if s.contains("c UNKNOWN") => {
+                        if !SPLR.is_match(&config.solver) {
+                            config.dump_stream(cnf, s).unwrap();
+                        }
                         Err(SolverException::TimeOut)
                     }
                     (_, ref s, _) if s.contains("thread 'main' panicked") => {

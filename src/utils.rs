@@ -16,8 +16,8 @@ lazy_static!{
     static ref CADICAL_UNSAT : Regex = Regex::new(r"^s UNSATISFIABLE\b").expect("wrong regex");
     static ref CADICAL_TIME : Regex = Regex::new(r"c total real time since initialization: +([.0-9]+) +seconds").expect("wrong regex");
     static ref GLUCOSE : Regex = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
-    static ref SPLR_SAT : Regex = Regex::new(r"^s SATISFIABLE\b").expect("wrong regex");
-    static ref SPLR_UNSAT : Regex = Regex::new(r"^s UNSATISFIABLE\b").expect("wrong regex");
+    static ref SPLR_SAT : Regex = Regex::new(r"^s SATISFIABLE:").expect("wrong regex");
+    static ref SPLR_UNSAT : Regex = Regex::new(r"^s UNSATISFIABLE:").expect("wrong regex");
     static ref SPLR : Regex = Regex::new(r"^c +Strategy\|mode: +([^,]+), time: +([.0-9]+)").expect("wrong regex");
 }
 
