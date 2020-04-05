@@ -710,21 +710,21 @@ impl SolverHandling for Command {
                         Err(SolverException::TimeOut)
                     }
                     (_, ref s, _) if s.contains("thread 'main' panicked") => {
-                        println!("{}", s);
+                        println!("{}: {}", cnf.to_string_lossy(), s);
                         // config.dump_stream(cnf, s).unwrap();
                         Err(SolverException::Abort)
                     }
                     (_, _, ref e) if e.contains("thread 'main' panicked") => {
-                        println!("{}", e);
+                        println!("{}: {}", cnf.to_string_lossy(), e);
                         // config.dump_stream(cnf, e).unwrap();
                         Err(SolverException::Abort)
                     }
                     (_, s, e) if s == e => {
-                        println!("{}", s);
+                        println!("{}: {}", cnf.to_string_lossy(), s);
                         Err(SolverException::Abort)
                     }
                     (_, s, e) => {
-                        println!("{}{}", s, e);
+                        println!("{}: {}{}", cnf.to_string_lossy(), s, e);
                         Err(SolverException::Abort)
                     }
                 }
