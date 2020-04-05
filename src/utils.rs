@@ -1,3 +1,4 @@
+#![allow(clippy::trivial_regex)]
 use {
     chrono::{offset::TimeZone, DateTime, Local},
     lazy_static::lazy_static,
@@ -10,7 +11,6 @@ use {
     },
 };
 
-#[allow(clippy::trivial_regex)]
 lazy_static!{
     static ref CADICAL_SAT : Regex = Regex::new(r"^s SATISFIABLE\b").expect("wrong regex");
     static ref CADICAL_UNSAT : Regex = Regex::new(r"^s UNSATISFIABLE\b").expect("wrong regex");
