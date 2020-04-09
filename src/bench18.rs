@@ -1,8 +1,8 @@
 pub const BENCHMARK: &str = "SR18";
 
-pub const SCB: (&str, [(usize, &str); 400]) =
-    ("SR18",
-     [
+pub const SCB: (&str, [(usize, &str); 400]) = (
+    "SR18",
+    [
         (1, "10-3-13.cnf"),
         (2, "10-4-10.cnf"),
         (3, "1mod8.rules.7-7.cnf"),
@@ -430,5 +430,5 @@ pub const SCB: (&str, [(usize, &str); 400]) =
         (398, "uniqinv45prop.cnf"),
         (399, "uniqinv46prop.cnf"),
         (400, "uniqinv47prop.cnf"),
-     ]
-    );
+    ],
+);

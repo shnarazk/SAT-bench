@@ -1,17 +1,17 @@
 pub const BENCHMARK: &str = "SC17";
 
-pub const SCB: (&str, [(usize, &str); 350]) =
-    ("SR17",
-     [
-         (1, "g2-ACG-15-10p1.cnf"),
-         (2, "g2-ACG-20-10p1.cnf"),
-         (3, "g2-ACG-20-5p1.cnf"),
-         (4, "g2-Sz512_15128_1.smt2-cvc4.cnf"),
-         (5, "g2-T1.2.1.cnf"),
-         (6, "g2-T100.2.0.cnf"),
-         (7, "g2-T101.2.0.cnf"),
-         (8, "g2-T102.2.1.cnf"),
-         (9, "g2-T103.2.1.cnf"),
+pub const SCB: (&str, [(usize, &str); 350]) = (
+    "SR17",
+    [
+        (1, "g2-ACG-15-10p1.cnf"),
+        (2, "g2-ACG-20-10p1.cnf"),
+        (3, "g2-ACG-20-5p1.cnf"),
+        (4, "g2-Sz512_15128_1.smt2-cvc4.cnf"),
+        (5, "g2-T1.2.1.cnf"),
+        (6, "g2-T100.2.0.cnf"),
+        (7, "g2-T101.2.0.cnf"),
+        (8, "g2-T102.2.1.cnf"),
+        (9, "g2-T103.2.1.cnf"),
         (10, "g2-T104.1.0.cnf"),
         (11, "g2-T105.2.1.cnf"),
         (12, "g2-T106.2.0.cnf"),
@@ -353,5 +353,5 @@ pub const SCB: (&str, [(usize, &str); 350]) =
         (358, "mp1-tri_ali_s11_c35_bail_UNS.cnf"),
         (359, "mp1-tri_ali_s11_c35_sinx_UNS.cnf"),
         (360, "mp1-tri_ali_s11_c35_sinz_UNS.cnf"),
-     ]
-    );
+    ],
+);

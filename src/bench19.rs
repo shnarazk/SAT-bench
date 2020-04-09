@@ -495,4 +495,3 @@ pub const SCB: (&str, [(usize, &str); 400]) =
         (400, "x2_128.shuffled-as.sat03-1598-sc2002.cnf"),
      ]
     );
-
