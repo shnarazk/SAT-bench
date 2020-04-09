@@ -217,6 +217,9 @@ struct Config {
     /// the number of jobs in parallel
     #[structopt(long = "jobs", short = "j", default_value = "5")]
     num_jobs: usize,
+    /// disable realtime report
+    #[structopt(long = "no-report", short = "Q")]
+    no_report: bool,
 }
 
 fn main() {
@@ -382,12 +385,14 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
                         worker_report(&solver_name, j + offset, &r.0, &r.1);
                     } else {
                         *r = j;
-                        print!(
-                            "{}\x1B[032mRunning on {}th problem...\x1B[000m",
-                            CLEAR,
-                            j + offset
-                        );
-                        stdout().flush().unwrap();
+                        if !config.no_report {
+                            print!(
+                                "{}\x1B[032mRunning on {}th problem...\x1B[000m",
+                                CLEAR,
+                                j + offset
+                            );
+                            stdout().flush().unwrap();
+                        }
                         break;
                     }
                 }
@@ -401,12 +406,14 @@ fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> Solv
     if !f.is_file() {
         return None;
     }
-    print!(
-        "{}\x1B[032mRunning on {}...\x1B[000m",
-        CLEAR,
-        f.file_name().unwrap().to_str().unwrap()
-    );
-    stdout().flush().unwrap();
+    if !config.no_report {
+        print!(
+            "{}\x1B[032mRunning on {}...\x1B[000m",
+            CLEAR,
+            f.file_name().unwrap().to_str().unwrap()
+        );
+        stdout().flush().unwrap();
+    }
     let start = SystemTime::now();
     let mut run = Command::new("timeout");
     let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
@@ -466,14 +473,16 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
     let _tag = PathBuf::from(dir).file_name().unwrap().to_string_lossy();
     for e in fs::read_dir(dir).unwrap() {
         if let Ok(f) = e {
-            print!(
-                "{}\x1B[032mRunning on {:>2}th problem: {}...\x1B[000m",
-                CLEAR,
-                // &spinner[count % spinner.len()],
-                count,
-                f.path().file_name().unwrap().to_str().unwrap(),
-            );
-            stdout().flush().unwrap();
+            if !config.no_report {
+                print!(
+                    "{}\x1B[032mRunning on {:>2}th problem: {}...\x1B[000m",
+                    CLEAR,
+                    // &spinner[count % spinner.len()],
+                    count,
+                    f.path().file_name().unwrap().to_str().unwrap(),
+                );
+                stdout().flush().unwrap();
+            }
             let mut run = Command::new("timeout");
             let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
             for opt in config.solver_options.split_whitespace() {
@@ -639,12 +648,14 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
     for e in target.split_whitespace() {
         let f = PathBuf::from(e);
         if f.is_file() {
-            print!(
-                "{}\x1B[032mRunning on {}...\x1B[000m",
-                CLEAR,
-                f.file_name().unwrap().to_str().unwrap()
-            );
-            stdout().flush().unwrap();
+            if !config.no_report {
+                print!(
+                    "{}\x1B[032mRunning on {}...\x1B[000m",
+                    CLEAR,
+                    f.file_name().unwrap().to_str().unwrap()
+                );
+                stdout().flush().unwrap();
+            }
             let start = SystemTime::now();
             let mut run = Command::new("timeout");
             let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
