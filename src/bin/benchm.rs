@@ -426,7 +426,7 @@ fn start_benchmark(config: Config) {
         "Benchmark {} ended, {} problems, {} solutions",
         config.run_id, np.1, np.2
     ));
-    make_verifier(&config.benchmark, &config.dump_dir, &config.repo_dir)
+    make_verifier(&config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")

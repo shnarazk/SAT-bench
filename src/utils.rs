@@ -94,7 +94,7 @@ pub fn current_date_time() -> DateTime<Local> {
 pub fn make_verifier<P: AsRef<Path>>(
     problems: &[(usize, &str)],
     dump_dir: P,
-    repo_dir: P,
+    lib_dir: P,
 ) -> std::io::Result<()> {
     let outname = dump_dir.as_ref().join("verify.sh");
     let mut outfile = OpenOptions::new()
@@ -102,7 +102,7 @@ pub fn make_verifier<P: AsRef<Path>>(
         .create(true)
         .open(&outname)
         .expect("fail to create velify.sh");
-    let path = repo_dir.as_ref();
+    let path = lib_dir.as_ref();
     let mut sats = Vec::new();
     let mut unsats = Vec::new();
 
