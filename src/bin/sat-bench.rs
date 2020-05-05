@@ -179,12 +179,12 @@ struct Config {
     /// solvers names
     solvers: Vec<String>,
     /// a list of CNF files
-    #[structopt(long = "targets", short = "t", default_value = "")]
+    #[structopt(long = "targets", short = "T", default_value = "")]
     targets: String,
-    /// Lower limit of the number of variables of 3-SAT instances
+    /// Lower limit of #vars of 3-SAT instances
     #[structopt(long = "from", short = "L", default_value = "250")]
     range_from: usize,
-    /// Upper limit of the number of variables of 3-SAT instances
+    /// Upper limit of #vars of 3-SAT instances
     #[structopt(long = "upto", short = "U", default_value = "360")]
     range_to: usize,
     /// 3-SAT instances
@@ -197,14 +197,14 @@ struct Config {
     #[structopt(long = "massive", short = "m")]
     massive_3sat_set: bool,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "510")]
+    #[structopt(long = "timeout", short = "t", default_value = "510")]
     timeout: usize,
-    /// command to be executed after end of run
-    #[structopt(long = "terminate-hook", default_value = "finished")]
-    terminate_hook: String,
+    /// command to be executed after a run
+    #[structopt(long = "hook", default_value = "finished")]
+    hook: String,
     /// arguments passed to solvers
-    #[structopt(long = "options", default_value = "")]
-    solver_options: String,
+    #[structopt(long = "options", short = "O", default_value = "")]
+    solver_opts: String,
     ///  additinal string used in header
     #[structopt(long = "message", short = "M", default_value = "")]
     message: String,
@@ -251,7 +251,7 @@ fn main() {
         .expect("failed to execute process")
         .stdout;
     let h = String::from_utf8_lossy(&host[..host.len() - 1]);
-    if config.solver_options.is_empty() {
+    if config.solver_opts.is_empty() {
         println!(
             "# {}, timeout:{} on {} @ {}{}",
             VERSION,
@@ -265,7 +265,7 @@ fn main() {
             "# {}, timeout:{}, options:'{}' on {} @ {}{}",
             VERSION,
             config.timeout,
-            config.solver_options,
+            config.solver_opts,
             h,
             current_date_time().format("%FT%H:%M:%S").to_string(),
             extra_message
@@ -318,8 +318,8 @@ fn main() {
             num += 1;
         }
     }
-    if !config.terminate_hook.is_empty() {
-        let _ = Command::new(config.terminate_hook).output();
+    if !config.hook.is_empty() {
+        let _ = Command::new(config.hook).output();
     }
 }
 
@@ -417,7 +417,7 @@ fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> Solv
     let start = SystemTime::now();
     let mut run = Command::new("timeout");
     let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
-    for opt in config.solver_options.split_whitespace() {
+    for opt in config.solver_opts.split_whitespace() {
         command = command.arg(&opt[opt.starts_with('\\') as usize..]);
     }
     Some((
@@ -485,7 +485,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
             }
             let mut run = Command::new("timeout");
             let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
-            for opt in config.solver_options.split_whitespace() {
+            for opt in config.solver_opts.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
             match command
@@ -659,7 +659,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             let start = SystemTime::now();
             let mut run = Command::new("timeout");
             let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
-            for opt in config.solver_options.split_whitespace() {
+            for opt in config.solver_opts.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
             match command
