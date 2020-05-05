@@ -398,10 +398,7 @@ fn start_benchmark(config: Config) {
         config.num_jobs
     ));
     if !diff.is_empty() {
-        config.post(format!(
-            "**WARNING: unregistered modifications**\n```diff\n{}```\n",
-            diff
-        ));
+        config.post("WARNING: There're unregistered modifications!");
     }
     println!("Benchmark: {}", &config.run_id);
     crossbeam::scope(|s| {
