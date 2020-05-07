@@ -575,6 +575,7 @@ impl SolverHandling for Command {
             }
             Ok(ref done) => {
                 match done.status.code() {
+                    Some(124) => return Err(SolverException::TimeOut),
                     Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
                     Some(0) => (),
                     e => {
