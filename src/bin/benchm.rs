@@ -289,7 +289,7 @@ fn main() {
                     stdout().flush().unwrap();
                     Command::new("cargo")
                         .current_dir(&config.repo_dir)
-                        .args(&["install", "--path", ".", "--force"])
+                        .args(&["install", "--path", ".", "--force", "--features", "cli"])
                         .output()
                         .expect("fail to compile");
                     config.solver = splr;
