@@ -208,7 +208,7 @@ impl Config {
             command
         } else if GLUCOSE.is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
-            command.args(&["-verb=0", &format!("-cpu-lim={}", self.timeout)]);
+            command.args(&[&format!("-cpu-lim={}", self.timeout)]);
             command
         } else {
             Command::new(&self.solver)
