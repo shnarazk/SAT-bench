@@ -699,8 +699,10 @@ impl SolverHandling for Command {
                         }
                         Ok(0.0)
                     }
-                    (_, ref s, _) if s.contains("TimeOut") => Err(SolverException::TimeOut),
-                    (_, ref s, _) if s.contains("c UNKNOWN") => {
+                    (_, ref s, _) if s.contains("s UNKNOWN")
+                        || s.contains("TimeOut")
+                        || s.contains("s INDETERMINATE") =>
+                    {
                         if !SPLR.is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
                         }
