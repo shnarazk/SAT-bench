@@ -120,9 +120,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            benchmark_name: sat_bench::bench19core::SCB.0.to_string(),
+            benchmark_name: sat_bench::bench20::SCB.0.to_string(),
             seq_num: 0,
-            benchmark: &sat_bench::bench19core::SCB.1,
+            benchmark: &sat_bench::bench20::SCB.1,
             solver: String::from("splr"),
             target_from: 0,
             target_to: 400,
