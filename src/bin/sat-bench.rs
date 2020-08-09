@@ -197,7 +197,7 @@ struct Config {
     #[structopt(long = "massive", short = "m")]
     massive_3sat_set: bool,
     /// only UNSAT 360 3SAT instances
-    #[structopt(long = "massive", short = "u")]
+    #[structopt(long = "unsat360", short = "u")]
     unsat_360_3sat_set: bool,
     /// time out in seconds
     #[structopt(long = "timeout", short = "t", default_value = "510")]
