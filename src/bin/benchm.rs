@@ -245,16 +245,16 @@ fn main() {
     let home = env::var("HOME").expect("No home");
     let compiled_solver = config.solver.starts_with('/');
     config.benchmark_name = match config.benchmark_name.as_str() {
-        "SR19Core" => config.benchmark_name,
+        "SC20" => config.benchmark_name,
         "SR19" => config.benchmark_name,
         "SC18" => config.benchmark_name,
-        _ => "SR19Core".to_string(),
+        _ => "SR20".to_string(),
     };
     config.benchmark = match config.benchmark_name.as_str() {
-        "SR19Core" => &sat_bench::bench19core::SCB.1,
+        "SC20" => &sat_bench::bench20::SCB.1,
         "SR19" => &sat_bench::bench19::SCB.1,
         "SC18" => &sat_bench::bench18::SCB.1,
-        _ => &sat_bench::bench19core::SCB.1,
+        _ => &sat_bench::bench20::SCB.1,
     };
     config.data_dir = PathBuf::from(
         tilde
@@ -699,9 +699,10 @@ impl SolverHandling for Command {
                         }
                         Ok(0.0)
                     }
-                    (_, ref s, _) if s.contains("s UNKNOWN")
-                        || s.contains("TimeOut")
-                        || s.contains("s INDETERMINATE") =>
+                    (_, ref s, _)
+                        if s.contains("s UNKNOWN")
+                            || s.contains("TimeOut")
+                            || s.contains("s INDETERMINATE") =>
                     {
                         if !SPLR.is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
