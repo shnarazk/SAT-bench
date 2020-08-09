@@ -196,6 +196,9 @@ struct Config {
     /// SAT/UNSAT 360 3SAT instances
     #[structopt(long = "massive", short = "m")]
     massive_3sat_set: bool,
+    /// only UNSAT 360 3SAT instances
+    #[structopt(long = "massive", short = "u")]
+    unsat_360_3sat_set: bool,
     /// time out in seconds
     #[structopt(long = "timeout", short = "t", default_value = "510")]
     timeout: usize,
@@ -281,9 +284,10 @@ fn main() {
     if !config.three_sat_set
         && !config.structured_set
         && !config.massive_3sat_set
+        && !config.unsat_360_3sat_set
         && config.targets.is_empty()
     {
-        config.three_sat_set = true;
+        config.unsat_360_3sat_set = true;
     }
     for solver in &config.solvers {
         if !single_solver {
@@ -309,6 +313,9 @@ fn main() {
         }
         if config.massive_3sat_set {
             threaded_execute(&config, &solver_name, &MATH_PROBLEMS, &mut num, base);
+        }
+        if config.unsat_360_3sat_set {
+            threaded_execute(&config, &solver_name, &MATH_PROBLEMS[10..], &mut num, base);
         }
         if config.structured_set {
             threaded_execute(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num, base);
