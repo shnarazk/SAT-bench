@@ -288,6 +288,8 @@ fn main() {
         && config.targets.is_empty()
     {
         config.unsat_360_3sat_set = true;
+        config.timeout = 3600;
+        config.num_jobs = 4;
     }
     for solver in &config.solvers {
         if !single_solver {
