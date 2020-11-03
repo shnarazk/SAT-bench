@@ -248,6 +248,16 @@ fn main() {
     } else {
         format!(", {}", config.message)
     };
+    if !config.three_sat_set
+        && !config.structured_set
+        && !config.massive_3sat_set
+        && !config.unsat_360_3sat_set
+        && config.targets.is_empty()
+    {
+        config.unsat_360_3sat_set = true;
+        config.timeout = 3600;
+        config.num_jobs = 4;
+    }
     let host = Command::new("hostname")
         .arg("-s")
         .output()
@@ -281,16 +291,6 @@ fn main() {
         "{:<14}{:>3},{:>24}{:>8}",
         "solver,", "num", "target,", "time"
     );
-    if !config.three_sat_set
-        && !config.structured_set
-        && !config.massive_3sat_set
-        && !config.unsat_360_3sat_set
-        && config.targets.is_empty()
-    {
-        config.unsat_360_3sat_set = true;
-        config.timeout = 3600;
-        config.num_jobs = 4;
-    }
     for solver in &config.solvers {
         if !single_solver {
             print_solver(solver);
