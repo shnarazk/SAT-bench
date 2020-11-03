@@ -254,8 +254,8 @@ fn main() {
         && !config.unsat_360_3sat_set
         && config.targets.is_empty()
     {
-        config.unsat_360_3sat_set = true;
-        config.timeout = 3600;
+        config.massive_3sat_set = ture;
+        config.timeout = 3000;
         config.num_jobs = 4;
     }
     let host = Command::new("hostname")
