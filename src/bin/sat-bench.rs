@@ -315,8 +315,7 @@ fn main() {
         }
         if config.massive_3sat_set {
             threaded_execute(&config, &solver_name, &MATH_PROBLEMS, &mut num, base);
-        }
-        if config.unsat_360_3sat_set {
+        } else if config.unsat_360_3sat_set {
             threaded_execute(&config, &solver_name, &MATH_PROBLEMS[10..], &mut num, base);
         }
         if config.structured_set {
