@@ -179,7 +179,7 @@ struct Config {
     /// solvers names
     solvers: Vec<String>,
     /// a list of CNF files
-    #[structopt(long = "targets", short = "T", default_value = "")]
+    #[structopt(long = "target", default_value = "")]
     targets: String,
     /// Lower limit of #vars of 3-SAT instances
     #[structopt(long = "from", short = "L", default_value = "250")]
@@ -200,7 +200,7 @@ struct Config {
     #[structopt(long = "unsat360", short = "u")]
     unsat_360_3sat_set: bool,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "t", default_value = "510")]
+    #[structopt(long = "timeout", short = "t", default_value = "2000")]
     timeout: usize,
     /// command to be executed after a run
     #[structopt(long = "hook", default_value = "finished")]
@@ -218,7 +218,7 @@ struct Config {
     #[structopt(long = "lib", default_value = "")]
     lib_dir: String,
     /// the number of jobs in parallel
-    #[structopt(long = "jobs", short = "j", default_value = "5")]
+    #[structopt(long = "jobs", short = "j", default_value = "4")]
     num_jobs: usize,
     /// disable realtime report
     #[structopt(long = "no-report", short = "Q")]
@@ -255,8 +255,6 @@ fn main() {
         && config.targets.is_empty()
     {
         config.massive_3sat_set = true;
-        config.timeout = 3000;
-        config.num_jobs = 4;
     }
     let host = Command::new("hostname")
         .arg("-s")
