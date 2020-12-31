@@ -394,8 +394,9 @@ fn start_benchmark(config: Config) {
     }
     report(&config, 0).unwrap();
     config.post(format!(
-        "A new {} parallel benchmark starts.",
-        config.num_jobs
+        "A new {} parallel, {} timeout benchmark starts.",
+        config.num_jobs,
+        config.timeout
     ));
     if !diff.is_empty() {
         config.post("WARNING: There're unregistered modifications!");
