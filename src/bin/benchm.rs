@@ -395,8 +395,7 @@ fn start_benchmark(config: Config) {
     report(&config, 0).unwrap();
     config.post(format!(
         "A new {} parallel, {} timeout benchmark starts.",
-        config.num_jobs,
-        config.timeout
+        config.num_jobs, config.timeout
     ));
     if !diff.is_empty() {
         config.post("WARNING: There're unregistered modifications!");
@@ -421,8 +420,8 @@ fn start_benchmark(config: Config) {
         config.run_id, np.1, np.2
     );
     config.post(format!(
-        "Benchmark {} ended, {} problems, {} solutions",
-        config.run_id, np.1, np.2
+        "A {} timeout benchmark {} ended, {} problems, {} solutions",
+        config.timeout, config.run_id, np.1, np.2
     ));
     make_verifier(&config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
