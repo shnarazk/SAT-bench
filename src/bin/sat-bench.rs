@@ -47,6 +47,7 @@ lazy_static! {
     pub static ref PQUEUE: RwLock<VecDeque<(usize, String, String)>> = RwLock::new(VecDeque::new());
     pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
     pub static ref NREPORT: RwLock<usize> = RwLock::new(0);
+    pub static ref TOTALTIME: RwLock<f64> = RwLock::new(0.0);
 }
 
 const SAT_PROBLEMS: [(usize, &str); 18] = [
@@ -290,6 +291,9 @@ fn main() {
         "solver,", "num", "target,", "time"
     );
     for solver in &config.solvers {
+        if let Ok(mut t) = TOTALTIME.write() {
+            *t = 0.0;
+        }
         if !single_solver {
             print_solver(solver);
         }
@@ -323,6 +327,15 @@ fn main() {
             execute(&config, solver, num, t, t);
             num += 1;
         }
+        if let Ok(t) = TOTALTIME.read() {
+            println!(
+                "{}{:<14}   ,                  total,{:>8.3}",
+                CLEAR,
+                &format!("\"{}\",", solver),
+                t,
+            );
+        }
+
     }
     if !config.hook.is_empty() {
         let _ = Command::new(config.hook).output();
@@ -445,6 +458,9 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 &format!("\"{}\",", name),
                 end,
             );
+            if let Ok(mut t) = TOTALTIME.write() {
+                *t += end;
+            }
         }
         Err(SolverException::TimeOut) => {
             println!(
@@ -540,6 +556,9 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         // &format!("\"{}({})\",", tag, count),
         end,
     );
+    if let Ok(mut t) = TOTALTIME.write() {
+        *t += end;
+    }
 }
 
 trait SolverHandling {
@@ -682,6 +701,9 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         &format!("\"{}\",", name),
                         end,
                     );
+                    if let Ok(mut t) = TOTALTIME.write() {
+                        *t += end;
+                    }
                 }
                 Err(SolverException::TimeOut) => {
                     println!(
