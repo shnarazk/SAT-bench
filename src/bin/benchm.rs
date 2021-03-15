@@ -3,6 +3,7 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
+        ANS_PREFIX,
         matrix,
         utils::{current_date_time, make_verifier, parse_result},
     },
@@ -156,7 +157,8 @@ impl Config {
     }
     fn dump_stream(&self, cnf: &PathBuf, stream: &str) -> std::io::Result<()> {
         let outname = self.dump_dir.join(format!(
-            ".ans_{}",
+            "{}_{}",
+            ANS_PREFIX,
             cnf.file_name().unwrap().to_string_lossy()
         ));
         let outfile = fs::OpenOptions::new()
@@ -527,7 +529,7 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
                 continue;
             }
             let fname = f.file_name().to_string_lossy().to_string();
-            if fname.starts_with(".ans_") {
+            if fname.starts_with(ANS_PREFIX) {
                 let cnf = &fname[5..];
                 for (_n, key) in config.benchmark.iter() {
                     if *key == cnf {

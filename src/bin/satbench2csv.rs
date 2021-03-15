@@ -1,5 +1,5 @@
 use {
-    sat_bench::{bench19::SCB, utils::parse_result},
+    sat_bench::{ANS_PREFIX, bench19::SCB, utils::parse_result},
     std::{collections::HashMap, fs},
     structopt::StructOpt,
 };
@@ -46,7 +46,7 @@ fn main() -> std::io::Result<()> {
             continue;
         }
         let fname = f.file_name().to_string_lossy().to_string();
-        if fname.starts_with(".ans_") {
+        if fname.starts_with(ANS_PREFIX) {
             let cnf = &fname[5..];
             for (_n, key) in SCB.1.iter() {
                 if *key == cnf {

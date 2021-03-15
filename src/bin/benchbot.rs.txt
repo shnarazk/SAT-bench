@@ -1,6 +1,7 @@
 /// A simple SAT benchmarker
 use lazy_static::lazy_static;
 use regex::Regex;
+use sat_bench::ANS_PREFIX;
 use sat_bench::matrix;
 use sat_bench::utils::current_date_time;
 use sat_bench::{bench18::SCB, utils::parse_result};
@@ -503,7 +504,7 @@ fn report(config: &Config) -> std::io::Result<(usize, usize)> {
                 continue;
             }
             let fname = f.file_name().to_string_lossy().to_string();
-            if fname.starts_with(".ans_") {
+            if fname.starts_with(ANS_PREFIX) {
                 let cnf = &fname[5..];
                 for (_n, key) in SCB.iter() {
                     if *key == cnf {

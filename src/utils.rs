@@ -1,6 +1,7 @@
 #![allow(clippy::trivial_regex)]
 use {
     chrono::{offset::TimeZone, DateTime, Local},
+    crate::ANS_PREFIX,
     lazy_static::lazy_static,
     regex::Regex,
     std::{
@@ -109,7 +110,7 @@ pub fn make_verifier<P: AsRef<Path>>(
     for (n, key) in problems.iter() {
         let fname = dump_dir
             .as_ref()
-            .join(PathBuf::from(format!(".ans_{}", key)));
+            .join(PathBuf::from(format!("{}{}", ANS_PREFIX, key)));
         if fname.exists() {
             if let Some((_, s, _)) = parse_result(fname) {
                 match s {
