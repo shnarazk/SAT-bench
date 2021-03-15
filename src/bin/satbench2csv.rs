@@ -47,7 +47,7 @@ fn main() -> std::io::Result<()> {
         }
         let fname = f.file_name().to_string_lossy().to_string();
         if fname.starts_with(ANS_PREFIX) {
-            let cnf = &fname[5..];
+            let cnf = fname.strip_prefix(ANS_PREFIX).expect("invalid answer file");
             for (_n, key) in SCB.1.iter() {
                 if *key == cnf {
                     if None != hash.get(key) {
