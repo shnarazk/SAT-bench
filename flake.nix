@@ -8,7 +8,7 @@
         stdenv.mkDerivation {
           name = "SAT-bench";
           src = self;
-          buildInputs = [ cargo rustc ];
+          buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkgconfig ];
           buildPhase = "cargo build --release";
           installPhase = "mkdir -p $out/bin; install -t $out/bin target/release/sat-bench target/release/benchm";
         }
