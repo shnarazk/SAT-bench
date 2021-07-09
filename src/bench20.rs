@@ -1,6 +1,6 @@
 pub const BENCHMARK: &str = "SR20";
 
-#[allow(clippy::clippy::zero_prefixed_literal)]
+#[allow(clippy::zero_prefixed_literal)]
 pub const SCB: (&str, [(usize, &str); 400]) = (
     "SC20",
     [

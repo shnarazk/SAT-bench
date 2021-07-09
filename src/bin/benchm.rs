@@ -11,7 +11,7 @@ use {
         collections::HashMap,
         env, fs,
         io::{stdout, BufWriter, Write},
-        path::PathBuf,
+        path::{Path, PathBuf},
         process::Command,
         str,
         sync::RwLock,
@@ -155,7 +155,7 @@ impl Config {
             &format!("{}: {}", self.run_id, msg.as_ref()),
         );
     }
-    fn dump_stream(&self, cnf: &PathBuf, stream: &str) -> std::io::Result<()> {
+    fn dump_stream(&self, cnf: &Path, stream: &str) -> std::io::Result<()> {
         let outname = self.dump_dir.join(format!(
             "{}_{}",
             ANS_PREFIX,
@@ -226,17 +226,14 @@ impl Config {
         }
     }
     fn execute(&self, cnf: PathBuf) -> SolveResultPromise {
-        assert!(
-            cnf.is_file(),
-            format!("{} does not exist.", cnf.to_string_lossy())
-        );
+        assert!(cnf.is_file(), "{} does not exist.", cnf.to_string_lossy());
         let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
         // println!("\x1B[032m{}\x1B[000m", target);
         let mut command: Command = self.solver_command();
         for opt in self.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
-        Some((target, command.arg(cnf.as_os_str()).to_result(self, &cnf)))
+        Some((target, command.arg(cnf.as_os_str()).map_to_result(self, &cnf)))
     }
 }
 
@@ -283,21 +280,25 @@ fn main() {
     }
     if !compiled_solver && config.solver.is_empty() && config.rereport.is_empty() {
         config.solver = "splr".to_string();
-        for e in config.repo_dir.join("src/bin").read_dir().expect("no repo") {
-            if let Ok(f) = e {
-                let splr = f.path().file_stem().unwrap().to_string_lossy().to_string();
-                if splr.contains("splr") {
-                    print!("\x1B[032mCompiling {}...\x1B[000m", config.solver);
-                    stdout().flush().unwrap();
-                    Command::new("cargo")
-                        .current_dir(&config.repo_dir)
-                        .args(&["install", "--path", ".", "--force", "--features", "cli"])
-                        .output()
-                        .expect("fail to compile");
-                    config.solver = splr;
-                    println!("\x1B[032mdone.\x1B[000m");
-                    break;
-                }
+        for f in config
+            .repo_dir
+            .join("src/bin")
+            .read_dir()
+            .expect("no repo")
+            .flatten()
+        {
+            let splr = f.path().file_stem().unwrap().to_string_lossy().to_string();
+            if splr.contains("splr") {
+                print!("\x1B[032mCompiling {}...\x1B[000m", config.solver);
+                stdout().flush().unwrap();
+                Command::new("cargo")
+                    .current_dir(&config.repo_dir)
+                    .args(&["install", "--path", ".", "--force", "--features", "cli"])
+                    .output()
+                    .expect("fail to compile");
+                config.solver = splr;
+                println!("\x1B[032mdone.\x1B[000m");
+                break;
             }
         }
     }
@@ -414,7 +415,7 @@ fn start_benchmark(config: Config) {
     })
     .expect("fail to exit crossbeam::scope");
     check_result(&config);
-    let mut np = PROCESSED.read().and_then(|v| Ok(*v)).unwrap_or((0, 0, 0));
+    let mut np = PROCESSED.read().map(|v| *v).unwrap_or((0, 0, 0));
     let (s, u) = report(&config, np.1).unwrap_or((0, 0));
     np.2 = s + u;
     println!(
@@ -675,11 +676,11 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
 }
 
 trait SolverHandling {
-    fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException>;
+    fn map_to_result(&mut self, config: &Config, cnf: &Path) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
-    fn to_result(&mut self, config: &Config, cnf: &PathBuf) -> Result<f64, SolverException> {
+    fn map_to_result(&mut self, config: &Config, cnf: &Path) -> Result<f64, SolverException> {
         match &self.output() {
             Ok(r) => {
                 match (

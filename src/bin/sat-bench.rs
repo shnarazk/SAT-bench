@@ -244,7 +244,7 @@ fn main() {
         1 => true,
         _ => false,
     };
-    let extra_message = if config.message == "" {
+    let extra_message = if config.message.is_empty() {
         "".to_string()
     } else {
         format!(", {}", config.message)
@@ -492,53 +492,51 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
     let mut count: usize = 0;
     let start = SystemTime::now();
     let _tag = PathBuf::from(dir).file_name().unwrap().to_string_lossy();
-    for e in fs::read_dir(dir).unwrap() {
-        if let Ok(f) = e {
-            if !config.no_report {
-                print!(
-                    "{}\x1B[032mRunning on {:>2}th problem: {}...\x1B[000m",
+    for f in fs::read_dir(dir).unwrap().flatten() {
+        if !config.no_report {
+            print!(
+                "{}\x1B[032mRunning on {:>2}th problem: {}...\x1B[000m",
+                CLEAR,
+                // &spinner[count % spinner.len()],
+                count,
+                f.path().file_name().unwrap().to_str().unwrap(),
+            );
+            stdout().flush().unwrap();
+        }
+        let mut run = Command::new("timeout");
+        let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
+        for opt in config.solver_opts.split_whitespace() {
+            command = command.arg(&opt[opt.starts_with('\\') as usize..]);
+        }
+        match command
+            .arg(f.path())
+            .check_result(solver, &start, config.timeout as f64)
+        {
+            Ok(_) => {
+                count += 1;
+            }
+            Err(SolverException::TimeOut) => {
+                println!(
+                    "{}{:<14}{:>3},{:>24} TIMEOUT at {}",
                     CLEAR,
-                    // &spinner[count % spinner.len()],
-                    count,
-                    f.path().file_name().unwrap().to_str().unwrap(),
+                    &format!("\"{}\",", solver_name),
+                    num,
+                    &format!("\"{}{}({})\",", name, n, count),
+                    // &format!("\"{}({})\",", tag, count),
+                    f.file_name().to_str().unwrap(),
                 );
-                stdout().flush().unwrap();
+                return;
             }
-            let mut run = Command::new("timeout");
-            let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
-            for opt in config.solver_opts.split_whitespace() {
-                command = command.arg(&opt[opt.starts_with('\\') as usize..]);
-            }
-            match command
-                .arg(f.path())
-                .check_result(solver, &start, config.timeout as f64)
-            {
-                Ok(_) => {
-                    count += 1;
-                }
-                Err(SolverException::TimeOut) => {
-                    println!(
-                        "{}{:<14}{:>3},{:>24} TIMEOUT at {}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}{}({})\",", name, n, count),
-                        // &format!("\"{}({})\",", tag, count),
-                        f.file_name().to_str().unwrap(),
-                    );
-                    return;
-                }
-                Err(SolverException::Abort) => {
-                    println!(
-                        "{}{:<14}{:>3},{:>24} ABORT at {}",
-                        CLEAR,
-                        &format!("\"{}\",", solver_name),
-                        num,
-                        &format!("\"{}{}({})\",", name, n, count),
-                        f.file_name().to_str().unwrap(),
-                    );
-                    return;
-                }
+            Err(SolverException::Abort) => {
+                println!(
+                    "{}{:<14}{:>3},{:>24} ABORT at {}",
+                    CLEAR,
+                    &format!("\"{}\",", solver_name),
+                    num,
+                    &format!("\"{}{}({})\",", name, n, count),
+                    f.file_name().to_str().unwrap(),
+                );
+                return;
             }
         }
     }
