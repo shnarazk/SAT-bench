@@ -1,7 +1,7 @@
 #![allow(clippy::trivial_regex)]
 use {
-    chrono::{offset::TimeZone, DateTime, Local},
     crate::ANS_PREFIX,
+    chrono::{offset::TimeZone, DateTime, Local},
     lazy_static::lazy_static,
     regex::Regex,
     std::{

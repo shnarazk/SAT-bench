@@ -3,9 +3,9 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
-        ANS_PREFIX,
         matrix,
         utils::{current_date_time, make_verifier, parse_result},
+        ANS_PREFIX,
     },
     std::{
         collections::HashMap,

@@ -335,7 +335,6 @@ fn main() {
                 t,
             );
         }
-
     }
     if !config.hook.is_empty() {
         let _ = Command::new(config.hook).output();

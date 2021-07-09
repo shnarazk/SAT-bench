@@ -1,5 +1,5 @@
 use {
-    sat_bench::{ANS_PREFIX, bench19::SCB, utils::parse_result},
+    sat_bench::{bench19::SCB, utils::parse_result, ANS_PREFIX},
     std::{collections::HashMap, fs},
     structopt::StructOpt,
 };
