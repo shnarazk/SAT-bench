@@ -135,11 +135,10 @@ pub fn make_verifier<P: AsRef<Path>>(
         writeln!(outfile, "# - UNSAT:{}, {:>3}, {}", n, i, p)?;
         writeln!(outfile, "    echo '# UNSAT:{}, {:>3}, {}'", n, i, p)?;
         writeln!(outfile, "    splr -c {} > /dev/null", f)?;
-        writeln!(outfile, "    egrep -v '^[cs]' < proof.out > {}.drat", p)?;
         writeln!(
             outfile,
-            "    gratgen {} {}.drat -o {}.grad -j 4 > /dev/null",
-            f, p, p
+            "    gratgen {} proof.drat -o {}.grad -j 4 > /dev/null",
+            f, p
         )?;
         writeln!(outfile, "    gratchk unsat {} {}.grad", f, p)?;
     }
