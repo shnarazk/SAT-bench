@@ -6,7 +6,9 @@ if [ ! -f $1 ] ; then
     echo "$1 doesn't exitst"
 fi
 
-splr -c -p ${cert}.drat -t ${timeout} -j $1
+VERBOSE=${UCPC_MODE:- -j}
+splr -c -p ${cert}.drat -t ${timeout} ${VERBOSE} $1
+
 result=$?
 if [ $result == 20 ] ;
 then
