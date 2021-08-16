@@ -6,7 +6,7 @@ if [ ! -f $1 ] ; then
     echo "$1 doesn't exitst"
 fi
 
-VERBOSE=${UCPC_MODE:- -j}
+VERBOSE=${UCPC_MODE:- }
 splr -c -p ${cert}.drat -t ${timeout} ${VERBOSE} $1
 
 result=$?
