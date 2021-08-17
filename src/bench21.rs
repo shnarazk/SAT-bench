@@ -1,0 +1,809 @@
+pub const BENCHMARK: &str = "SC21";
+
+#[allow(clippy::zero_prefixed_literal)]
+pub const SCB: (&str, [(usize, &str); 400]) = (
+    "SC21",
+    [
+        (001, "10pipe_k.cnf"),
+        (002, "13pipe_k.cnf"),
+        (003, "143.smt2.cnf"),
+        (004, "14pipe_q0_k.cnf"),
+        (005, "20-100-frag12-0_sat.cnf"),
+        (006, "20-100-frag12-14_sat.cnf"),
+        (007, "20-100-frag12-32_sat.cnf"),
+        (008, "20-100-frag12-53_sat.cnf"),
+        (009, "20-100-lambda100-14_sat.cnf"),
+        (010, "20-100-lambda100-14_unsat.cnf"),
+        (011, "20-100-lambda100-47_unsat.cnf"),
+        (012, "20-100-lambda100-49_sat.cnf"),
+        (013, "20-100-lambda100-65_sat.cnf"),
+        (014, "20-100-lambda100-89_sat.cnf"),
+        (015, "20-100-lambda100-89_unsat.cnf"),
+        (016, "20-100-p100-55_sat.cnf"),
+        (017, "20-100-p100-55_unsat.cnf"),
+        (018, "2bitcomp_5.hg_20.cnf"),
+        (019, "51.smt2.cnf"),
+        (020, "73.smt2.cnf"),
+        (021, "79.smt2.cnf"),
+        (022, "9dlx_vliw_at_b_iq5.cnf"),
+        (023, "9dlx_vliw_at_b_iq8.cnf"),
+        (024, "ACG-15-10p1.cnf"),
+        (025, "Circuit_multiplier18.cnf"),
+        (026, "Circuit_multiplier22.cnf"),
+        (027, "Circuit_multiplier24.cnf"),
+        (028, "Circuit_multiplier25.cnf"),
+        (029, "Circuit_multiplier26.cnf"),
+        (030, "Circuit_multiplier29.cnf"),
+        (031, "Circuit_multiplier33.cnf"),
+        (032, "Circuit_multiplier34.cnf"),
+        (033, "Circuit_multiplier35.cnf"),
+        (034, "Circuit_multiplier36.cnf"),
+        (035, "Circuit_multiplier37.cnf"),
+        (036, "Circuit_multiplier45.cnf"),
+        (037, "Circuit_multiplier53.cnf"),
+        (038, "E00X23.cnf"),
+        (039, "E02F17.cnf"),
+        (040, "ER_500_40_2.apx_0.cnf"),
+        (041, "HCP-424-60.cnf"),
+        (042, "HCP-446-105.cnf"),
+        (043, "HCP-446-420.cnf"),
+        (044, "HCP-446-60.cnf"),
+        (045, "HCP-470-105.cnf"),
+        (046, "HCP-470-420.cnf"),
+        (047, "HCP-470-60.cnf"),
+        (048, "HCP-506-60.cnf"),
+        (049, "HCP-522-105.cnf"),
+        (050, "HCP-526-105.cnf"),
+        (051, "HCP-526-420.cnf"),
+        (052, "HCP-529-420.cnf"),
+        (053, "HCP-529-60.cnf"),
+        (054, "IBM_FV_2004_rule_batch_30_SAT_dat.k75.cnf"),
+        (055, "Kakuro-easy-045-ext.xml.hg_4.cnf"),
+        (056, "Kakuro-easy-051-ext.xml.hg_4.cnf"),
+        (057, "Kakuro-easy-089-ext.xml.hg_4.cnf"),
+        (058, "Kakuro-easy-104-ext.xml.hg_6.cnf"),
+        (059, "Kakuro-easy-112-ext.xml.hg_7.cnf"),
+        (060, "Kakuro-easy-115-ext.xml.hg_5.cnf"),
+        (061, "Kakuro-easy-118-ext.xml.hg_4.cnf"),
+        (062, "Kakuro-easy-127-ext.xml.hg_7.cnf"),
+        (063, "Kakuro-easy-132-ext.xml.hg_8.cnf"),
+        (064, "Kakuro-easy-142-ext.xml.hg_8.cnf"),
+        (065, "Kakuro-easy-150-ext.xml.hg_9.cnf"),
+        (066, "Kakuro-easy-156-ext.xml.hg_7.cnf"),
+        (067, "LABS_n041_goal003.cnf"),
+        (068, "LABS_n068_goal001.cnf"),
+        (069, "LABS_n069_goal001.cnf"),
+        (070, "LABS_n072_goal006.cnf"),
+        (071, "LABS_n089_goal008.cnf"),
+        (072, "MVD_ADS_S10_5_6.cnf"),
+        (073, "MVD_ADS_S10_6_6.cnf"),
+        (074, "MVD_ADS_S11_6_7.cnf"),
+        (075, "MVD_ADS_S11_7_7.cnf"),
+        (076, "MVD_ADS_S11_8_7.cnf"),
+        (077, "MVD_ADS_S1_5_5.cnf"),
+        (078, "MVD_ADS_S3_5_5.cnf"),
+        (079, "MVD_ADS_S4_5_5.cnf"),
+        (080, "MVD_ADS_S5_6_6.cnf"),
+        (081, "MVD_ADS_S6_6_5.cnf"),
+        (082, "MVD_ADS_S6_6_6.cnf"),
+        (083, "MVD_ADS_S7_6_6.cnf"),
+        (084, "MVD_ADS_S9_6_6.cnf"),
+        (085, "Mycielski-10-hints-10.cnf"),
+        (086, "Mycielski-10-hints-5.cnf"),
+        (087, "Mycielski-10-hints-6.cnf"),
+        (088, "Mycielski-10-hints-7.cnf"),
+        (089, "Mycielski-10-hints-8.cnf"),
+        (090, "Mycielski-10-hints-9.cnf"),
+        (091, "Mycielski-11-hints-1.cnf"),
+        (092, "Mycielski-11-hints-2.cnf"),
+        (093, "Mycielski-11-hints-3.cnf"),
+        (094, "Mycielski-11-hints-4.cnf"),
+        (095, "Nb51T6.cnf"),
+        (096, "SC21_Timetable_C_121_E_34_Cl_8_S_4.cnf"),
+        (097, "SC21_Timetable_C_136_E_36_Cl_9_S_15.cnf"),
+        (098, "SC21_Timetable_C_136_E_41_Cl_9_S_15.cnf"),
+        (099, "SC21_Timetable_C_140_E_29_Cl_10_S_15.cnf"),
+        (100, "SC21_Timetable_C_140_E_32_Cl_30_S_10.cnf"),
+        (101, "SC21_Timetable_C_181_E_34_Cl_12_S_4.cnf"),
+        (102, "SC21_Timetable_C_181_E_34_Cl_12_S_8.cnf"),
+        (103, "SC21_Timetable_C_241_E_34_Cl_16_S_13.cnf"),
+        (104, "SC21_Timetable_C_466_E_62_Cl_31_S_30.cnf"),
+        (105, "SC21_Timetable_C_512_E_66_Cl_34_S_35.cnf"),
+        (106, "SC21_Timetable_C_527_E_71_Cl_35_S_35.cnf"),
+        (107, "SC21_Timetable_C_542_E_71_Cl_36_S_35.cnf"),
+        (108, "SC21_Timetable_C_557_E_73_Cl_37_S_35.cnf"),
+        (109, "SE_PR_WS_500_16_70_10.apx_0.cnf"),
+        (110, "Sz1024_34824.smt2.cnf"),
+        (111, "Sz512_15128_1.smt2.cnf"),
+        (112, "UCG-20-10p1-sc2009.cnf"),
+        (113, "UR-15-10p0.cnf"),
+        (114, "UR-20-5p1.cnf"),
+        (115, "WS_300_24_90_10.apx_0.cnf"),
+        (116, "WS_400_16_90_70.apx_0.cnf"),
+        (117, "WS_500_16_70_10.apx_0.cnf"),
+        (118, "WS_500_32_30_10.apx_0.cnf"),
+        (119, "ak016modbtsimpbisc.cnf"),
+        (120, "ak032modbtmodbtisc.cnf"),
+        (121, "ak128paralparalisc.cnf"),
+        (122, "assoc_mult_err_3.c.cnf"),
+        (123, "at-least-two-aaai10-planning-ipc5-pathways-17-step20.cnf"),
+        (124, "at-least-two-aaai10-planning-ipc5-pipesworld-12-step15.cnf"),
+        (125, "at-least-two-hwmcc10-timeframe-expansion-k50-pdtviseisenberg2-tseitin.cnf"),
+        (126, "at-least-two-ibm-2004-23-k100.cnf"),
+        (127, "at-least-two-maris-s03-gripper11.cnf"),
+        (128, "at-least-two-smtlib-qfbv-aigs-ext_con_032_008_0256-tseitin.cnf"),
+        (129, "at-least-two-sokoban-sequential-p145-microban-sequential.030-NOTKNOWN.cnf"),
+        (130, "at-least-two-traffic_b_unsat.cnf"),
+        (131, "at-least-two-traffic_f_unknown.cnf"),
+        (132, "at-least-two-traffic_kkb_unknown.cnf"),
+        (133, "at-least-two-traffic_pcb_unknown.cnf"),
+        (134, "at-least-two-vmpc_26.cnf"),
+        (135, "at-least-two-vmpc_28.cnf"),
+        (136, "b04_s_unknown_pre.cnf"),
+        (137, "b2005-p1-12x12c10h7-Ser3-0.cnf"),
+        (138, "b2005-p1-12x12c10h7-Ser4-0.cnf"),
+        (139, "b2005-p1-12x12c10h7-Ser5-0.cnf"),
+        (140, "b2005-p1-14x14c17h9-Ser3-0.cnf"),
+        (141, "b2005-p2-12x12c10h7-Ser7-0.cnf"),
+        (142, "b2005-p2-14x14c17h9-Ser5-0.cnf"),
+        (143, "b2005-p2-14x14c17h9-Ser6-0.cnf"),
+        (144, "b2005-p3-12x12c10h7-Ser7-0.cnf"),
+        (145, "b2005-p3-14x14c17h9-Ser3-0.cnf"),
+        (146, "b2005-p4-12x12c10h7-Ser3-0.cnf"),
+        (147, "b2005-p4-14x14c17h9-Ser8-0.cnf"),
+        (148, "b2005-p5-12x12c10h7-Ser5-0.cnf"),
+        (149, "b2005-p5-14x14c17h9-Ser5-0.cnf"),
+        (150, "barman-pfile10-039.sas.ex.15.cnf"),
+        (151, "barman-pfile10-040.sas.ex.15.cnf"),
+        (152, "battleship-12-12-unsat.cnf"),
+        (153, "battleship-14-26-sat.cnf"),
+        (154, "blocks-blocks-36-0.180-SAT.cnf"),
+        (155, "blocks-blocks-37-1.120-NOTKNOWN.cnf"),
+        (156, "blocks-blocks-37-1.130-NOTKNOWN.cnf"),
+        (157, "bv-term-small-rw_1294.smt2.cnf"),
+        (158, "bv-term-small-rw_1492.smt2.cnf"),
+        (159, "bvsdiv_19.smt2.cnf"),
+        (160, "bvsmod_18.smt2.cnf"),
+        (161, "bvsmod_19.smt2.cnf"),
+        (162, "bvsub_08985.smt2.cnf"),
+        (163, "bvsub_12973.smt2.cnf"),
+        (164, "bvsub_19952.smt2.cnf"),
+        (165, "bvurem_20.smt2.cnf"),
+        (166, "crafted_n10_d6_c4_num15.cnf"),
+        (167, "crafted_n10_d6_c4_num21.cnf"),
+        (168, "crafted_n11_d6_c4_num14.cnf"),
+        (169, "crafted_n12_d6_c3_num18.cnf"),
+        (170, "crafted_n12_d6_c3_num28.cnf"),
+        (171, "crafted_n12_d6_c4_num17.cnf"),
+        (172, "ctl_4201_555_unsat.cnf"),
+        (173, "ctl_4291_567_11_unsat.cnf"),
+        (174, "ctl_4291_567_1_unsat.cnf"),
+        (175, "ctl_4291_567_6_unsat_pre.cnf"),
+        (176, "ctl_4291_567_9_unsat.cnf"),
+        (177, "dist10.c.cnf"),
+        (178, "dist4.c.cnf"),
+        (179, "ecarev-110-1031-23-40-8.cnf"),
+        (180, "ecarev-110-4099-22-30-4.cnf"),
+        (181, "edit_distance007_85.cnf"),
+        (182, "edit_distance019_312.cnf"),
+        (183, "edit_distance023_281.cnf"),
+        (184, "edit_distance023_282.cnf"),
+        (185, "edit_distance023_283.cnf"),
+        (186, "edit_distance025_448.cnf"),
+        (187, "edit_distance025_449.cnf"),
+        (188, "edit_distance025_450.cnf"),
+        (189, "edit_distance031_283.cnf"),
+        (190, "edit_distance031_284.cnf"),
+        (191, "edit_distance035_393.cnf"),
+        (192, "edit_distance041_182.cnf"),
+        (193, "edit_distance041_183.cnf"),
+        (194, "erin2_0x0-379.cnf"),
+        (195, "erin2_0x0_n207-379.cnf"),
+        (196, "erin2_0x1e3-216.cnf"),
+        (197, "ex045_7.cnf"),
+        (198, "ex065_25.cnf"),
+        (199, "ex095_8.cnf"),
+        (200, "ex175_20.cnf"),
+        (201, "huck.col.11.cnf"),
+        (202, "k2fix_gr_rcs_w8.shuffled.cnf"),
+        (203, "ktf_TF-1.tf_3_0.02_34.cnf"),
+        (204, "ktf_TF-1.tf_4_0.06_101.cnf"),
+        (205, "ktf_TF-3.tf_2_0.02_24.cnf"),
+        (206, "ktf_TF-3.tf_3_0.02_24.cnf"),
+        (207, "ktf_TF-3.tf_4_0.04_48.cnf"),
+        (208, "ktf_TF-4.tf_2_0.02_18.cnf"),
+        (209, "ktf_TF-4.tf_4_0.04_35.cnf"),
+        (210, "ktf_TF-4.tf_4_0.06_52.cnf"),
+        (211, "ktf_TF-6.tf_4_0.04_51.cnf"),
+        (212, "ktf_TF-6.tf_4_0.06_77.cnf"),
+        (213, "ktf_TF-7.tf_3_0.06_113.cnf"),
+        (214, "ktf_TF-8.tf_4_0.02_37.cnf"),
+        (215, "ktf_TF-8.tf_4_0.06_109.cnf"),
+        (216, "maximum_constrained_partition_14_bits_n200.cnf"),
+        (217, "maximum_constrained_partition_18_bits_n200.cnf"),
+        (218, "maxor128.cnf"),
+        (219, "mp1-Nb6T06.cnf"),
+        (220, "mp1-Nb6T07.cnf"),
+        (221, "mp1-Nb7T44.cnf"),
+        (222, "mp1-Nb7T46.cnf"),
+        (223, "mp1-blockpuzzle_5x10_s5_free3.cnf"),
+        (224, "mp1-blockpuzzle_5x12_s6_free3.cnf"),
+        (225, "mp1-blockpuzzle_9x9_s1_free8.cnf"),
+        (226, "mp1-blockpuzzle_9x9_s5_free3.cnf"),
+        (227, "mp1-bsat201-707.cnf"),
+        (228, "mp1-bsat210-739.cnf"),
+        (229, "mp1-klieber2017s-0300-034-t12.cnf"),
+        (230, "mp1-klieber2017s-0490-024-t12.cnf"),
+        (231, "mp1-klieber2017s-1000-023-eq.cnf"),
+        (232, "mp1-klieber2017s-1000-024-eq.cnf"),
+        (233, "mp1-klieber2017s-1200-022-eq.cnf"),
+        (234, "mp1-klieber2017s-2000-022-eq.cnf"),
+        (235, "mp1-squ_ali_s10x10_c39_abio_SAT.cnf"),
+        (236, "mp1-squ_any_s09x07_c27_abix_UNS.cnf"),
+        (237, "mp1-tri_ali_s11_c35_abix_UNS.cnf"),
+        (238, "mp1-tri_ali_s11_c35_bail_UNS.cnf"),
+        (239, "n320p5q2_n.apx_16.cnf"),
+        (240, "n320p5q2_n.apx_17.cnf"),
+        (241, "ndhf_xits_09_UNSAT.cnf"),
+        (242, "p01_lb_05.cnf"),
+        (243, "pb_300_05_lb_16.cnf"),
+        (244, "pb_300_05_lb_17.cnf"),
+        (245, "pb_300_06_lb_02.cnf"),
+        (246, "pb_300_10_lb_06.cnf"),
+        (247, "php12e12.cnf"),
+        (248, "php14e14.cnf"),
+        (249, "prime_a20_b20.cnf"),
+        (250, "prime_a22_b22.cnf"),
+        (251, "prime_a24_b24.cnf"),
+        (252, "problem_12.smt2.cnf"),
+        (253, "puzzle30_sat.cnf"),
+        (254, "puzzle34_sat.cnf"),
+        (255, "puzzle34_unsat.cnf"),
+        (256, "puzzle35_sat.cnf"),
+        (257, "puzzle35_unsat.cnf"),
+        (258, "puzzle36_sat.cnf"),
+        (259, "puzzle37_unsat.cnf"),
+        (260, "puzzle39_sat.cnf"),
+        (261, "puzzle42_sat.cnf"),
+        (262, "puzzle44_unsat.cnf"),
+        (263, "puzzle47_sat.cnf"),
+        (264, "puzzle51_unsat.cnf"),
+        (265, "puzzle60_sat.cnf"),
+        (266, "quad_res_r21_m22.cnf"),
+        (267, "quad_res_r26_m27.cnf"),
+        (268, "quad_res_r28_m29.cnf"),
+        (269, "quad_res_r29_m32.cnf"),
+        (270, "quad_res_r31_m35.cnf"),
+        (271, "quad_res_r32_m35.cnf"),
+        (272, "quad_res_r33_m36.cnf"),
+        (273, "quad_res_r34_m36.cnf"),
+        (274, "quad_res_r35_m36.cnf"),
+        (275, "quad_res_r37_m39.cnf"),
+        (276, "randomG-B-Mix-n15-d05.cnf"),
+        (277, "randomG-B-Mix-n16-d05.cnf"),
+        (278, "randomG-B-Mix-n18-d05.cnf"),
+        (279, "randomG-B-Mix-n19-d05.cnf"),
+        (280, "randomG-Mix-n17-d05.cnf"),
+        (281, "randomG-Mix-n18-d05.cnf"),
+        (282, "randomG-n16-d05.cnf"),
+        (283, "randomG-n17-d05.cnf"),
+        (284, "randomG-n18-d05.cnf"),
+        (285, "randomG-n19-d05.cnf"),
+        (286, "randomG-n20-d05.cnf"),
+        (287, "rphp4_065_shuffled.cnf"),
+        (288, "rphp4_080_shuffled.cnf"),
+        (289, "rphp4_090_shuffled.cnf"),
+        (290, "rpoc_xits_10_UNKNOWN.cnf"),
+        (291, "satch2ways12u.cnf"),
+        (292, "satch2ways12wu.cnf"),
+        (293, "satch2ways13wu.cnf"),
+        (294, "satch2ways14u.cnf"),
+        (295, "satch2ways15.cnf"),
+        (296, "satch2ways15u.cnf"),
+        (297, "satch2ways15wu.cnf"),
+        (298, "satch2ways16.cnf"),
+        (299, "satch2ways16w.cnf"),
+        (300, "satch2ways17w.cnf"),
+        (301, "satch2ways18u.cnf"),
+        (302, "satch2ways18wu.cnf"),
+        (303, "satch2ways19u.cnf"),
+        (304, "scc_1213_40_10_3.apx_0.cnf"),
+        (305, "shift1add.26949.cnf"),
+        (306, "size_5_5_5_i003_r12.cnf"),
+        (307, "size_5_5_5_i223_r12.cnf"),
+        (308, "size_5_5_5_i251_r12.cnf"),
+        (309, "snw_13_8_pre-sc2016.cnf"),
+        (310, "snw_13_8_pre.cnf"),
+        (311, "snw_13_9_pre.cnf"),
+        (312, "snw_16_9_Encpre.cnf"),
+        (313, "sokoban-p16.sas.ex.19-sc2016.cnf"),
+        (314, "sokoban-p20.sas.cr.21.cnf"),
+        (315, "sokoban-p20.sas.cr.27.cnf"),
+        (316, "sokoban-p20.sas.ex.13.cnf"),
+        (317, "sokoban-sequential-p145-microban-sequential.070-NOTKNOWN.cnf"),
+        (318, "sp4-33-bin-stri-flat-noid.cnf"),
+        (319, "sp4-33-one-nons-flat-noid.cnf"),
+        (320, "sp4-33-one-stri-tree-noid.cnf"),
+        (321, "sp4-33-una-stri-flat-noid.cnf"),
+        (322, "sp5-21-15-bin-stri-flat-noid.cnf"),
+        (323, "sp5-21-15-bin-stri-tree-noid.cnf"),
+        (324, "sp5-21-15-one-nons-tree-noid.cnf"),
+        (325, "sp5-21-15-one-stri-tree-noid.cnf"),
+        (326, "sp5-21-15-una-nons-tree-noid.cnf"),
+        (327, "sp5-21-15-una-stri-flat-noid.cnf"),
+        (328, "sp5-26-19-bin-nons-tree-noid.cnf"),
+        (329, "sp5-26-19-bin-stri-flat-noid.cnf"),
+        (330, "sp5-26-19-una-nons-tree-noid.cnf"),
+        (331, "spg_200_300.cnf"),
+        (332, "spg_200_301.cnf"),
+        (333, "spg_200_307.cnf"),
+        (334, "spg_200_316.cnf"),
+        (335, "spg_200_317.cnf"),
+        (336, "spg_200_321.cnf"),
+        (337, "spg_300_300.cnf"),
+        (338, "spg_300_301.cnf"),
+        (339, "spg_300_312.cnf"),
+        (340, "spg_330_400.cnf"),
+        (341, "spg_400_281.cnf"),
+        (342, "spg_420_280.cnf"),
+        (343, "spg_420_350.cnf"),
+        (344, "stb_531_83.apx_0.cnf"),
+        (345, "stb_531_83.apx_1.cnf"),
+        (346, "stb_588_138.apx_1.cnf"),
+        (347, "stb_792_333.apx_0.cnf"),
+        (348, "sted12a_0x1e1-67.cnf"),
+        (349, "sted1_0x0-380.cnf"),
+        (350, "sted1_0x0-637.cnf"),
+        (351, "sted1_0x1e3-393.cnf"),
+        (352, "sted2_0x0-343.cnf"),
+        (353, "sted2_0x1e3-216.cnf"),
+        (354, "sted3_0x0_n201-239.cnf"),
+        (355, "sted4_0x0_n159-185.cnf"),
+        (356, "sted5_0x0_n90-157.cnf"),
+        (357, "sted5_0x1e3-120.cnf"),
+        (358, "sted5_0x1e3-20.cnf"),
+        (359, "sted5_0x24204-70.cnf"),
+        (360, "sted6_0x1e3-97.cnf"),
+        (361, "string_compare_safety_cbmc_unwinding_600.cnf"),
+        (362, "string_compare_safety_cbmc_unwinding_630.cnf"),
+        (363, "string_compare_safety_cbmc_unwinding_670.cnf"),
+        (364, "string_compare_safety_cbmc_unwinding_680.cnf"),
+        (365, "string_compare_safety_cbmc_unwinding_690.cnf"),
+        (366, "string_compare_safety_cbmc_unwinding_700.cnf"),
+        (367, "string_compare_safety_cbmc_unwinding_730.cnf"),
+        (368, "string_compare_safety_cbmc_unwinding_780.cnf"),
+        (369, "string_compare_safety_cbmc_unwinding_800.cnf"),
+        (370, "string_compare_safety_cbmc_unwinding_870.cnf"),
+        (371, "string_compare_safety_cbmc_unwinding_900.cnf"),
+        (372, "string_compare_safety_cbmc_unwinding_930.cnf"),
+        (373, "string_compare_safety_cbmc_unwinding_940.cnf"),
+        (374, "sum_of_3_cubes_108_bits_52.cnf"),
+        (375, "sum_of_3_cubes_145_bits_74.cnf"),
+        (376, "sum_of_3_cubes_37_bits_87.cnf"),
+        (377, "sum_of_3_cubes_42_bits_96.cnf"),
+        (378, "sum_of_3_cubes_50_bits_91.cnf"),
+        (379, "sum_of_3_cubes_51_bits_80.cnf"),
+        (380, "sum_of_3_cubes_52_bits_39.cnf"),
+        (381, "sum_of_3_cubes_76_bits_84.cnf"),
+        (382, "sum_of_3_cubes_87_bits_75.cnf"),
+        (383, "sum_of_3_cubes_94_bits_30.cnf"),
+        (384, "test_v7_r12_vr1_c1_s10576.smt2.cnf"),
+        (385, "toughsat_factoring_426s.cnf"),
+        (386, "toughsat_factoring_895s.cnf"),
+        (387, "uum32.smt2.cnf"),
+        (388, "vlsat2_111_1186.cnf"),
+        (389, "vlsat2_112_4223.cnf"),
+        (390, "vlsat2_113_1150.cnf"),
+        (391, "vlsat2_11_26.cnf"),
+        (392, "vlsat2_11_42.cnf"),
+        (393, "vlsat2_142_6781.cnf"),
+        (394, "vlsat2_144_7585.cnf"),
+        (395, "vlsat2_29736_3780419.dimacs.cnf"),
+        (396, "vlsat2_37758_5364539.dimacs.cnf"),
+        (397, "vlsat2_44_545.cnf"),
+        (398, "vlsat2_51_824.cnf"),
+        (399, "vlsat2_56_1042.cnf"),
+        (400, "vlsat2_702_14170.cnf"),
+    ],
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

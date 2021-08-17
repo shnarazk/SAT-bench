@@ -121,9 +121,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            benchmark_name: sat_bench::bench20::SCB.0.to_string(),
+            benchmark_name: sat_bench::bench21::SCB.0.to_string(),
             seq_num: 0,
-            benchmark: &sat_bench::bench20::SCB.1,
+            benchmark: &sat_bench::bench21::SCB.1,
             solver: String::from("splr"),
             target_from: 0,
             target_to: 400,
@@ -244,16 +244,18 @@ fn main() {
     let home = env::var("HOME").expect("No home");
     let compiled_solver = config.solver.starts_with('/');
     config.benchmark_name = match config.benchmark_name.as_str() {
+        "SC21" => config.benchmark_name,
         "SC20" => config.benchmark_name,
         "SR19" => config.benchmark_name,
-        "SC18" => config.benchmark_name,
-        _ => "SR20".to_string(),
+        // "SC18" => config.benchmark_name,
+        _ => "SC21)".to_string(),
     };
     config.benchmark = match config.benchmark_name.as_str() {
+        "SC21" => &sat_bench::bench21::SCB.1,
         "SC20" => &sat_bench::bench20::SCB.1,
         "SR19" => &sat_bench::bench19::SCB.1,
-        "SC18" => &sat_bench::bench18::SCB.1,
-        _ => &sat_bench::bench20::SCB.1,
+        // "SC18" => &sat_bench::bench18::SCB.1,
+        _ => &sat_bench::bench21::SCB.1,
     };
     config.data_dir = PathBuf::from(
         tilde
@@ -426,7 +428,7 @@ fn start_benchmark(config: Config) {
         "A {} timeout benchmark {} ended, {} problems, {} solutions",
         config.timeout, config.run_id, np.1, np.2
     ));
-    make_verifier(&config.benchmark, &config.dump_dir, &config.data_dir)
+    make_verifier(config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
@@ -477,7 +479,7 @@ fn check_result(config: &Config) {
                         // The other processes might dump further results already.
                         // So `report` may return a larger number than `processed.2`.
                         // We should not update.
-                        report(&config, task_id).unwrap();
+                        report(config, task_id).unwrap();
                     }
                 } else {
                     // re display the current running task id(s)
