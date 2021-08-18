@@ -52,7 +52,7 @@ type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 #[structopt(name = "sat-bench", about = "A SAT Competition benchmark runner")]
 pub struct Config {
     /// the problem
-    #[structopt(long = "benchmark", short = "B", default_value = "SR19Core")]
+    #[structopt(long = "benchmark", short = "B", default_value = "SC21")]
     pub benchmark_name: String,
     /// a branch number
     #[structopt(long = "number", short = "N", default_value = "0")]
@@ -82,7 +82,7 @@ pub struct Config {
     #[structopt(long = "options", default_value = "")]
     pub solver_options: String,
     /// data directory
-    #[structopt(long = "data", default_value = "~/Library/SAT/SR19")]
+    #[structopt(long = "data", default_value = "~/Library/SAT/SC21")]
     pub data_dir: PathBuf,
     /// solver repository
     #[structopt(long = "repo", default_value = "~/Repositories/splr")]
