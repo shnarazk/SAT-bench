@@ -23,6 +23,11 @@ use {
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const RED: &str = "\x1B[001m\x1B[031m";
+// const GREEN: &str = "\x1B[001m\x1B[032m";
+const BLUE: &str = "\x1B[001m\x1B[034m";
+const RESET: &str = "\x1B[000m";
+
 lazy_static! {
     static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
     static ref MINISAT_LIKE: Regex =
@@ -463,22 +468,26 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:<14}{:>3},{:>24}{:>8}",
+                "{}{:<14}{:>3},{:>24}{}{:>8}{}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
                 &format!("\"{}\",", name),
+                BLUE,
                 "TIMEOUT",
+                RESET,
             );
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:<14}{:>3},{:>24}{:>8}",
+                "{}{:<14}{:>3},{:>24}{}{:>8}{}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
                 &format!("\"{}\",", name),
+                RED,
                 "ABORT",
+                RESET,
             );
         }
     };
@@ -517,24 +526,28 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
             }
             Err(SolverException::TimeOut) => {
                 println!(
-                    "{}{:<14}{:>3},{:>24} TIMEOUT at {}",
+                    "{}{:<14}{:>3},{:>24} {}TIMEOUT{} at {}",
                     CLEAR,
                     &format!("\"{}\",", solver_name),
                     num,
                     &format!("\"{}{}({})\",", name, n, count),
                     // &format!("\"{}({})\",", tag, count),
+                    RED,
+                    RESET,
                     f.file_name().to_str().unwrap(),
                 );
                 return;
             }
             Err(SolverException::Abort) => {
                 println!(
-                    "{}{:<14}{:>3},{:>24} ABORT at {}",
+                    "{}{:<14}{:>3},{:>24} {}ABORT{} at {}",
                     CLEAR,
                     &format!("\"{}\",", solver_name),
                     num,
                     &format!("\"{}{}({})\",", name, n, count),
+                    RED,
                     f.file_name().to_str().unwrap(),
+                    RESET,
                 );
                 return;
             }
@@ -704,22 +717,26 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 Err(SolverException::TimeOut) => {
                     println!(
-                        "{}{:<14}{:>3},{:>24}{:>8}",
+                        "{}{:<14}{:>3},{:>24}{}{:>8}{}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"{}\",", name),
+                        BLUE,
                         "TIMEOUT",
+                        RESET
                     );
                 }
                 Err(SolverException::Abort) => {
                     println!(
-                        "{}{:<14}{:>3},{:>24}{:>8}",
+                        "{}{:<14}{:>3},{:>24}{}{:>8}{}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"{}\",", name),
+                        RED,
                         "ABORT",
+                        RESET,
                     );
                 }
             };
