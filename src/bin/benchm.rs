@@ -247,14 +247,12 @@ fn main() {
         "SC21" => config.benchmark_name,
         "SC20" => config.benchmark_name,
         "SR19" => config.benchmark_name,
-        // "SC18" => config.benchmark_name,
-        _ => "SC21)".to_string(),
+        _ => "SC21".to_string(),
     };
     config.benchmark = match config.benchmark_name.as_str() {
         "SC21" => &sat_bench::bench21::SCB.1,
         "SC20" => &sat_bench::bench20::SCB.1,
         "SR19" => &sat_bench::bench19::SCB.1,
-        // "SC18" => &sat_bench::bench18::SCB.1,
         _ => &sat_bench::bench21::SCB.1,
     };
     config.data_dir = PathBuf::from(
