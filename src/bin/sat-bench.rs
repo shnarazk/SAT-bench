@@ -24,8 +24,11 @@ use {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const RED: &str = "\x1B[001m\x1B[031m";
-// const GREEN: &str = "\x1B[001m\x1B[032m";
+#[allow(dead_code)]
+const GREEN: &str = "\x1B[001m\x1B[032m";
+#[allow(dead_code)]
 const BLUE: &str = "\x1B[001m\x1B[034m";
+const MAGENTA: &str = "\x1B[001m\x1B[035m";
 const RESET: &str = "\x1B[000m";
 
 lazy_static! {
@@ -473,7 +476,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 &format!("\"{}\",", solver),
                 num,
                 &format!("\"{}\",", name),
-                BLUE,
+                MAGENTA,
                 "TIMEOUT",
                 RESET,
             );
@@ -722,7 +725,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         &format!("\"{}\",", solver_name),
                         num,
                         &format!("\"{}\",", name),
-                        BLUE,
+                        MAGENTA,
                         "TIMEOUT",
                         RESET
                     );
