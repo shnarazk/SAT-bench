@@ -233,7 +233,10 @@ impl Config {
         for opt in self.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
-        Some((target, command.arg(cnf.as_os_str()).map_to_result(self, &cnf)))
+        Some((
+            target,
+            command.arg(cnf.as_os_str()).map_to_result(self, &cnf),
+        ))
     }
 }
 
