@@ -11,6 +11,7 @@ use {
     sat_bench::utils::{current_date_time, system_time_to_date_time},
     std::{
         collections::VecDeque,
+       cmp::Ordering,
         env, fs,
         io::{stdout, Write},
         path::PathBuf,
@@ -55,7 +56,7 @@ lazy_static! {
     pub static ref PQUEUE: RwLock<VecDeque<(usize, String, String)>> = RwLock::new(VecDeque::new());
     pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
     pub static ref NREPORT: RwLock<usize> = RwLock::new(0);
-    pub static ref TOTALTIME: RwLock<f64> = RwLock::new(0.0);
+    pub static ref TOTALTIME: RwLock<Vec<f64>> = RwLock::new(Vec::new());
 }
 
 const SAT_PROBLEMS: [(usize, &str); 18] = [
@@ -300,7 +301,7 @@ fn main() {
     );
     for solver in &config.solvers {
         if let Ok(mut t) = TOTALTIME.write() {
-            *t = 0.0;
+            t.clear();
         }
         if !single_solver {
             print_solver(solver);
@@ -336,11 +337,28 @@ fn main() {
             num += 1;
         }
         if let Ok(t) = TOTALTIME.read() {
+            let mut v: Vec<f64> = t.iter().copied().collect();
+            v.sort_by(|a, b| match (a.is_nan(), b.is_nan()) {
+                (true, true) => Ordering::Equal,
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+                (_, _) if (a - b).abs() < 0.001 => Ordering::Equal,
+                (_, _) if a < b => Ordering::Less,
+                _ => Ordering::Greater,
+            });
+            let median = if v.is_empty() {
+                0.0
+            } else if v.len() % 2 == 0 {
+                let m = v.len() / 2;
+                0.5 * (v[m - 1] + v[m])
+            } else {
+                v[v.len() / 2]
+            };
             println!(
-                "{}{:<14}   ,                  total,{:>8.3}",
+                "{}mediam,{:>10.3},                  total,{:>8.3}",
                 CLEAR,
-                &format!("\"{}\",", solver),
-                t,
+                median,
+                t.iter().filter(|v| !v.is_nan()).sum::<f64>(),
             );
         }
     }
@@ -466,7 +484,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 end,
             );
             if let Ok(mut t) = TOTALTIME.write() {
-                *t += end;
+                t.push(*end);
             }
         }
         Err(SolverException::TimeOut) => {
@@ -480,6 +498,9 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 "TIMEOUT",
                 RESET,
             );
+            if let Ok(mut t) = TOTALTIME.write() {
+                t.push(f64::NAN);
+            }
         }
         Err(SolverException::Abort) => {
             println!(
@@ -492,6 +513,9 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 "ABORT",
                 RESET,
             );
+            if let Ok(mut t) = TOTALTIME.write() {
+                t.push(f64::NAN);
+            }
         }
     };
 }
@@ -570,7 +594,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         end,
     );
     if let Ok(mut t) = TOTALTIME.write() {
-        *t += end;
+        t.push(end);
     }
 }
 
@@ -715,7 +739,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         end,
                     );
                     if let Ok(mut t) = TOTALTIME.write() {
-                        *t += end;
+                        t.push(end);
                     }
                 }
                 Err(SolverException::TimeOut) => {
@@ -729,6 +753,9 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "TIMEOUT",
                         RESET
                     );
+                    if let Ok(mut t) = TOTALTIME.write() {
+                        t.push(f64::NAN);
+                    }
                 }
                 Err(SolverException::Abort) => {
                     println!(
@@ -741,6 +768,9 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "ABORT",
                         RESET,
                     );
+                    if let Ok(mut t) = TOTALTIME.write() {
+                        t.push(f64::NAN);
+                    }
                 }
             };
         }
