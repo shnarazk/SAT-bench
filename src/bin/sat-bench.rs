@@ -355,7 +355,7 @@ fn main() {
                 v[v.len() / 2]
             };
             println!(
-                "{}mediam,{:>10.3},                  total,{:>8.3}",
+                "{}mediam,{:>10.3},                        total,{:>8.3}",
                 CLEAR,
                 median,
                 t.iter().filter(|v| !v.is_nan()).sum::<f64>(),
