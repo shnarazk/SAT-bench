@@ -95,83 +95,83 @@ const UNSAT_PROBLEMS: [(usize, &str); 12] = [
 ];
 const MATH_PROBLEMS: [(&str, &str); 20] = [
     (
-        "3/SAT/v360-c1530/002",
+        "3S/360/S144043535-002",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S144043535-002.cnf",
     ),
     (
-        "3/SAT/v360-c1530/030",
+        "3S/360/S722433227-030",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S722433227-030.cnf",
     ),
     (
-        "3/SAT/v360-c1530/033",
+        "3S/360/S1459690542-033",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1459690542-033.cnf",
     ),
     (
-        "3/SAT/v360-c1530/035",
+        "3S/360/S2032263657-035",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S2032263657-035.cnf",
     ),
     (
-        "3/SAT/v360-c1530/039",
+        "3S/360/S1293537826-039",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1293537826-039.cnf",
     ),
     (
-        "3/SAT/v360-c1530/051",
+        "3S/360/S368632549-051",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S368632549-051.cnf",
     ),
     (
-        "3/SAT/v360-c1530/060",
+        "3S/360/S1448866403-060",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1448866403-060.cnf",
     ),
     (
-        "3/SAT/v360-c1530/073",
+        "3S/360/S1684547485-073",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1684547485-073.cnf",
     ),
     (
-        "3/SAT/v360-c1530/087",
+        "3S/360/S1826927554-087",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1826927554-087.cnf",
     ),
     (
-        "3/SAT/v360-c1530/093",
+        "3S/360/S1711406314-093",
         "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1711406314-093.cnf",
     ),
     (
-        "3/UNS/v360-c1530/001",
+        "3U/360/S404185236-001",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S404185236-001.cnf",
     ),
     (
-        "3/UNS/v360-c1530/015",
+        "3U/360/S1369720750-015",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf",
     ),
     (
-        "3/UNS/v360-c1530/028",
+        "3U/360/S23373420-028",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S23373420-028.cnf",
     ),
     (
-        "3/UNS/v360-c1530/029",
+        "3U/360/S367138237-029",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf",
     ),
     (
-        "3/UNS/v360-c1530/031",
+        "3U/360/S305156909-031",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S305156909-031.cnf",
     ),
     (
-        "3/UNS/v360-c1530/053",
+        "3U/360/S680239195-053",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf",
     ),
     (
-        "3/UNS/v360-c1530/061",
+        "3U/360/S2025517367-061",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S2025517367-061.cnf",
     ),
     (
-        "3/UNS/v360-c1530/086",
+        "3U/360/S253750560-086",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf",
     ),
     (
-        "3/UNS/v360-c1530/089",
+        "3U/360/S1906521511-089",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1906521511-089.cnf",
     ),
     (
-        "3/UNS/v360-c1530/096",
+        "3U/360/S1028159446-096",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf",
     ),
 ];
@@ -296,7 +296,7 @@ fn main() {
         print_solver(&config.solvers[0]);
     }
     println!(
-        "{:<14}{:>3},{:>24}{:>8}",
+        "{:<14}{:>3},{:>30}{:>8}",
         "solver,", "num", "target,", "time"
     );
     for solver in &config.solvers {
@@ -476,7 +476,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
     match res {
         Ok(end) => {
             println!(
-                "{}{:<14}{:>3},{:>24}{:>8.3}",
+                "{}{:<14}{:>3},{:>30}{:>8.3}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
@@ -489,7 +489,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:<14}{:>3},{:>24}{}{:>8}{}",
+                "{}{:<14}{:>3},{:>30}{}{:>8}{}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
@@ -504,7 +504,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:<14}{:>3},{:>24}{}{:>8}{}",
+                "{}{:<14}{:>3},{:>30}{}{:>8}{}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
@@ -553,7 +553,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
             }
             Err(SolverException::TimeOut) => {
                 println!(
-                    "{}{:<14}{:>3},{:>24} {}TIMEOUT{} at {}",
+                    "{}{:<14}{:>3},{:>30} {}TIMEOUT{} at {}",
                     CLEAR,
                     &format!("\"{}\",", solver_name),
                     num,
@@ -567,7 +567,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
             }
             Err(SolverException::Abort) => {
                 println!(
-                    "{}{:<14}{:>3},{:>24} {}ABORT{} at {}",
+                    "{}{:<14}{:>3},{:>30} {}ABORT{} at {}",
                     CLEAR,
                     &format!("\"{}\",", solver_name),
                     num,
@@ -585,7 +585,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         Err(_) => 0.0f64,
     };
     println!(
-        "{}{:<14}{:>3},{:>24}{:>8.3}",
+        "{}{:<14}{:>3},{:>30}{:>8.3}",
         CLEAR,
         &format!("\"{}\",", solver_name),
         num,
@@ -731,7 +731,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             {
                 Ok(end) => {
                     println!(
-                        "{}{:<14}{:>3},{:>24}{:>8.3}",
+                        "{}{:<14}{:>3},{:>30}{:>8.3}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
@@ -744,7 +744,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 Err(SolverException::TimeOut) => {
                     println!(
-                        "{}{:<14}{:>3},{:>24}{}{:>8}{}",
+                        "{}{:<14}{:>3},{:>30}{}{:>8}{}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
@@ -759,7 +759,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 Err(SolverException::Abort) => {
                     println!(
-                        "{}{:<14}{:>3},{:>24}{}{:>8}{}",
+                        "{}{:<14}{:>3},{:>30}{}{:>8}{}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
