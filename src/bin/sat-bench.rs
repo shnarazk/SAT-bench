@@ -355,9 +355,17 @@ fn main() {
                 v[v.len() / 2]
             };
             println!(
-                "{}median,{:>10.3},                        total,{:>8.3}",
+                "{}median,{:>10.3},{:>30},{:>9.3}",
                 CLEAR,
                 median,
+                {
+                    let to = t.iter().filter(|v| v.is_nan()).count();
+                    if 0 < to {
+                        format!("total except {} timeouts", to)
+                    } else {
+                        "total".to_string()
+                    }
+                },
                 t.iter().filter(|v| !v.is_nan()).sum::<f64>(),
             );
         }
@@ -476,7 +484,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
     match res {
         Ok(end) => {
             println!(
-                "{}{:<14}{:>3},{:>30}{:>8.3}",
+                "{}{:<14}{:>3},{:>30}{:>9.3}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
@@ -585,7 +593,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         Err(_) => 0.0f64,
     };
     println!(
-        "{}{:<14}{:>3},{:>30}{:>8.3}",
+        "{}{:<14}{:>3},{:>30}{:>9.3}",
         CLEAR,
         &format!("\"{}\",", solver_name),
         num,
@@ -731,7 +739,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             {
                 Ok(end) => {
                     println!(
-                        "{}{:<14}{:>3},{:>30}{:>8.3}",
+                        "{}{:<14}{:>3},{:>30}{:>9.3}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
