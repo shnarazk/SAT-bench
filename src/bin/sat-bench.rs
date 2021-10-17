@@ -581,8 +581,8 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                     num,
                     &format!("\"{}{}({})\",", name, n, count),
                     RED,
-                    f.file_name().to_str().unwrap(),
                     RESET,
+                    f.file_name().to_str().unwrap(),
                 );
                 return;
             }
