@@ -296,7 +296,7 @@ fn main() {
         print_solver(&config.solvers[0]);
     }
     println!(
-        "{:<14}{:>3},{:>30}{:>8}",
+        "{:<14}{:>3},{:>30}{:>9}",
         "solver,", "num", "target,", "time"
     );
     for solver in &config.solvers {
@@ -497,7 +497,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:<14}{:>3},{:>30}{}{:>8}{}",
+                "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
@@ -512,7 +512,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:<14}{:>3},{:>30}{}{:>8}{}",
+                "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                 CLEAR,
                 &format!("\"{}\",", solver),
                 num,
@@ -752,7 +752,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 Err(SolverException::TimeOut) => {
                     println!(
-                        "{}{:<14}{:>3},{:>30}{}{:>8}{}",
+                        "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
@@ -767,7 +767,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 }
                 Err(SolverException::Abort) => {
                     println!(
-                        "{}{:<14}{:>3},{:>30}{}{:>8}{}",
+                        "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                         CLEAR,
                         &format!("\"{}\",", solver_name),
                         num,
