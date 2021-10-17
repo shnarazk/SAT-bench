@@ -355,7 +355,7 @@ fn main() {
                 v[v.len() / 2]
             };
             println!(
-                "{}median,{:>10.3},{:>30},{:>9.3}",
+                "{}median,{:>10.3},{:>29},{:>9.3}",
                 CLEAR,
                 median,
                 {
