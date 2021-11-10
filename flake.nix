@@ -1,12 +1,17 @@
 {
   description = "A small utilities for SAT solver benchmarking";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs = {
+    nixpkgs.url = github:NixOS/nixpkgs/nixpkgs-unstable;
+    flake-utils.url = github:numtide/flake-utils;
+  };
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system: {
       defaultPackage =
         with import nixpkgs { system = "${system}"; };
         stdenv.mkDerivation {
-          name = "SAT-bench";
+          name = "sat-bench-${version}";
+          pname = "sat-bench";
+          version = "0.11.4";
           src = self;
           buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkgconfig ];
           buildPhase = "cargo build --release";
