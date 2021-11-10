@@ -8,7 +8,7 @@
     flake-utils.lib.eachDefaultSystem (system: {
       defaultPackage =
         with import nixpkgs { system = "${system}"; };
-        stdenv.mkDerivation {
+        stdenv.mkDerivation rec {
           name = "sat-bench-${version}";
           pname = "sat-bench";
           version = "0.11.4";
