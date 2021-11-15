@@ -1,9 +1,9 @@
 [package]
 name = "sat-bench"
 description = "A small utilities for SAT solver benchmarking"
-version = "0.11.5"
+version = "0.11.6"
 authors = ["Narazaki Shuji <shujinarazaki@protonmail.com>"]
-edition = "2018"
+edition = "2021"
 default-run = "sat-bench"
 
 [dependencies]
