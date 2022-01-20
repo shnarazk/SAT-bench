@@ -3,7 +3,6 @@ use {
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
-        matrix,
         utils::{current_date_time, make_verifier, parse_result},
         ANS_PREFIX,
     },
@@ -19,6 +18,9 @@ use {
     },
     structopt::StructOpt,
 };
+
+#[cfg(feature = "matrix")]
+use sat_bench::matrix;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
@@ -148,7 +150,9 @@ impl Default for Config {
 }
 
 impl Config {
+    #[allow(unused_variables)]
     fn post<S: AsRef<str>>(&self, msg: S) {
+        #[cfg(feature = "matrix")]
         matrix::post(
             &self.matrix_room,
             &self.matrix_token,
@@ -275,6 +279,7 @@ fn main() {
             .to_string(),
     );
     config.target_to = config.target_to.min(config.benchmark.len());
+    #[cfg(feature = "matrix")]
     if !config.matrix_id.is_empty() {
         let mut map: HashMap<&str, &str> = HashMap::new();
         map.insert("user", &config.matrix_id);

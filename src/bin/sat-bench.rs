@@ -10,8 +10,8 @@ use {
     regex::Regex,
     sat_bench::utils::{current_date_time, system_time_to_date_time},
     std::{
+        cmp::Ordering,
         collections::VecDeque,
-       cmp::Ordering,
         env, fs,
         io::{stdout, Write},
         path::PathBuf,
@@ -278,7 +278,7 @@ fn main() {
             VERSION,
             config.timeout,
             h,
-            current_date_time().format("%FT%H:%M:%S").to_string(),
+            current_date_time().format("%FT%H:%M:%S"),
             extra_message
         );
     } else {
@@ -288,7 +288,7 @@ fn main() {
             config.timeout,
             config.solver_opts,
             h,
-            current_date_time().format("%FT%H:%M:%S").to_string(),
+            current_date_time().format("%FT%H:%M:%S"),
             extra_message
         );
     }
@@ -702,9 +702,7 @@ fn print_solver(solver: &str) -> Option<String> {
         if let Ok(time) = meta.modified() {
             println!(
                 " @ {}",
-                system_time_to_date_time(time)
-                    .format("%FT%H:%M:%S")
-                    .to_string()
+                system_time_to_date_time(time).format("%FT%H:%M:%S")
             );
         }
     } else {
