@@ -16,7 +16,7 @@ use {
         sync::RwLock,
         time,
     },
-    structopt::StructOpt,
+    clap::Parser,
 };
 
 #[cfg(feature = "matrix")]
@@ -50,73 +50,73 @@ pub enum SolverException {
 
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
-#[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "A SAT Competition benchmark runner")]
+#[derive(Clone, Debug, Parser)]
+#[clap(name = "sat-bench", about = "A SAT Competition benchmark runner")]
 pub struct Config {
     /// the problem
-    #[structopt(long = "benchmark", short = "B", default_value = "SC21")]
+    #[clap(long = "benchmark", short = 'B', default_value = "SC21")]
     pub benchmark_name: String,
     /// a branch number
-    #[structopt(long = "number", short = "N", default_value = "0")]
+    #[clap(long = "number", short = 'N', default_value = "0")]
     pub seq_num: usize,
     /// the problem
-    #[structopt(skip)]
+    #[clap(skip)]
     pub benchmark: &'static [(usize, &'static str)],
     /// solver names
-    #[structopt(long = "solver", short = "s", default_value = "")]
+    #[clap(long = "solver", short = 's', default_value = "")]
     pub solver: String,
     /// start of the range of target problems
-    #[structopt(long = "from", default_value = "0")]
+    #[clap(long = "from", default_value = "0")]
     pub target_from: usize,
     /// end of the range of target problems
-    #[structopt(long = "to", default_value = "400")]
+    #[clap(long = "to", default_value = "400")]
     pub target_to: usize,
     /// step of choosen target problems
-    #[structopt(long = "step", default_value = "1")]
+    #[clap(long = "step", default_value = "1")]
     pub target_step: usize,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "T", default_value = "300")]
+    #[clap(long = "timeout", short = 'T', default_value = "300")]
     pub timeout: usize,
     /// number of workers
-    #[structopt(long = "jobs", short = "j", default_value = "3")]
+    #[clap(long = "jobs", short = 'j', default_value = "3")]
     pub num_jobs: usize,
     /// arguments passed to solvers
-    #[structopt(long = "options", default_value = "")]
+    #[clap(long = "options", default_value = "")]
     pub solver_options: String,
     /// data directory
-    #[structopt(long = "data", default_value = "~/Library/SAT/SC21")]
+    #[clap(long = "data", default_value = "~/Library/SAT/SC21")]
     pub data_dir: PathBuf,
     /// solver repository
-    #[structopt(long = "repo", default_value = "~/Repositories/splr")]
+    #[clap(long = "repo", default_value = "~/Repositories/splr")]
     pub repo_dir: PathBuf,
     /// cloud sharing directory
-    #[structopt(long = "sync", default_value = "~/Desktop/splr-exp")]
+    #[clap(long = "sync", default_value = "~/Desktop/splr-exp")]
     pub sync_dir: PathBuf,
     /// cloud sync command
-    #[structopt(long = "sync-cmd", default_value = "")]
+    #[clap(long = "sync-cmd", default_value = "")]
     pub sync_cmd: String,
     /// Rebuild report
-    #[structopt(long = "rereport", default_value = "")]
+    #[clap(long = "rereport", default_value = "")]
     pub rereport: String,
     /// a directory to place the result under `sync_dir`
-    #[structopt(skip)]
+    #[clap(skip)]
     pub dump_dir: PathBuf,
     /// an identifier for benchmarking
-    #[structopt(skip)]
+    #[clap(skip)]
     pub run_id: String,
     /// host
-    #[structopt(skip)]
+    #[clap(skip)]
     pub host: String,
     /// user id to post to Matrix
-    #[structopt(long = "mid", default_value = "")]
+    #[clap(long = "mid", default_value = "")]
     pub matrix_id: String,
     /// user password to post to Matrix
-    #[structopt(long = "mpasswd", default_value = "")]
+    #[clap(long = "mpasswd", default_value = "")]
     pub matrix_password: String,
     /// The Matrix room
-    #[structopt(long = "mroom", default_value = "")]
+    #[clap(long = "mroom", default_value = "")]
     pub matrix_room: String,
-    #[structopt(skip)]
+    #[clap(skip)]
     pub matrix_token: Option<String>,
 }
 
@@ -247,7 +247,7 @@ impl Config {
 
 #[allow(clippy::trivial_regex)]
 fn main() {
-    let mut config = Config::from_args();
+    let mut config = Config::parse();
     let tilde = Regex::new("~").expect("wrong regex");
     let home = env::var("HOME").expect("No home");
     let compiled_solver = config.solver.starts_with('/');

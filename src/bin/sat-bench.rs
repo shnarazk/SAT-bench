@@ -20,7 +20,7 @@ use {
         thread,
         time::SystemTime,
     },
-    structopt::StructOpt,
+    clap::Parser,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -183,60 +183,60 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
 ];
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
-#[derive(Clone, Debug, StructOpt)]
-#[structopt(name = "sat-bench", about = "Run simple SAT benchmarks")]
+#[derive(Clone, Debug, Parser)]
+#[clap(name = "sat-bench", about = "Run simple SAT benchmarks")]
 struct Config {
     /// solvers names
     solvers: Vec<String>,
     /// a list of CNF files
-    #[structopt(long = "target", default_value = "")]
+    #[clap(long = "target", default_value = "")]
     targets: String,
     /// Lower limit of #vars of 3-SAT instances
-    #[structopt(long = "from", short = "L", default_value = "250")]
+    #[clap(long = "from", short = 'L', default_value = "250")]
     range_from: usize,
     /// Upper limit of #vars of 3-SAT instances
-    #[structopt(long = "upto", short = "U", default_value = "360")]
+    #[clap(long = "upto", short = 'U', default_value = "360")]
     range_to: usize,
     /// 3-SAT instances
-    #[structopt(long = "3SAT", short = "3")]
+    #[clap(long = "3SAT", short = '3')]
     three_sat_set: bool,
     /// Structured instances
-    #[structopt(long = "structured", short = "s")]
+    #[clap(long = "structured", short = 's')]
     structured_set: bool,
     /// SAT/UNSAT 360 3SAT instances
-    #[structopt(long = "massive", short = "m")]
+    #[clap(long = "massive", short = 'm')]
     massive_3sat_set: bool,
     /// only UNSAT 360 3SAT instances
-    #[structopt(long = "unsat360", short = "u")]
+    #[clap(long = "unsat360", short = 'u')]
     unsat_360_3sat_set: bool,
     /// time out in seconds
-    #[structopt(long = "timeout", short = "t", default_value = "2000")]
+    #[clap(long = "timeout", short = 't', default_value = "2000")]
     timeout: usize,
     /// command to be executed after a run
-    #[structopt(long = "hook", default_value = "finished")]
+    #[clap(long = "hook", default_value = "finished")]
     hook: String,
     /// arguments passed to solvers
-    #[structopt(long = "options", short = "O", default_value = "")]
+    #[clap(long = "options", short = 'O', default_value = "")]
     solver_opts: String,
     ///  additinal string used in header
-    #[structopt(long = "message", short = "M", default_value = "")]
+    #[clap(long = "message", short = 'M', default_value = "")]
     message: String,
     /// additional string following solver name
-    #[structopt(long = "aux-key", short = "K", default_value = "")]
+    #[clap(long = "aux-key", short = 'K', default_value = "")]
     aux_key: String,
     /// data directory
-    #[structopt(long = "lib", default_value = "")]
+    #[clap(long = "lib", default_value = "")]
     lib_dir: String,
     /// the number of jobs in parallel
-    #[structopt(long = "jobs", short = "j", default_value = "4")]
+    #[clap(long = "jobs", short = 'j', default_value = "4")]
     num_jobs: usize,
     /// disable realtime report
-    #[structopt(long = "no-report", short = "Q")]
+    #[clap(long = "no-report", short = 'Q')]
     no_report: bool,
 }
 
 fn main() {
-    let mut config = Config::from_args();
+    let mut config = Config::parse();
     let base = if config.lib_dir.is_empty() {
         match option_env!("SATBENCHLIB") {
             Some(dir) => dir,

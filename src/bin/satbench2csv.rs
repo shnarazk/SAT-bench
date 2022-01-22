@@ -1,32 +1,32 @@
 use {
     sat_bench::{bench19::SCB, utils::parse_result, ANS_PREFIX},
     std::{collections::HashMap, fs},
-    structopt::StructOpt,
+    clap::Parser,
 };
 
 /// Configuration built from command line options
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[clap(
     name = "satbench2csv",
     about = "Convert SAT Competition Benchmark results to a CSV file"
 )]
 pub struct Config {
     /// directory to scan
-    #[structopt(long = "from", default_value = ".")]
+    #[clap(long, default_value = ".")]
     pub from: String,
     /// solver name (use 'from' if this is empty).
-    #[structopt(long = "solver", default_value = "")]
+    #[clap(long, default_value = "")]
     pub solver: String,
     /// value for instances timed out
-    #[structopt(long = "timeout", default_value = "600")]
+    #[clap(long, default_value = "600")]
     pub timeout: usize,
     /// Name for the target set, ending with a delimitor
-    #[structopt(long = "target", default_value = "SR19main/")]
+    #[clap(long, default_value = "SR19main/")]
     pub target: String,
 }
 
 fn main() -> std::io::Result<()> {
-    let config = Config::from_args();
+    let config = Config::parse();
     let mut hash: HashMap<&str, (f64, bool, String)> = HashMap::new();
     let tag: &str = if config.solver.is_empty() {
         if config.from.ends_with('/') {

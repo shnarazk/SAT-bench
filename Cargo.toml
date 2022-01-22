@@ -1,19 +1,19 @@
 [package]
 name = "sat-bench"
 description = "A small utilities for SAT solver benchmarking"
-version = "0.11.7"
+version = "0.12.0"
 authors = ["Narazaki Shuji <shujinarazaki@protonmail.com>"]
 edition = "2021"
 default-run = "sat-bench"
 
 [dependencies]
 chrono ="^0.4"
+clap = { version = "^3.0", features = ["derive"] }
 crossbeam = "0.8"
 lazy_static = "^1.4"
 regex = "^1.5"
 reqwest = { version = "0.11", features = ["blocking", "json"], optional = true }
 serde_json = "1.0"
-structopt = "^0.3"
 
 [features]
 default = []
