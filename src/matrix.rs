@@ -1,5 +1,10 @@
 /// Matrix.org IF
-use {futures::executor::block_on, serde_json::Value, std::collections::HashMap};
+use {futures::executor::block_on, std::collections::HashMap, serde::Deserialize};
+
+#[derive(Deserialize)]
+struct Token {
+    access_token: String
+}
 
 pub fn get_token<S: ::std::hash::BuildHasher>(map: &mut HashMap<&str, &str, S>) -> Option<String> {
     let url = "https://matrix.org/_matrix/client/r0/login";
@@ -7,12 +12,7 @@ pub fn get_token<S: ::std::hash::BuildHasher>(map: &mut HashMap<&str, &str, S>) 
     let client = reqwest::Client::new();
     let s = async {
         let content = client.post(url).json(&map).send().await.unwrap();
-        let text = content.text().await.unwrap();
-        let v: Value = serde_json::from_str(&text).unwrap();
-        let token = v["access_token"].to_string();
-        assert!(!token.is_empty());
-        let s = &token[1..token.len() - 1];
-        Some(s.to_string())
+        content.json::<Token>().await.map(|j| j.access_token).ok()
     };
     block_on(s)
 }
