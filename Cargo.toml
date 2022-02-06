@@ -10,11 +10,12 @@ default-run = "sat-bench"
 chrono ="^0.4"
 clap = { version = "^3.0", features = ["derive"] }
 crossbeam = "0.8"
+futures = { version = "0.3", optional = true }
 lazy_static = "^1.4"
 regex = "^1.5"
-reqwest = { version = "0.11", features = ["blocking", "json"], optional = true }
+reqwest = { version = "0.11", features = ["json"], optional = true }
 serde_json = "1.0"
 
 [features]
 default = []
-matrix = ["reqwest" ]
+matrix = [ "futures", "reqwest" ]

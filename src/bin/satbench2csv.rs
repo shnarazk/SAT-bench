@@ -1,7 +1,7 @@
 use {
+    clap::Parser,
     sat_bench::{bench19::SCB, utils::parse_result, ANS_PREFIX},
     std::{collections::HashMap, fs},
-    clap::Parser,
 };
 
 /// Configuration built from command line options

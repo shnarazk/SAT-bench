@@ -6,6 +6,7 @@
 /// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
 use {
+    clap::Parser,
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::utils::{current_date_time, system_time_to_date_time},
@@ -20,7 +21,6 @@ use {
         thread,
         time::SystemTime,
     },
-    clap::Parser,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

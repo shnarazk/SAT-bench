@@ -1,5 +1,6 @@
 /// A simple SAT benchmarker with Matrix monitor
 use {
+    clap::Parser,
     lazy_static::lazy_static,
     regex::Regex,
     sat_bench::{
@@ -16,7 +17,6 @@ use {
         sync::RwLock,
         time,
     },
-    clap::Parser,
 };
 
 #[cfg(feature = "matrix")]
