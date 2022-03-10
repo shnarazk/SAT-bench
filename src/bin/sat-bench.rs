@@ -354,19 +354,25 @@ fn main() {
             } else {
                 v[v.len() / 2]
             };
+            let to = t.iter().filter(|v| v.is_nan()).count();
+            v = v
+                .iter()
+                .filter(|x| !x.is_nan())
+                .copied()
+                .collect::<Vec<_>>();
             println!(
-                "{}median,{:>10.3},{:>29},{:>9.3}",
+                "{}med:{:>10.3}, max:{:>10.3},{:>16}:{:>9.3}",
                 CLEAR,
                 median,
+                v.last().map_or(0.0, |r| *r),
                 {
-                    let to = t.iter().filter(|v| v.is_nan()).count();
                     if 0 < to {
                         format!("total except {} timeouts", to)
                     } else {
                         "total".to_string()
                     }
                 },
-                t.iter().filter(|v| !v.is_nan()).sum::<f64>(),
+                v.iter().sum::<f64>(),
             );
         }
     }
