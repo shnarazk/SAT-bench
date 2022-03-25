@@ -181,6 +181,14 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
     ("SR2015/38b", "SatRace2015/38bits_10.dimacs.cnf"),
     ("SR2015/44b", "SatRace2015/44bits_11.dimacs.cnf"),
 ];
+const BIG_PROBLEMS: [(&str, &str); 6] = [
+    ("SC21/b04_s_unknown", "SC21/b04_s_unknown_pre.cnf"),
+    ("SC21/qquad_r21_m22", "SC21/quad_res_r21_m22.cnf"),
+    ("SC21/toughsat_895", "SC21/toughsat_factoring_895s.cnf"),
+    ("SC21/assoc_mult", "SC21/assoc_mult_err_3.c.cnf"),
+    ("SC21/dist4", "SC21/dist4.c.cnf"),
+    ("SC21/p01_lb_05", "SC21/p01_lb_05.cnf"),
+];
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 #[derive(Clone, Debug, Parser)]
@@ -200,6 +208,9 @@ struct Config {
     /// 3-SAT instances
     #[clap(long = "3SAT", short = '3')]
     three_sat_set: bool,
+    /// Big instances
+    #[clap(long = "big", short = 'b')]
+    big_problem_set: bool,
     /// Structured instances
     #[clap(long = "structured", short = 's')]
     structured_set: bool,
@@ -259,6 +270,7 @@ fn main() {
         format!(", {}", config.message)
     };
     if !config.three_sat_set
+        && !config.big_problem_set
         && !config.structured_set
         && !config.massive_3sat_set
         && !config.unsat_360_3sat_set
@@ -328,6 +340,9 @@ fn main() {
             threaded_execute(&config, &solver_name, &MATH_PROBLEMS, &mut num, base);
         } else if config.unsat_360_3sat_set {
             threaded_execute(&config, &solver_name, &MATH_PROBLEMS[10..], &mut num, base);
+        }
+        if config.big_problem_set {
+            threaded_execute(&config, &solver_name, &BIG_PROBLEMS, &mut num, base);
         }
         if config.structured_set {
             threaded_execute(&config, &solver_name, &STRUCTURED_PROBLEMS, &mut num, base);
