@@ -182,12 +182,12 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
     ("SR2015/44b", "SatRace2015/44bits_11.dimacs.cnf"),
 ];
 const BIG_PROBLEMS: [(&str, &str); 6] = [
-    ("SC21/b04_s_unknown", "SC21/b04_s_unknown_pre.cnf"),
-    ("SC21/qquad_r21_m22", "SC21/quad_res_r21_m22.cnf"),
-    ("SC21/toughsat_895", "SC21/toughsat_factoring_895s.cnf"),
-    ("SC21/assoc_mult", "SC21/assoc_mult_err_3.c.cnf"),
-    ("SC21/dist4", "SC21/dist4.c.cnf"),
-    ("SC21/p01_lb_05", "SC21/p01_lb_05.cnf"),
+    ("SC21/b04_s_unknown[SAT]", "SC21/b04_s_unknown_pre.cnf"),
+    ("SC21/quad_r21_m22 [SAT]", "SC21/quad_res_r21_m22.cnf"),
+    ("SC21/toughsat_895s[SAT]", "SC21/toughsat_factoring_895s.cnf"),
+    ("SC21/assoc_mult_e3[UNS]", "SC21/assoc_mult_err_3.c.cnf"),
+    ("SC21/dist4.c      [UNS]", "SC21/dist4.c.cnf"),
+    ("SC21/p01_lb_05    [UNS]", "SC21/p01_lb_05.cnf"),
 ];
 const CLEAR: &str = "\x1B[1G\x1B[0K";
 
