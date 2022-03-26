@@ -1,7 +1,7 @@
 /// A simple SAT benchmarker with Matrix monitor
 use {
     clap::Parser,
-    lazy_static::lazy_static,
+    once_cell::sync::OnceCell,
     regex::Regex,
     sat_bench::{
         utils::{current_date_time, make_verifier, parse_result},
@@ -24,22 +24,21 @@ use sat_bench::matrix;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
-lazy_static! {
-    static ref MINISAT_LIKE: Regex = Regex::new(r"\b(glucose|minisat|cadical|splr)").expect("wrong regex");
-    static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
-    static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-    static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-    static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
-    static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-    pub static ref DIFF: RwLock<String> = RwLock::new(String::new());
-    /// problem queue
-    pub static ref PQ: RwLock<Vec<(usize, String)>> = RwLock::new(Vec::new());
-    /// - the number of tried: usize
-    /// - the number of reported: usize
-    /// - the number of solved: usize
-    pub static ref PROCESSED: RwLock<(usize, usize, usize)> = RwLock::new((0, 0, 0));
-    pub static ref RESULT: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
-}
+static MINISAT_LIKE: OnceCell<Regex> = OnceCell::new();
+static CADICAL: OnceCell<Regex> = OnceCell::new();
+static GLUCOSE: OnceCell<Regex> = OnceCell::new();
+static MINISAT: OnceCell<Regex> = OnceCell::new();
+static MIOS: OnceCell<Regex> = OnceCell::new();
+static SPLR: OnceCell<Regex> = OnceCell::new();
+
+static DIFF: OnceCell<RwLock<String>> = OnceCell::new();
+/// problem queue
+static PQ: OnceCell<RwLock<Vec<(usize, String)>>> = OnceCell::new();
+/// - the number of tried: usize
+/// - the number of reported: usize
+/// - the number of solved: usize
+static PROCESSED: OnceCell<RwLock<(usize, usize, usize)>> = OnceCell::new();
+static RESULT: OnceCell<RwLock<Vec<SolveResultPromise>>> = OnceCell::new();
 
 /// Abnormal termination flags.
 #[derive(Debug)]
@@ -185,11 +184,11 @@ impl Config {
         }) < r.2
     }
     fn next_task(&self) -> Option<(usize, PathBuf)> {
-        if let Ok(mut processed) = PROCESSED.write() {
+        if let Ok(mut processed) = PROCESSED.get().unwrap().write() {
             // - processed.0 -- the last queued task id.
             // - processed.1 -- the index to check from.
             // - processed.2 -- the number of solved (process teminated normally).
-            if let Ok(mut q) = PQ.write() {
+            if let Ok(mut q) = PQ.get().unwrap().write() {
                 if let Some((index, top)) = q.pop() {
                     processed.0 = index;
                     return Some((index, self.data_dir.join(top)));
@@ -199,7 +198,7 @@ impl Config {
         None
     }
     fn solver_command(&self) -> Command {
-        if SPLR.is_match(&self.solver) {
+        if SPLR.get().unwrap().is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
             command.args(&[
                 "--timeout",
@@ -209,11 +208,11 @@ impl Config {
                 "-q",
             ]);
             command
-        } else if CADICAL.is_match(&self.solver) {
+        } else if CADICAL.get().unwrap().is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
             command.args(&["-t", &format!("{}", self.timeout), "--report=false"]);
             command
-        } else if GLUCOSE.is_match(&self.solver) {
+        } else if GLUCOSE.get().unwrap().is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
             command.args(&[&format!("-cpu-lim={}", self.timeout)]);
             command
@@ -225,7 +224,7 @@ impl Config {
         while let Some((i, p)) = self.next_task() {
             check_result(&self);
             let res: SolveResultPromise = self.execute(p);
-            if let Ok(mut v) = RESULT.write() {
+            if let Ok(mut v) = RESULT.get().unwrap().write() {
                 v[i - 1] = res; // RESULT starts from 0, while tasks start from 1.
             }
         }
@@ -247,6 +246,16 @@ impl Config {
 
 #[allow(clippy::trivial_regex)]
 fn main() {
+    let _ = DIFF.set(RwLock::new(String::new()));
+    let _ = PQ.set(RwLock::new(Vec::new()));
+    let _ = PROCESSED.set(RwLock::new((0, 0, 0)));
+    let _ = RESULT.set(RwLock::new(Vec::new()));
+    let _ = MINISAT_LIKE.set(Regex::new(r"\b(glucose|minisat|cadical|splr)").expect("wrong regex"));
+    let _ = CADICAL.set(Regex::new(r"\bcadical").expect("wrong regex"));
+    let _ = GLUCOSE.set(Regex::new(r"\bglucose").expect("wrong regex"));
+    let _ = MINISAT.set(Regex::new(r"\bminisat").expect("wrong regex"));
+    let _ = MIOS.set(Regex::new(r"\bmios").expect("wrong regex"));
+    let _ = SPLR.set(Regex::new(r"\bsplr").expect("wrong regex"));
     let mut config = Config::parse();
     let tilde = Regex::new("~").expect("wrong regex");
     let home = env::var("HOME").expect("No home");
@@ -379,7 +388,7 @@ fn start_benchmark(config: Config) {
         String::from_utf8(diff8).expect("strange diff")
     };
     if !config.solver.starts_with('/') {
-        if let Ok(mut d) = DIFF.write() {
+        if let Ok(mut d) = DIFF.get().unwrap().write() {
             *d = diff.clone();
         }
     }
@@ -388,8 +397,8 @@ fn start_benchmark(config: Config) {
     } else {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
-    if let Ok(mut queue) = PQ.write() {
-        if let Ok(mut v) = RESULT.write() {
+    if let Ok(mut queue) = PQ.get().unwrap().write() {
+        if let Ok(mut v) = RESULT.get().unwrap().write() {
             for s in config
                 .benchmark
                 .iter()
@@ -424,7 +433,12 @@ fn start_benchmark(config: Config) {
     })
     .expect("fail to exit crossbeam::scope");
     check_result(&config);
-    let mut np = PROCESSED.read().map(|v| *v).unwrap_or((0, 0, 0));
+    let mut np = PROCESSED
+        .get()
+        .unwrap()
+        .read()
+        .map(|v| *v)
+        .unwrap_or((0, 0, 0));
     let (s, u) = report(&config, np.1).unwrap_or((0, 0));
     np.2 = s + u;
     println!(
@@ -455,11 +469,11 @@ fn start_benchmark(config: Config) {
 
 fn check_result(config: &Config) {
     let mut new_solution = false;
-    if let Ok(mut processed) = PROCESSED.write() {
+    if let Ok(mut processed) = PROCESSED.get().unwrap().write() {
         // - processed.0 -- the last queued task id.
         // - processed.1 -- the index to check from.
         // - processed.2 -- the number of solved (process teminated normally).
-        if let Ok(v) = RESULT.write() {
+        if let Ok(v) = RESULT.get().unwrap().write() {
             for j in processed.1..v.len() {
                 // skip all the processed
                 // I have the resposibility to print the (j-1) th task's result.
@@ -621,7 +635,7 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
             }
         }
         // show diff
-        if let Ok(diff) = DIFF.write() {
+        if let Ok(diff) = DIFF.get().unwrap().write() {
             for l in diff.lines() {
                 writeln!(outbuf, "# {}", l)?;
             }
@@ -700,13 +714,13 @@ impl SolverHandling for Command {
                     (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
                     (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
                     (Some(10), ref s, _) if s.contains("s SATISFIABLE") => {
-                        if !SPLR.is_match(&config.solver) {
+                        if !SPLR.get().unwrap().is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
                         }
                         Ok(0.0)
                     }
                     (Some(20), ref s, _) if s.contains("s UNSATISFIABLE") => {
-                        if !SPLR.is_match(&config.solver) {
+                        if !SPLR.get().unwrap().is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
                         }
                         Ok(0.0)
@@ -716,7 +730,7 @@ impl SolverHandling for Command {
                             || s.contains("TimeOut")
                             || s.contains("s INDETERMINATE") =>
                     {
-                        if !SPLR.is_match(&config.solver) {
+                        if !SPLR.get().unwrap().is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
                         }
                         Err(SolverException::TimeOut)

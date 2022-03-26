@@ -1,9 +1,7 @@
 #![allow(clippy::trivial_regex)]
 use {
-    crate::ANS_PREFIX,
+    crate::{regex, ANS_PREFIX},
     chrono::{offset::TimeZone, DateTime, Local},
-    lazy_static::lazy_static,
-    regex::Regex,
     std::{
         fs::{File, OpenOptions},
         io::*,
@@ -12,26 +10,19 @@ use {
     },
 };
 
-lazy_static! {
-    static ref CADICAL_SAT: Regex = Regex::new(r"^s SATISFIABLE\b").expect("wrong regex");
-    static ref CADICAL_UNSAT: Regex = Regex::new(r"^s UNSATISFIABLE\b").expect("wrong regex");
-    static ref CADICAL_TIME: Regex =
-        Regex::new(r"c total real time since initialization: +([.0-9]+) +seconds")
-            .expect("wrong regex");
-    static ref GLUCOSE: Regex = Regex::new(r"^c CPU time +: ([.0-9]+)").expect("wrong regex");
-    static ref SPLR_SAT: Regex = Regex::new(r"^s SATISFIABLE:").expect("wrong regex");
-    static ref SPLR_UNSAT: Regex = Regex::new(r"^s UNSATISFIABLE:").expect("wrong regex");
-    static ref SPLR: Regex =
-        Regex::new(r"^c +Strategy\|mode: +([^,]+), time: +([.0-9]+)").expect("wrong regex");
-}
-
 #[allow(clippy::trivial_regex)]
 pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
-    let f;
-    match File::open(fname) {
-        Ok(fin) => f = fin,
+    let cadical_sat = regex!(r"^s SATISFIABLE\b");
+    let cadical_unsat = regex!(r"^s UNSATISFIABLE\b");
+    let cadical_time = regex!(r"c total real time since initialization: +([.0-9]+) +seconds");
+    let glucose = regex!(r"^c CPU time +: ([.0-9]+)");
+    let splr_sat = regex!(r"^s SATISFIABLE:");
+    let splr_unsat = regex!(r"^s UNSATISFIABLE:");
+    let splr = regex!(r"^c +Strategy\|mode: +([^,]+), time: +([.0-9]+)");
+    let f = match File::open(fname) {
+        Ok(fin) => fin,
         Err(_) => return None,
-    }
+    };
     let mut input = BufReader::new(f);
     let mut buf = String::new();
     let mut time: Option<f64> = None;
@@ -40,27 +31,27 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
     while let Ok(k) = input.read_line(&mut buf) {
         if k == 0 {
             break;
-        } else if SPLR_SAT.is_match(&buf) {
+        } else if splr_sat.is_match(&buf) {
             assert_eq!(found, None);
             found = Some(true);
-        } else if SPLR_UNSAT.is_match(&buf) {
+        } else if splr_unsat.is_match(&buf) {
             assert_eq!(found, None);
             found = Some(false);
-        } else if CADICAL_SAT.is_match(&buf) {
+        } else if cadical_sat.is_match(&buf) {
             assert_eq!(found, None);
             found = Some(true);
-        } else if CADICAL_UNSAT.is_match(&buf) {
+        } else if cadical_unsat.is_match(&buf) {
             found = Some(false);
-        } else if let Some(c) = SPLR.captures(&buf) {
+        } else if let Some(c) = splr.captures(&buf) {
             strategy = c[1].to_string();
             if let Ok(v) = c[2].parse() {
                 time = Some(v);
             }
-        } else if let Some(c) = CADICAL_TIME.captures(&buf) {
+        } else if let Some(c) = cadical_time.captures(&buf) {
             if let Ok(v) = c[1].parse() {
                 time = Some(v);
             }
-        } else if let Some(c) = GLUCOSE.captures(&buf) {
+        } else if let Some(c) = glucose.captures(&buf) {
             if let Ok(v) = c[1].parse() {
                 time = Some(v);
             }

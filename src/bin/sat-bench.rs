@@ -7,9 +7,12 @@
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
 use {
     clap::Parser,
-    lazy_static::lazy_static,
+    once_cell::sync::OnceCell,
     regex::Regex,
-    sat_bench::utils::{current_date_time, system_time_to_date_time},
+    sat_bench::{
+        regex,
+        utils::{current_date_time, system_time_to_date_time},
+    },
     std::{
         cmp::Ordering,
         collections::VecDeque,
@@ -32,17 +35,6 @@ const BLUE: &str = "\x1B[001m\x1B[034m";
 const MAGENTA: &str = "\x1B[001m\x1B[035m";
 const RESET: &str = "\x1B[000m";
 
-lazy_static! {
-    static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-    static ref MINISAT_LIKE: Regex =
-        Regex::new(r"\b(cadical|glucose|minisat|splr)").expect("wrong regex");
-    static ref LINGELING: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-    static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-    static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
-    static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-    static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
-}
-
 /// Abnormal termination flags.
 #[derive(Debug)]
 pub enum SolverException {
@@ -52,12 +44,17 @@ pub enum SolverException {
 
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
-lazy_static! {
-    pub static ref PQUEUE: RwLock<VecDeque<(usize, String, String)>> = RwLock::new(VecDeque::new());
-    pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
-    pub static ref NREPORT: RwLock<usize> = RwLock::new(0);
-    pub static ref TOTALTIME: RwLock<Vec<f64>> = RwLock::new(Vec::new());
-}
+// lazy_static! {
+//     pub static ref PQUEUE: RwLock<VecDeque<(usize, String, String)>> = RwLock::new(VecDeque::new());
+//     pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
+//     pub static ref NREPORT: RwLock<usize> = RwLock::new(0);
+//     pub static ref TOTALTIME: RwLock<Vec<f64>> = RwLock::new(Vec::new());
+// }
+
+static PQUEUE: OnceCell<RwLock<VecDeque<(usize, String, String)>>> = OnceCell::new();
+static RESVEC: OnceCell<RwLock<Vec<SolveResultPromise>>> = OnceCell::new();
+static NREPORT: OnceCell<RwLock<usize>> = OnceCell::new();
+static TOTALTIME: OnceCell<RwLock<Vec<f64>>> = OnceCell::new();
 
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
@@ -184,7 +181,10 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
 const BIG_PROBLEMS: [(&str, &str); 6] = [
     ("SC21/b04_s_unknown[SAT]", "SC21/b04_s_unknown_pre.cnf"),
     ("SC21/quad_r21_m22 [SAT]", "SC21/quad_res_r21_m22.cnf"),
-    ("SC21/toughsat_895s[SAT]", "SC21/toughsat_factoring_895s.cnf"),
+    (
+        "SC21/toughsat_895s[SAT]",
+        "SC21/toughsat_factoring_895s.cnf",
+    ),
     ("SC21/assoc_mult_e3[UNS]", "SC21/assoc_mult_err_3.c.cnf"),
     ("SC21/dist4.c      [UNS]", "SC21/dist4.c.cnf"),
     ("SC21/p01_lb_05    [UNS]", "SC21/p01_lb_05.cnf"),
@@ -247,6 +247,10 @@ struct Config {
 }
 
 fn main() {
+    let _ = PQUEUE.set(RwLock::new(VecDeque::new())); // : RwLock<VecDeque<(usize, String, String)>> =
+    let _ = RESVEC.set(RwLock::new(Vec::new())); // : RwLock<Vec<SolveResultPromise>> = ;
+    let _ = NREPORT.set(RwLock::new(0)); // : RwLock<usize> = ;
+    let _ = TOTALTIME.set(RwLock::new(Vec::new())); // : RwLock<Vec<f64>> = ;
     let mut config = Config::parse();
     let base = if config.lib_dir.is_empty() {
         match option_env!("SATBENCHLIB") {
@@ -312,7 +316,7 @@ fn main() {
         "solver,", "num", "target,", "time"
     );
     for solver in &config.solvers {
-        if let Ok(mut t) = TOTALTIME.write() {
+        if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
             t.clear();
         }
         if !single_solver {
@@ -351,7 +355,7 @@ fn main() {
             execute(&config, solver, num, t, t);
             num += 1;
         }
-        if let Ok(t) = TOTALTIME.read() {
+        if let Ok(t) = TOTALTIME.get().unwrap().read() {
             let mut v: Vec<f64> = t.iter().copied().collect();
             v.sort_by(|a, b| match (a.is_nan(), b.is_nan()) {
                 (true, true) => Ordering::Equal,
@@ -403,18 +407,18 @@ fn threaded_execute(
     num: &mut usize,
     dir: &str,
 ) {
-    if let Ok(mut q) = PQUEUE.write() {
+    if let Ok(mut q) = PQUEUE.get().unwrap().write() {
         *q = VecDeque::new();
     }
-    if let Ok(mut v) = RESVEC.write() {
+    if let Ok(mut v) = RESVEC.get().unwrap().write() {
         *v = Vec::new()
     }
-    if let Ok(mut r) = NREPORT.write() {
+    if let Ok(mut r) = NREPORT.get().unwrap().write() {
         *r = 0;
     }
     let offset = *num;
-    if let Ok(mut q) = PQUEUE.write() {
-        if let Ok(mut v) = RESVEC.write() {
+    if let Ok(mut q) = PQUEUE.get().unwrap().write() {
+        if let Ok(mut v) = RESVEC.get().unwrap().write() {
             for (i, desc) in ps.iter().enumerate() {
                 q.push_back((i, desc.0.to_string(), format!("{}/{}", dir, desc.1)));
                 *num += 1;
@@ -440,7 +444,7 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
     let mut n = String::new();
     let mut p = String::new();
     loop {
-        if let Ok(mut q) = PQUEUE.write() {
+        if let Ok(mut q) = PQUEUE.get().unwrap().write() {
             if q.is_empty() {
                 return;
             } else if let Some(desc) = q.pop_front() {
@@ -450,9 +454,9 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
             }
         }
         let res = worker_execute(&config, &solver, &n, &p);
-        if let Ok(mut v) = RESVEC.write() {
+        if let Ok(mut v) = RESVEC.get().unwrap().write() {
             v[i] = res;
-            if let Ok(mut r) = NREPORT.write() {
+            if let Ok(mut r) = NREPORT.get().unwrap().write() {
                 for j in *r..v.len() {
                     if let Some(r) = &v[j] {
                         worker_report(&solver_name, j + offset, &r.0, &r.1);
@@ -512,7 +516,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 &format!("\"{}\",", name),
                 end,
             );
-            if let Ok(mut t) = TOTALTIME.write() {
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(*end);
             }
         }
@@ -527,7 +531,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 "TIMEOUT",
                 RESET,
             );
-            if let Ok(mut t) = TOTALTIME.write() {
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
             }
         }
@@ -542,7 +546,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 "ABORT",
                 RESET,
             );
-            if let Ok(mut t) = TOTALTIME.write() {
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
             }
         }
@@ -622,7 +626,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         // &format!("\"{}({})\",", tag, count),
         end,
     );
-    if let Ok(mut t) = TOTALTIME.write() {
+    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
         t.push(end);
     }
 }
@@ -639,11 +643,18 @@ trait SolverHandling {
 
 impl SolverHandling for Command {
     fn set_solver(&mut self, solver: &str) -> &mut Command {
-        if SPLR.is_match(solver) {
+        let glucose = regex!(r"\bglucose");
+        // let minisat_like = regex!(r"\b(cadical|glucose|minisat|splr)");
+        // let lingeling = regex!(r"\blingeling");
+        // let minisat = regex!(r"\bminisat");
+        // let mios = regex!(r"\bmios");
+        let splr = regex!(r"\bsplr");
+        let cadical = regex!(r"\bcadical");
+        if splr.is_match(solver) {
             self.args(&[solver, "-r", "-", "-q"])
-        } else if CADICAL.is_match(solver) {
+        } else if cadical.is_match(solver) {
             self.args(&[solver, "-f"])
-        } else if GLUCOSE.is_match(solver) {
+        } else if glucose.is_match(solver) {
             self.args(&[solver, "-verb=0"])
         } else {
             self.arg(solver)
@@ -655,6 +666,7 @@ impl SolverHandling for Command {
         start: &SystemTime,
         timeout: f64,
     ) -> Result<f64, SolverException> {
+        let minisat_like = regex!(r"\b(cadical|glucose|minisat|splr)");
         let result = self.output();
         match &result {
             Ok(r)
@@ -667,7 +679,7 @@ impl SolverHandling for Command {
             Ok(ref done) => {
                 match done.status.code() {
                     Some(124) => return Err(SolverException::TimeOut),
-                    Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
+                    Some(10) | Some(20) if minisat_like.is_match(solver) => (),
                     Some(0) => (),
                     e => {
                         println!("unknown exit code {:?}", e);
@@ -765,7 +777,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         &format!("\"{}\",", name),
                         end,
                     );
-                    if let Ok(mut t) = TOTALTIME.write() {
+                    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                         t.push(end);
                     }
                 }
@@ -780,7 +792,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "TIMEOUT",
                         RESET
                     );
-                    if let Ok(mut t) = TOTALTIME.write() {
+                    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                         t.push(f64::NAN);
                     }
                 }
@@ -795,7 +807,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "ABORT",
                         RESET,
                     );
-                    if let Ok(mut t) = TOTALTIME.write() {
+                    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                         t.push(f64::NAN);
                     }
                 }
