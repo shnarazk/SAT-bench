@@ -250,7 +250,7 @@ const BENCHMARK: [(&str, &str); 20] = [
 ];
 
 #[derive(Clone, Debug, Parser)]
-#[clap(name = "sat-bench", about = "Run simple SAT benchmarks")]
+#[clap(author, version, name = "sat-bench", about = "Run simple SAT benchmarks")]
 struct Config {
     /// solvers names
     solvers: Vec<String>,
