@@ -172,7 +172,7 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
     ("SR2015/38b", "SatRace2015/38bits_10.dimacs.cnf"),
     ("SR2015/44b", "SatRace2015/44bits_11.dimacs.cnf"),
 ];
-const BIG_PROBLEMS: [(&str, &str); 6] = [
+const BIG_PROBLEMS: [(&str, &str); 7] = [
     ("SC21/b04_s_unknown[SAT]", "SC21/b04_s_unknown_pre.cnf"),
     ("SC21/quad_r21_m22 [SAT]", "SC21/quad_res_r21_m22.cnf"),
     (
@@ -182,6 +182,7 @@ const BIG_PROBLEMS: [(&str, &str); 6] = [
     ("SC21/assoc_mult_e3[UNS]", "SC21/assoc_mult_err_3.c.cnf"),
     ("SC21/dist4.c      [UNS]", "SC21/dist4.c.cnf"),
     ("SC21/p01_lb_05    [UNS]", "SC21/p01_lb_05.cnf"),
+    ("SC21/shift1add    [UNS]", "SC21/shift1add.26949.cnf"),
 ];
 
 const BENCHMARK: [(&str, &str); 20] = [
@@ -225,7 +226,6 @@ const BENCHMARK: [(&str, &str); 20] = [
         "3UNS/360 S1028159446-096",
         "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf",
     ),
-    ("[SAT] SR2015/itox,152428", "SatRace2015/itox_vc1130.cnf"),
     (
         "[SAT] SR2015/m283,  3553",
         "SatRace2015/manthey_DimacsSorter_28_3.cnf",
@@ -247,6 +247,7 @@ const BENCHMARK: [(&str, &str); 20] = [
     ("[UNS] SC21/assoc_mult_e3", "SC21/assoc_mult_err_3.c.cnf"),
     ("[UNS] SC21/dist4.c      ", "SC21/dist4.c.cnf"),
     ("[UNS] SC21/p01_lb_05    ", "SC21/p01_lb_05.cnf"),
+    ("[UNS] SC21/shift1add    ", "SC21/shift1add.26949.cnf"),
 ];
 
 #[derive(Clone, Debug, Parser)]
