@@ -27,6 +27,6 @@ benchm --rereport cadical-20200401 -N 2 -B SC18
 This will rebuild "cadical-20200401-2-SC18.csv" using files under "cadical-20200401-2-SC18".
 
 
-## Nix Overlay
+## Nix flake
 
-https://gitlab.com/shnarazk/SAT/SAT-bench/wikis/home
+Please use the flake file included.
