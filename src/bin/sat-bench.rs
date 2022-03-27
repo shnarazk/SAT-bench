@@ -7,9 +7,12 @@
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
 use {
     clap::Parser,
-    lazy_static::lazy_static,
+    once_cell::sync::OnceCell,
     regex::Regex,
-    sat_bench::utils::{current_date_time, system_time_to_date_time},
+    sat_bench::{
+        regex,
+        utils::{current_date_time, system_time_to_date_time},
+    },
     std::{
         cmp::Ordering,
         collections::VecDeque,
@@ -31,17 +34,7 @@ const GREEN: &str = "\x1B[001m\x1B[032m";
 const BLUE: &str = "\x1B[001m\x1B[034m";
 const MAGENTA: &str = "\x1B[001m\x1B[035m";
 const RESET: &str = "\x1B[000m";
-
-lazy_static! {
-    static ref GLUCOSE: Regex = Regex::new(r"\bglucose").expect("wrong regex");
-    static ref MINISAT_LIKE: Regex =
-        Regex::new(r"\b(cadical|glucose|minisat|splr)").expect("wrong regex");
-    static ref LINGELING: Regex = Regex::new(r"\blingeling").expect("wrong regex");
-    static ref MINISAT: Regex = Regex::new(r"\bminisat").expect("wrong regex");
-    static ref MIOS: Regex = Regex::new(r"\bmios").expect("wrong regex");
-    static ref SPLR: Regex = Regex::new(r"\bsplr").expect("wrong regex");
-    static ref CADICAL: Regex = Regex::new(r"\bcadical").expect("wrong regex");
-}
+const CLEAR: &str = "\x1B[1G\x1B[0K";
 
 /// Abnormal termination flags.
 #[derive(Debug)]
@@ -52,12 +45,10 @@ pub enum SolverException {
 
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
-lazy_static! {
-    pub static ref PQUEUE: RwLock<VecDeque<(usize, String, String)>> = RwLock::new(VecDeque::new());
-    pub static ref RESVEC: RwLock<Vec<SolveResultPromise>> = RwLock::new(Vec::new());
-    pub static ref NREPORT: RwLock<usize> = RwLock::new(0);
-    pub static ref TOTALTIME: RwLock<Vec<f64>> = RwLock::new(Vec::new());
-}
+static PQUEUE: OnceCell<RwLock<VecDeque<(usize, String, String)>>> = OnceCell::new();
+static RESVEC: OnceCell<RwLock<Vec<SolveResultPromise>>> = OnceCell::new();
+static NREPORT: OnceCell<RwLock<usize>> = OnceCell::new();
+static TOTALTIME: OnceCell<RwLock<Vec<f64>>> = OnceCell::new();
 
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
@@ -184,12 +175,79 @@ const STRUCTURED_PROBLEMS: [(&str, &str); 4] = [
 const BIG_PROBLEMS: [(&str, &str); 6] = [
     ("SC21/b04_s_unknown[SAT]", "SC21/b04_s_unknown_pre.cnf"),
     ("SC21/quad_r21_m22 [SAT]", "SC21/quad_res_r21_m22.cnf"),
-    ("SC21/toughsat_895s[SAT]", "SC21/toughsat_factoring_895s.cnf"),
+    (
+        "SC21/toughsat_895s[SAT]",
+        "SC21/toughsat_factoring_895s.cnf",
+    ),
     ("SC21/assoc_mult_e3[UNS]", "SC21/assoc_mult_err_3.c.cnf"),
     ("SC21/dist4.c      [UNS]", "SC21/dist4.c.cnf"),
     ("SC21/p01_lb_05    [UNS]", "SC21/p01_lb_05.cnf"),
 ];
-const CLEAR: &str = "\x1B[1G\x1B[0K";
+
+const BENCHMARK: [(&str, &str); 20] = [
+    (
+        "3SAT/360  S722433227-030",
+        "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S722433227-030.cnf",
+    ),
+    (
+        "3SAT/360 S2032263657-035",
+        "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S2032263657-035.cnf",
+    ),
+    (
+        "3SAT/360  S368632549-051",
+        "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S368632549-051.cnf",
+    ),
+    (
+        "3SAT/360 S1684547485-073",
+        "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1684547485-073.cnf",
+    ),
+    (
+        "3SAT/360 S1711406314-093",
+        "SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1711406314-093.cnf",
+    ),
+    (
+        "3UNS/360 S1369720750-015",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf",
+    ),
+    (
+        "3UNS/360  S367138237-029",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf",
+    ),
+    (
+        "3UNS/360  S680239195-053",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf",
+    ),
+    (
+        "3UNS/360  S253750560-086",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf",
+    ),
+    (
+        "3UNS/360 S1028159446-096",
+        "SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf",
+    ),
+    ("[SAT] SR2015/itox,152428", "SatRace2015/itox_vc1130.cnf"),
+    (
+        "[SAT] SR2015/m283,  3553",
+        "SatRace2015/manthey_DimacsSorter_28_3.cnf",
+    ),
+    (
+        "[SAT] SR2015/38b,    448",
+        "SatRace2015/38bits_10.dimacs.cnf",
+    ),
+    (
+        "[SAT] SR2015/44b,    609",
+        "SatRace2015/44bits_11.dimacs.cnf",
+    ),
+    ("[SAT] SC21/b04_s_unknown", "SC21/b04_s_unknown_pre.cnf"),
+    ("[SAT] SC21/quad_r21_m22 ", "SC21/quad_res_r21_m22.cnf"),
+    (
+        "[SAT] SC21/toughsat_895s",
+        "SC21/toughsat_factoring_895s.cnf",
+    ),
+    ("[UNS] SC21/assoc_mult_e3", "SC21/assoc_mult_err_3.c.cnf"),
+    ("[UNS] SC21/dist4.c      ", "SC21/dist4.c.cnf"),
+    ("[UNS] SC21/p01_lb_05    ", "SC21/p01_lb_05.cnf"),
+];
 
 #[derive(Clone, Debug, Parser)]
 #[clap(name = "sat-bench", about = "Run simple SAT benchmarks")]
@@ -208,6 +266,8 @@ struct Config {
     /// 3-SAT instances
     #[clap(long = "3SAT", short = '3')]
     three_sat_set: bool,
+    #[clap(long = "benchmark", short = 'B')]
+    benchmark_set: bool,
     /// Big instances
     #[clap(long = "big", short = 'b')]
     big_problem_set: bool,
@@ -247,6 +307,10 @@ struct Config {
 }
 
 fn main() {
+    let _ = PQUEUE.set(RwLock::new(VecDeque::new())); // : RwLock<VecDeque<(usize, String, String)>> =
+    let _ = RESVEC.set(RwLock::new(Vec::new())); // : RwLock<Vec<SolveResultPromise>> = ;
+    let _ = NREPORT.set(RwLock::new(0)); // : RwLock<usize> = ;
+    let _ = TOTALTIME.set(RwLock::new(Vec::new())); // : RwLock<Vec<f64>> = ;
     let mut config = Config::parse();
     let base = if config.lib_dir.is_empty() {
         match option_env!("SATBENCHLIB") {
@@ -276,7 +340,9 @@ fn main() {
         && !config.unsat_360_3sat_set
         && config.targets.is_empty()
     {
-        config.massive_3sat_set = true;
+        config.three_sat_set = true;
+        config.range_to = 250;
+        config.benchmark_set = true;
     }
     let host = Command::new("hostname")
         .arg("-s")
@@ -312,7 +378,7 @@ fn main() {
         "solver,", "num", "target,", "time"
     );
     for solver in &config.solvers {
-        if let Ok(mut t) = TOTALTIME.write() {
+        if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
             t.clear();
         }
         if !single_solver {
@@ -341,6 +407,9 @@ fn main() {
         } else if config.unsat_360_3sat_set {
             threaded_execute(&config, &solver_name, &MATH_PROBLEMS[10..], &mut num, base);
         }
+        if config.benchmark_set {
+            threaded_execute(&config, &solver_name, &BENCHMARK, &mut num, base);
+        }
         if config.big_problem_set {
             threaded_execute(&config, &solver_name, &BIG_PROBLEMS, &mut num, base);
         }
@@ -351,7 +420,7 @@ fn main() {
             execute(&config, solver, num, t, t);
             num += 1;
         }
-        if let Ok(t) = TOTALTIME.read() {
+        if let Ok(t) = TOTALTIME.get().unwrap().read() {
             let mut v: Vec<f64> = t.iter().copied().collect();
             v.sort_by(|a, b| match (a.is_nan(), b.is_nan()) {
                 (true, true) => Ordering::Equal,
@@ -403,18 +472,18 @@ fn threaded_execute(
     num: &mut usize,
     dir: &str,
 ) {
-    if let Ok(mut q) = PQUEUE.write() {
+    if let Ok(mut q) = PQUEUE.get().unwrap().write() {
         *q = VecDeque::new();
     }
-    if let Ok(mut v) = RESVEC.write() {
+    if let Ok(mut v) = RESVEC.get().unwrap().write() {
         *v = Vec::new()
     }
-    if let Ok(mut r) = NREPORT.write() {
+    if let Ok(mut r) = NREPORT.get().unwrap().write() {
         *r = 0;
     }
     let offset = *num;
-    if let Ok(mut q) = PQUEUE.write() {
-        if let Ok(mut v) = RESVEC.write() {
+    if let Ok(mut q) = PQUEUE.get().unwrap().write() {
+        if let Ok(mut v) = RESVEC.get().unwrap().write() {
             for (i, desc) in ps.iter().enumerate() {
                 q.push_back((i, desc.0.to_string(), format!("{}/{}", dir, desc.1)));
                 *num += 1;
@@ -440,7 +509,7 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
     let mut n = String::new();
     let mut p = String::new();
     loop {
-        if let Ok(mut q) = PQUEUE.write() {
+        if let Ok(mut q) = PQUEUE.get().unwrap().write() {
             if q.is_empty() {
                 return;
             } else if let Some(desc) = q.pop_front() {
@@ -450,9 +519,9 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
             }
         }
         let res = worker_execute(&config, &solver, &n, &p);
-        if let Ok(mut v) = RESVEC.write() {
+        if let Ok(mut v) = RESVEC.get().unwrap().write() {
             v[i] = res;
-            if let Ok(mut r) = NREPORT.write() {
+            if let Ok(mut r) = NREPORT.get().unwrap().write() {
                 for j in *r..v.len() {
                     if let Some(r) = &v[j] {
                         worker_report(&solver_name, j + offset, &r.0, &r.1);
@@ -512,7 +581,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 &format!("\"{}\",", name),
                 end,
             );
-            if let Ok(mut t) = TOTALTIME.write() {
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(*end);
             }
         }
@@ -527,7 +596,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 "TIMEOUT",
                 RESET,
             );
-            if let Ok(mut t) = TOTALTIME.write() {
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
             }
         }
@@ -542,7 +611,7 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
                 "ABORT",
                 RESET,
             );
-            if let Ok(mut t) = TOTALTIME.write() {
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
             }
         }
@@ -622,7 +691,7 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         // &format!("\"{}({})\",", tag, count),
         end,
     );
-    if let Ok(mut t) = TOTALTIME.write() {
+    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
         t.push(end);
     }
 }
@@ -639,11 +708,18 @@ trait SolverHandling {
 
 impl SolverHandling for Command {
     fn set_solver(&mut self, solver: &str) -> &mut Command {
-        if SPLR.is_match(solver) {
+        let glucose = regex!(r"\bglucose");
+        // let minisat_like = regex!(r"\b(cadical|glucose|minisat|splr)");
+        // let lingeling = regex!(r"\blingeling");
+        // let minisat = regex!(r"\bminisat");
+        // let mios = regex!(r"\bmios");
+        let splr = regex!(r"\bsplr");
+        let cadical = regex!(r"\bcadical");
+        if splr.is_match(solver) {
             self.args(&[solver, "-r", "-", "-q"])
-        } else if CADICAL.is_match(solver) {
+        } else if cadical.is_match(solver) {
             self.args(&[solver, "-f"])
-        } else if GLUCOSE.is_match(solver) {
+        } else if glucose.is_match(solver) {
             self.args(&[solver, "-verb=0"])
         } else {
             self.arg(solver)
@@ -655,6 +731,7 @@ impl SolverHandling for Command {
         start: &SystemTime,
         timeout: f64,
     ) -> Result<f64, SolverException> {
+        let minisat_like = regex!(r"\b(cadical|glucose|minisat|splr)");
         let result = self.output();
         match &result {
             Ok(r)
@@ -667,7 +744,7 @@ impl SolverHandling for Command {
             Ok(ref done) => {
                 match done.status.code() {
                     Some(124) => return Err(SolverException::TimeOut),
-                    Some(10) | Some(20) if MINISAT_LIKE.is_match(solver) => (),
+                    Some(10) | Some(20) if minisat_like.is_match(solver) => (),
                     Some(0) => (),
                     e => {
                         println!("unknown exit code {:?}", e);
@@ -765,7 +842,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         &format!("\"{}\",", name),
                         end,
                     );
-                    if let Ok(mut t) = TOTALTIME.write() {
+                    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                         t.push(end);
                     }
                 }
@@ -780,7 +857,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "TIMEOUT",
                         RESET
                     );
-                    if let Ok(mut t) = TOTALTIME.write() {
+                    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                         t.push(f64::NAN);
                     }
                 }
@@ -795,7 +872,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         "ABORT",
                         RESET,
                     );
-                    if let Ok(mut t) = TOTALTIME.write() {
+                    if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                         t.push(f64::NAN);
                     }
                 }
