@@ -16,7 +16,7 @@
                    pname = "sat-bench";
                    version = "0.14.1-20220929-1";
                    src = self;
-                   buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkgconfig ];
+                   buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkg-config ];
                    buildPhase = "cargo build --release";
                    installPhase = ''
                        mkdir -p $out/bin;
