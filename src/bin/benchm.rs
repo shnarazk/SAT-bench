@@ -152,11 +152,14 @@ impl Config {
     #[allow(unused_variables)]
     fn post<S: AsRef<str>>(&self, msg: S) {
         #[cfg(feature = "matrix")]
-        matrix::post(
-            &self.matrix_room,
-            &self.matrix_token,
-            &format!("{}: {}", self.run_id, msg.as_ref()),
-        );
+        if !self.matrix_id.is_empty() && !self.matrix_room.is_empty() && self.matrix_token.is_some()
+        {
+            matrix::post(
+                &self.matrix_room,
+                &self.matrix_token,
+                &format!("{}: {}", self.run_id, msg.as_ref()),
+            );
+        }
     }
     fn dump_stream(&self, cnf: &Path, stream: &str) -> std::io::Result<()> {
         let outname = self.dump_dir.join(format!(
