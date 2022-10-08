@@ -813,7 +813,7 @@ checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
 
 [[package]]
 name = "sat-bench"
-version = "0.14.1"
+version = "0.14.2"
 dependencies = [
  "chrono",
  "clap",
