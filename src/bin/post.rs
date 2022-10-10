@@ -1,4 +1,4 @@
-use {matrix_sdk:: Client, std::env, url::Url};
+use {matrix_sdk::Client, std::env, url::Url};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
