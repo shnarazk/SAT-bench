@@ -20,7 +20,7 @@ use {
 };
 
 #[cfg(feature = "matrix")]
-use sat_bench::matrix;
+use sat_bench::matrix::Matrix;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
@@ -49,7 +49,7 @@ pub enum SolverException {
 
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
-#[derive(Clone, Debug, Parser)]
+#[derive(Debug, Parser)]
 #[clap(name = "sat-bench", about = "A SAT Competition benchmark runner")]
 pub struct Config {
     /// the problem
@@ -117,6 +117,9 @@ pub struct Config {
     pub matrix_room: String,
     #[clap(skip)]
     pub matrix_token: Option<String>,
+    #[cfg(feature = "matrix")]
+    #[clap(skip)]
+    pub matrix: Matrix,
 }
 
 impl Default for Config {
@@ -144,6 +147,7 @@ impl Default for Config {
             matrix_password: String::new(),
             matrix_room: String::new(),
             matrix_token: None,
+            matrix: Matrix::default(),
         }
     }
 }
@@ -152,14 +156,15 @@ impl Config {
     #[allow(unused_variables)]
     fn post<S: AsRef<str>>(&self, msg: S) {
         #[cfg(feature = "matrix")]
-        if !self.matrix_id.is_empty() && !self.matrix_room.is_empty() && self.matrix_token.is_some()
-        {
-            matrix::post(
-                &self.matrix_room,
-                &self.matrix_token,
-                &format!("{}: {}", self.run_id, msg.as_ref()),
-            );
-        }
+        // if !self.matrix_id.is_empty() && !self.matrix_room.is_empty() && self.matrix_token.is_some()
+        // {
+        //     matrix::post(
+        //         &self.matrix_room,
+        //         &self.matrix_token,
+        //         &format!("{}: {}", self.run_id, msg.as_ref()),
+        //     );
+        // }
+        self.matrix.post(msg.as_ref());
     }
     fn dump_stream(&self, cnf: &Path, stream: &str) -> std::io::Result<()> {
         let outname = self.dump_dir.join(format!(
@@ -248,7 +253,8 @@ impl Config {
 }
 
 #[allow(clippy::trivial_regex)]
-fn main() {
+#[tokio::main]
+async fn main() {
     let _ = DIFF.set(RwLock::new(String::new()));
     let _ = PQ.set(RwLock::new(Vec::new()));
     let _ = PROCESSED.set(RwLock::new((0, 0, 0)));
