@@ -20,7 +20,13 @@ use {
 };
 
 #[cfg(feature = "matrix")]
-use sat_bench::matrix::Matrix;
+use {
+    sat_bench::matrix::connect_to_matrix,
+    std::{
+        sync::mpsc::{self, Receiver, Sender},
+        thread,
+    },
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const CLEAR: &str = "\x1B[1G\x1B[0K";
@@ -49,7 +55,7 @@ pub enum SolverException {
 
 type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
 
-#[derive(Debug, Parser)]
+#[derive(Clone, Debug, Parser)]
 #[clap(name = "sat-bench", about = "A SAT Competition benchmark runner")]
 pub struct Config {
     /// the problem
@@ -115,11 +121,8 @@ pub struct Config {
     /// The Matrix room
     #[clap(long = "mroom", default_value = "")]
     pub matrix_room: String,
-    #[clap(skip)]
-    pub matrix_token: Option<String>,
-    #[cfg(feature = "matrix")]
-    #[clap(skip)]
-    pub matrix: Matrix,
+    // #[clap(skip)]
+    // pub matrix_token: Option<String>,
 }
 
 impl Default for Config {
@@ -146,26 +149,24 @@ impl Default for Config {
             matrix_id: String::new(),
             matrix_password: String::new(),
             matrix_room: String::new(),
-            matrix_token: None,
-            matrix: Matrix::default(),
         }
     }
 }
 
 impl Config {
     #[allow(unused_variables)]
-    fn post<S: AsRef<str>>(&self, msg: S) {
-        #[cfg(feature = "matrix")]
-        // if !self.matrix_id.is_empty() && !self.matrix_room.is_empty() && self.matrix_token.is_some()
-        // {
-        //     matrix::post(
-        //         &self.matrix_room,
-        //         &self.matrix_token,
-        //         &format!("{}: {}", self.run_id, msg.as_ref()),
-        //     );
-        // }
-        self.matrix.post(msg.as_ref());
-    }
+    // fn post<S: AsRef<str>>(&self, msg: S) {
+    //     #[cfg(feature = "matrix")]
+    //     // if !self.matrix_id.is_empty() && !self.matrix_room.is_empty() && self.matrix_token.is_some()
+    //     // {
+    //     //     matrix::post(
+    //     //         &self.matrix_room,
+    //     //         &self.matrix_token,
+    //     //         &format!("{}: {}", self.run_id, msg.as_ref()),
+    //     //     );
+    //     // }
+    //     self.matrix.post(msg.as_ref());
+    // }
     fn dump_stream(&self, cnf: &Path, stream: &str) -> std::io::Result<()> {
         let outname = self.dump_dir.join(format!(
             "{}_{}",
@@ -228,9 +229,9 @@ impl Config {
             Command::new(&self.solver)
         }
     }
-    fn worker(self) {
+    fn worker(self, matrix: Sender<String>) {
         while let Some((i, p)) = self.next_task() {
-            check_result(&self);
+            check_result(&self, &matrix);
             let res: SolveResultPromise = self.execute(p);
             if let Ok(mut v) = RESULT.get().unwrap().write() {
                 v[i - 1] = res; // RESULT starts from 0, while tasks start from 1.
@@ -297,14 +298,14 @@ async fn main() {
             .to_string(),
     );
     config.target_to = config.target_to.min(config.benchmark.len());
-    #[cfg(feature = "matrix")]
-    if !config.matrix_id.is_empty() {
-        let mut map: HashMap<&str, &str> = HashMap::new();
-        map.insert("user", &config.matrix_id);
-        map.insert("password", &config.matrix_password);
-        config.matrix_token = matrix::get_token(&mut map);
-        println!("ready to post to matrix; user: {}", config.matrix_id);
-    }
+    // #[cfg(feature = "matrix")]
+    // if !config.matrix_id.is_empty() {
+    //     let mut map: HashMap<&str, &str> = HashMap::new();
+    //     map.insert("user", &config.matrix_id);
+    //     map.insert("password", &config.matrix_password);
+    //     config.matrix_token = matrix::get_token(&mut map);
+    //     println!("ready to post to matrix; user: {}", config.matrix_id);
+    // }
     if !compiled_solver && config.solver.is_empty() && config.rereport.is_empty() {
         config.solver = "splr".to_string();
         for f in config
@@ -423,25 +424,46 @@ fn start_benchmark(config: Config) {
         queue.reverse();
     }
     report(&config, 0).unwrap();
-    config.post(format!(
-        "A new {} parallel, {} timeout benchmark starts.",
-        config.num_jobs, config.timeout
-    ));
+    let (matrix_channel, rx): (Sender<String>, Receiver<String>) = mpsc::channel();
+    let _ = {
+        let mid = config.matrix_id.clone();
+        let mpass = config.matrix_password.clone();
+        let mroom = config.matrix_room.clone();
+        thread::spawn(move || {
+            #[cfg(feature = "matrix")]
+            {
+                if let Ok(matrix) = connect_to_matrix(&mid, &mpass, &mroom) {
+                    while let Ok(msg) = rx.recv() {
+                        let _ = matrix.post(msg);
+                    }
+                }
+            }
+        })
+    };
+    matrix_channel
+        .send(format!(
+            "A new {} parallel, {} timeout benchmark starts.",
+            config.num_jobs, config.timeout
+        ))
+        .unwrap();
     if !diff.is_empty() {
-        config.post("WARNING: There're unregistered modifications!");
+        matrix_channel
+            .send("WARNING: There're unregistered modifications!".to_string())
+            .unwrap();
     }
     println!("Benchmark: {}", &config.run_id);
     crossbeam::scope(|s| {
         for i in 0..config.num_jobs {
             let c = config.clone();
+            let mc = matrix_channel.clone();
             s.spawn(move |_| {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-                c.worker();
+                c.worker(mc);
             });
         }
     })
     .expect("fail to exit crossbeam::scope");
-    check_result(&config);
+    check_result(&config, &matrix_channel);
     let mut np = PROCESSED
         .get()
         .unwrap()
@@ -454,10 +476,12 @@ fn start_benchmark(config: Config) {
         "Benchmark {} finished, {} problems, {} solutions",
         config.run_id, np.1, np.2
     );
-    config.post(format!(
-        "A {} timeout benchmark {} ended, {} problems, {} solutions",
-        config.timeout, config.run_id, np.1, np.2
-    ));
+    matrix_channel
+        .send(format!(
+            "A {} timeout benchmark {} ended, {} problems, {} solutions",
+            config.timeout, config.run_id, np.1, np.2
+        ))
+        .unwrap();
     make_verifier(config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
@@ -476,7 +500,7 @@ fn start_benchmark(config: Config) {
     }
 }
 
-fn check_result(config: &Config) {
+fn check_result(config: &Config, matrix: &Sender<String>) {
     let mut new_solution = false;
     if let Ok(mut processed) = PROCESSED.get().unwrap().write() {
         // - processed.0 -- the last queued task id.
@@ -498,10 +522,14 @@ fn check_result(config: &Config) {
                     // and it corresponds to (j + 1) th task.
                     if new_solution {
                         if config.is_new_record(&processed) {
-                            config.post(format!("*{:>3},{:>3}", task_id, processed.2));
+                            matrix
+                                .send(format!("*{:>3},{:>3}", task_id, processed.2))
+                                .unwrap();
                             println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
                         } else {
-                            config.post(format!(" {:>3},{:>3}", task_id, processed.2));
+                            matrix
+                                .send(format!(" {:>3},{:>3}", task_id, processed.2))
+                                .unwrap();
                             println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
                         }
                     }
