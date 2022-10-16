@@ -4,6 +4,7 @@ use {
     once_cell::sync::OnceCell,
     regex::Regex,
     sat_bench::{
+        matrix::connect_to_matrix,
         utils::{current_date_time, make_verifier, parse_result},
         ANS_PREFIX,
     },
@@ -14,15 +15,12 @@ use {
         path::{Path, PathBuf},
         process::Command,
         str,
-        sync::RwLock,
+        sync::{
+            mpsc::{self, Receiver, Sender},
+            RwLock,
+        },
         time,
     },
-};
-
-#[cfg(feature = "matrix")]
-use {
-    sat_bench::matrix::connect_to_matrix,
-    std::sync::mpsc::{self, Receiver, Sender},
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -118,8 +116,6 @@ pub struct Config {
     /// The Matrix room
     #[clap(long = "mroom", default_value = "")]
     pub matrix_room: String,
-    #[clap(skip)]
-    pub matrix_token: Option<String>,
 }
 
 impl Default for Config {
@@ -146,7 +142,6 @@ impl Default for Config {
             matrix_id: String::new(),
             matrix_password: String::new(),
             matrix_room: String::new(),
-            matrix_token: None,
         }
     }
 }
