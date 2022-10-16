@@ -1,5 +1,4 @@
 /// Matrix.org IF
-// use {futures::executor::block_on, std::collections::HashMap, serde::Deserialize};
 use {
     matrix_sdk::{
         config::SyncSettings,
@@ -19,7 +18,6 @@ impl Matrix {
     pub async fn post<S: AsRef<str>>(&self, message: S) {
         if let Some(room) = &self.room {
             let content = RoomMessageEventContent::text_plain(message.as_ref());
-            // dbg!(&content);
             room.send(content, None).await.unwrap();
         }
     }
@@ -42,7 +40,6 @@ pub async fn connect_to_matrix(
     // let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
     // client.sync(settings).await?;
     let room_id = mroom.try_into().unwrap();
-    // dbg!(&room_id);
     if let Room::Joined(room) = client.get_room(room_id).unwrap() {
         matrix.room = Some(room);
     }
