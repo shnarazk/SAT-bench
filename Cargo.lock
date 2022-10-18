@@ -331,9 +331,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.0.15"
+version = "4.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf8832993da70a4c6d13c581f4463c2bdda27b9bf1c5498dc4365543abe6d6f"
+checksum = "2ef582e2c00a63a0c0aa1fb4a4870781c4f5729f51196d3537fa7c1c1992eaa3"
 dependencies = [
  "atty",
  "bitflags",
@@ -1087,9 +1087,9 @@ dependencies = [
 
 [[package]]
 name = "iana-time-zone-haiku"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fde6edd6cef363e9359ed3c98ba64590ba9eecba2293eb5a723ab32aee8926aa"
+checksum = "0703ae284fc167426161c2e3f1da3ea71d94b21bedbcc9494e92b28e334e3dca"
 dependencies = [
  "cxx",
  "cxx-build",
@@ -1960,9 +1960,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-client-api"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bcfd3a3853ffdd151fc228441dd9c9e3d835ac85560dface7abda50b3888791"
+checksum = "aa12d46b5c8c81b91894226bb39f43d71be8b48b1f140d5fc1b093014969e4e4"
 dependencies = [
  "assign",
  "bytes",
@@ -1977,9 +1977,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-common"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1e629a01f359234798531a99ba83997abd4c15a65b5bcb8354c4171b59c25be"
+checksum = "77c6ef7033caa0633a8579087c80c0aabfa52bb3ec2a7e0f45b6534b50ea8144"
 dependencies = [
  "base64",
  "bytes",
@@ -2029,9 +2029,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-macros"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f7cd8cf8771aaca36042fb7659f4647b05e74a2058d843474dde5e51a56cd85"
+checksum = "36c92a34a8a14c9f66109f45faf6567f764ebc872125754943007c0b16c005ff"
 dependencies = [
  "once_cell",
  "proc-macro-crate",
