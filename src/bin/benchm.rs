@@ -190,7 +190,7 @@ impl Config {
     fn solver_command(&self) -> Command {
         if SPLR.get().unwrap().is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
-            command.args(&[
+            command.args([
                 "--timeout",
                 &format!("{}", self.timeout),
                 "-o",
@@ -200,11 +200,11 @@ impl Config {
             command
         } else if CADICAL.get().unwrap().is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
-            command.args(&["-t", &format!("{}", self.timeout), "--report=false"]);
+            command.args(["-t", &format!("{}", self.timeout), "--report=false"]);
             command
         } else if GLUCOSE.get().unwrap().is_match(&self.solver) {
             let mut command = Command::new(&self.solver);
-            command.args(&[&format!("-cpu-lim={}", self.timeout)]);
+            command.args([&format!("-cpu-lim={}", self.timeout)]);
             command
         } else {
             Command::new(&self.solver)
@@ -296,7 +296,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 stdout().flush().unwrap();
                 Command::new("cargo")
                     .current_dir(&config.repo_dir)
-                    .args(&["install", "--path", ".", "--force", "--features", "cli"])
+                    .args(["install", "--path", ".", "--force", "--features", "cli"])
                     .output()
                     .expect("fail to compile");
                 config.solver = splr;
@@ -327,7 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             let commit_id_u8 = Command::new("git")
                 .current_dir(&config.repo_dir)
-                .args(&["log", "-1", "--format=format:%h"])
+                .args(["log", "-1", "--format=format:%h"])
                 .output()
                 .expect("fail to git")
                 .stdout;
@@ -386,7 +386,7 @@ async fn start_benchmark(
     let diff = {
         let diff8 = Command::new("git")
             .current_dir(&config.repo_dir)
-            .args(&["diff"])
+            .args(["diff"])
             .output()
             .expect("fail to git diff")
             .stdout;
@@ -465,7 +465,7 @@ async fn start_benchmark(
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
     Command::new("tar")
-        .args(&[
+        .args([
             "cvJf",
             &tarfile.to_string_lossy(),
             &config.dump_dir.to_string_lossy(),
@@ -575,7 +575,7 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
                 let cnf = fname.strip_prefix(ANS_PREFIX).expect("invalid answer file");
                 for (_n, key) in config.benchmark.iter() {
                     if *key == cnf {
-                        if None != problem.get(key) {
+                        if problem.get(key).is_some() {
                             panic!("duplicated {}", cnf);
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {

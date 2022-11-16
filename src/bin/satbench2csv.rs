@@ -50,7 +50,7 @@ fn main() -> std::io::Result<()> {
             let cnf = fname.strip_prefix(ANS_PREFIX).expect("invalid answer file");
             for (_n, key) in SCB.1.iter() {
                 if *key == cnf {
-                    if None != hash.get(key) {
+                    if hash.get(key).is_some() {
                         panic!("duplicated {}", cnf);
                     }
                     if let Some((t, Some(s), m)) = parse_result(f.path()) {

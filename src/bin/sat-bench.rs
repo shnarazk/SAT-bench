@@ -251,7 +251,12 @@ const BENCHMARK: [(&str, &str); 20] = [
 ];
 
 #[derive(Clone, Debug, Parser)]
-#[clap(author, version, name = "sat-bench", about = "Run simple SAT benchmarks")]
+#[clap(
+    author,
+    version,
+    name = "sat-bench",
+    about = "Run simple SAT benchmarks"
+)]
 struct Config {
     /// solvers names
     solvers: Vec<String>,
@@ -717,11 +722,11 @@ impl SolverHandling for Command {
         let splr = regex!(r"\bsplr");
         let cadical = regex!(r"\bcadical");
         if splr.is_match(solver) {
-            self.args(&[solver, "-r", "-", "-q"])
+            self.args([solver, "-r", "-", "-q"])
         } else if cadical.is_match(solver) {
-            self.args(&[solver, "-f"])
+            self.args([solver, "-f"])
         } else if glucose.is_match(solver) {
-            self.args(&[solver, "-verb=0"])
+            self.args([solver, "-verb=0"])
         } else {
             self.arg(solver)
         }
@@ -775,7 +780,7 @@ impl SolverHandling for Command {
 }
 
 fn print_solver(solver: &str) -> Option<String> {
-    let mut which = match Command::new("which").arg(&solver).output() {
+    let mut which = match Command::new("which").arg(solver).output() {
         Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
         _ if PathBuf::from(solver).exists() => PathBuf::from(solver)
             .canonicalize()

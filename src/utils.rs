@@ -76,7 +76,7 @@ pub fn system_time_to_date_time(t: SystemTime) -> DateTime<Local> {
             }
         }
     };
-    Local.timestamp(sec, nsec)
+    Local.timestamp_opt(sec, nsec).unwrap()
 }
 
 pub fn current_date_time() -> DateTime<Local> {
