@@ -157,7 +157,7 @@ impl Config {
         let outfile = fs::OpenOptions::new()
             .write(true)
             .create(true)
-            .open(&outname)?;
+            .open(outname)?;
         let mut outbuf = BufWriter::new(outfile);
         write!(outbuf, "{}", stream)?;
         Ok(())
@@ -463,7 +463,7 @@ async fn start_benchmark(
         .unwrap();
     make_verifier(config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
-    let tarfile = config.sync_dir.join(&format!("{}.tar.xz", config.run_id));
+    let tarfile = config.sync_dir.join(format!("{}.tar.xz", config.run_id));
     Command::new("tar")
         .args([
             "cvJf",
@@ -554,7 +554,7 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
         let outfile = fs::OpenOptions::new()
             .write(true)
             .create(true)
-            .open(&outname)?;
+            .open(outname)?;
         let mut outbuf = BufWriter::new(outfile);
         // * key: problem name
         // * value:
