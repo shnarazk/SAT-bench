@@ -8,7 +8,7 @@ default-run = "sat-bench"
 
 [dependencies]
 chrono ="^0.4"
-clap = { version = "^4.0", features = ["derive"] }
+clap = { version = "^4.1", features = ["derive"] }
 crossbeam = "^0.8"
 futures = "^0.3"
 matrix-sdk = "^0.6"
