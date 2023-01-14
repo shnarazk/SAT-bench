@@ -4,7 +4,7 @@ use {
     once_cell::sync::OnceCell,
     regex::Regex,
     sat_bench::{
-        matrix::connect_to_matrix,
+        matrix::{connect_to_matrix, Matrix},
         utils::{current_date_time, make_verifier, parse_result},
         ANS_PREFIX,
     },
@@ -14,12 +14,14 @@ use {
         io::{stdout, BufWriter, Write},
         path::{Path, PathBuf},
         process::Command,
-        str,
+        str, time,
+    },
+    tokio::{
         sync::{
             mpsc::{self, Receiver, Sender},
-            RwLock,
+            Mutex,
         },
-        time,
+        task::JoinHandle,
     },
 };
 
@@ -32,17 +34,17 @@ static MINISAT: OnceCell<Regex> = OnceCell::new();
 static MIOS: OnceCell<Regex> = OnceCell::new();
 static SPLR: OnceCell<Regex> = OnceCell::new();
 
-static DIFF: OnceCell<RwLock<String>> = OnceCell::new();
+static DIFF: OnceCell<Mutex<String>> = OnceCell::new();
 /// problem queue
-static PQ: OnceCell<RwLock<Vec<(usize, String)>>> = OnceCell::new();
+static PQ: OnceCell<Mutex<Vec<(usize, String)>>> = OnceCell::new();
 /// - the number of tried: usize
 /// - the number of reported: usize
 /// - the number of solved: usize
-static PROCESSED: OnceCell<RwLock<(usize, usize, usize)>> = OnceCell::new();
-static RESULT: OnceCell<RwLock<Vec<SolveResultPromise>>> = OnceCell::new();
+static PROCESSED: OnceCell<Mutex<(usize, usize, usize)>> = OnceCell::new();
+static RESULT: OnceCell<Mutex<Vec<SolveResultPromise>>> = OnceCell::new();
 
 /// Abnormal termination flags.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum SolverException {
     TimeOut,
     Abort,
@@ -104,7 +106,7 @@ pub struct Config {
     /// an identifier for benchmarking
     #[clap(skip)]
     pub run_id: String,
-    /// host
+    /// hnum_task: usize
     #[clap(skip)]
     pub host: String,
     /// user id to post to Matrix
@@ -173,17 +175,15 @@ impl Config {
             _ => r.2,
         }) < r.2
     }
-    fn next_task(&self) -> Option<(usize, PathBuf)> {
-        if let Ok(mut processed) = PROCESSED.get().unwrap().write() {
+    async fn next_task(&self) -> Option<(usize, PathBuf)> {
+        let mut q = PQ.get().unwrap().lock().await;
+        if let Some((index, top)) = q.pop() {
+            let mut processed = PROCESSED.get().unwrap().lock().await;
             // - processed.0 -- the last queued task id.
             // - processed.1 -- the index to check from.
             // - processed.2 -- the number of solved (process teminated normally).
-            if let Ok(mut q) = PQ.get().unwrap().write() {
-                if let Some((index, top)) = q.pop() {
-                    processed.0 = index;
-                    return Some((index, self.data_dir.join(top)));
-                }
-            }
+            processed.0 = index;
+            return Some((index, self.data_dir.join(top)));
         }
         None
     }
@@ -210,21 +210,20 @@ impl Config {
             Command::new(&self.solver)
         }
     }
-    fn worker(self, matrix: Sender<String>) {
-        let _ = async {
-            while let Some((i, p)) = self.next_task() {
-                check_result(&self, &matrix).await;
-                let res: SolveResultPromise = self.execute(p);
-                if let Ok(mut v) = RESULT.get().unwrap().write() {
-                    v[i - 1] = res; // RESULT starts from 0, while tasks start from 1.
-                }
-            }
-        };
+    async fn worker(self, matrix: Sender<Msg>) -> bool {
+        while let Some((i, p)) = self.next_task().await {
+            // check_result(&self, &matrix).await;
+            let res: SolveResultPromise = self.execute(p);
+            let mut v = RESULT.get().unwrap().lock().await;
+            v[i - 1] = res.clone(); // RESULT starts from 0, while tasks start from 1.
+            matrix.send(Msg::Result(res)).await.expect("L223");
+        }
+        true
     }
     fn execute(&self, cnf: PathBuf) -> SolveResultPromise {
         assert!(cnf.is_file(), "{} does not exist.", cnf.to_string_lossy());
         let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
-        // println!("\x1B[032m{}\x1B[000m", target);
+        println!("\x1B[032m{}\x1B[000m", target);
         let mut command: Command = self.solver_command();
         for opt in self.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
@@ -235,14 +234,19 @@ impl Config {
         ))
     }
 }
+#[derive(Clone, Debug)]
+enum Msg {
+    Str(String),
+    Result(SolveResultPromise),
+}
 
 #[allow(clippy::trivial_regex)]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _ = DIFF.set(RwLock::new(String::new()));
-    let _ = PQ.set(RwLock::new(Vec::new()));
-    let _ = PROCESSED.set(RwLock::new((0, 0, 0)));
-    let _ = RESULT.set(RwLock::new(Vec::new()));
+    let _ = DIFF.set(Mutex::new(String::new()));
+    let _ = PQ.set(Mutex::new(Vec::new()));
+    let _ = PROCESSED.set(Mutex::new((0, 0, 0)));
+    let _ = RESULT.set(Mutex::new(Vec::new()));
     let _ = MINISAT_LIKE.set(Regex::new(r"\b(glucose|minisat|cadical|splr)").expect("wrong regex"));
     let _ = CADICAL.set(Regex::new(r"\bcadical").expect("wrong regex"));
     let _ = GLUCOSE.set(Regex::new(r"\bglucose").expect("wrong regex"));
@@ -345,22 +349,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.benchmark_name,
         );
         config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
-        let (matrix_channel, rx): (Sender<String>, Receiver<String>) = mpsc::channel();
-        {
-            let mid = config.matrix_id.clone();
-            let mpass = config.matrix_password.clone();
-            let mroom = config.matrix_room.clone();
-            async fn matrix_bot(mid: &str, mpass: &str, mroom: &str, channel: Receiver<String>) {
-                if let Ok(matrix) = connect_to_matrix(mid, mpass, mroom).await {
-                    while let Ok(msg) = channel.recv() {
-                        matrix.post(msg).await;
-                    }
+        let num_task = {
+            let mut queue = PQ.get().unwrap().lock().await;
+            let mut v = RESULT.get().unwrap().lock().await;
+            for s in config
+                .benchmark
+                .iter()
+                .take(config.target_to)
+                .skip(config.target_from)
+            {
+                if s.0 % config.target_step == 0 {
+                    queue.push((s.0 - config.target_from, s.1.to_string()));
                 }
+                v.push(None);
             }
-            let _ = futures::join!(
-                start_benchmark(config, matrix_channel),
-                matrix_bot(&mid, &mpass, &mroom, rx),
-            );
+            queue.reverse();
+            queue.len()
+        };
+        let (sx, rx): (Sender<Msg>, Receiver<Msg>) = mpsc::channel(20);
+        {
+            let cfg = config.clone();
+            async fn reporter(cfg: Config, mut rx: Receiver<Msg>, num_task: usize) -> bool {
+                let mid = cfg.matrix_id.clone();
+                let mpass = cfg.matrix_password.clone();
+                let mroom = cfg.matrix_room.clone();
+                if let Some(mut matrix) = connect_to_matrix(&mid, &mpass, &mroom).await {
+                    let mut done = 0;
+                    while let Some(msg) = rx.recv().await {
+                        let s = match msg {
+                            Msg::Str(s) => s,
+                            Msg::Result(s) => {
+                                done += 1;
+                                format!("{:?}", s)
+                            }
+                        };
+                        dbg!(done, &s);
+                        matrix.post(s).await;
+                        check_result(&cfg, &mut matrix).await;
+                        if done == num_task {
+                            break;
+                        }
+                    }
+                    report_nosync(&cfg, done).unwrap();
+                    wrap_up_benchmark(cfg, &mut matrix).await;
+                }
+                true
+            }
+            tokio::spawn(async move { start_benchmark(config, sx).await });
+            let _ = reporter(cfg, rx, num_task).await;
         }
     } else {
         config.run_id = format!(
@@ -374,15 +410,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.benchmark_name,
         );
         config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
-        report(&config, config.target_to).expect("fail to execute");
+        report(&config, config.target_to)
+            .await
+            .expect("fail to execute");
     }
     Ok(())
 }
 
-async fn start_benchmark(
-    config: Config,
-    matrix_channel: Sender<String>,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn start_benchmark(config: Config, summary: Sender<Msg>) {
+    dbg!();
     let diff = {
         let diff8 = Command::new("git")
             .current_dir(&config.repo_dir)
@@ -393,74 +429,58 @@ async fn start_benchmark(
         String::from_utf8(diff8).expect("strange diff")
     };
     if !config.solver.starts_with('/') {
-        if let Ok(mut d) = DIFF.get().unwrap().write() {
-            *d = diff.clone();
-        }
+        let mut d = DIFF.get().unwrap().lock().await;
+        *d = diff.clone();
     }
     if config.dump_dir.exists() {
         println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
     } else {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
-    if let Ok(mut queue) = PQ.get().unwrap().write() {
-        if let Ok(mut v) = RESULT.get().unwrap().write() {
-            for s in config
-                .benchmark
-                .iter()
-                .take(config.target_to)
-                .skip(config.target_from)
-            {
-                if s.0 % config.target_step == 0 {
-                    queue.push((s.0 - config.target_from, s.1.to_string()));
-                }
-                v.push(None);
-            }
-        }
-        queue.reverse();
-    }
-    report(&config, 0).unwrap();
-    matrix_channel
-        .send(format!(
+    report(&config, 0).await.unwrap();
+    summary
+        .send(Msg::Str(format!(
             "A new {} parallel, {} timeout benchmark starts.",
             config.num_jobs, config.timeout
-        ))
-        .unwrap();
+        )))
+        .await
+        .expect("L436");
     if !diff.is_empty() {
-        matrix_channel
-            .send("WARNING: There're unregistered modifications!".to_string())
-            .unwrap();
+        summary
+            .send(Msg::Str(
+                "WARNING: There're unregistered modifications!".to_string(),
+            ))
+            .await
+            .expect("L442");
     }
     println!("Benchmark: {}", &config.run_id);
-    crossbeam::scope(|s| {
-        for i in 0..config.num_jobs {
+    let _handles: Vec<JoinHandle<bool>> = (0..config.num_jobs)
+        .map(|i| {
             let c = config.clone();
-            let mc = matrix_channel.clone();
-            s.spawn(move |_| {
+            let mc = summary.clone();
+            tokio::spawn(async move {
                 std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-                c.worker(mc);
-            });
-        }
-    })
-    .expect("fail to exit crossbeam::scope");
-    check_result(&config, &matrix_channel).await;
-    let mut np = PROCESSED
-        .get()
-        .unwrap()
-        .read()
-        .map(|v| *v)
-        .unwrap_or((0, 0, 0));
-    let (s, u) = report(&config, np.1).unwrap_or((0, 0));
+                c.worker(mc).await
+            })
+        })
+        .collect::<Vec<_>>();
+}
+
+async fn wrap_up_benchmark(config: Config, matrix: &mut Matrix) {
+    // check_result(&config, &matrix_channel).await;
+    let mut np = PROCESSED.get().unwrap().lock().await;
+    let (s, u) = report(&config, np.1).await.unwrap_or((0, 0));
     np.2 = s + u;
     println!(
         "Benchmark {} finished, {} problems, {} solutions",
         config.run_id, np.1, np.2
     );
-    matrix_channel
-        .send(format!(
+    matrix
+        .post(format!(
             "A {} timeout benchmark {} ended, {} problems, {} solutions",
             config.timeout, config.run_id, np.1, np.2
         ))
-        .unwrap();
+        .await;
     make_verifier(config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(format!("{}.tar.xz", config.run_id));
@@ -477,76 +497,79 @@ async fn start_benchmark(
             .output()
             .expect("fail to run sync command");
     }
-    Ok(())
 }
 
-async fn check_result(config: &Config, matrix: &Sender<String>) {
+async fn check_result(config: &Config, matrix: &mut Matrix) {
     let mut new_solution = false;
-    if let Ok(mut processed) = PROCESSED.get().unwrap().write() {
-        // - processed.0 -- the last queued task id.
-        // - processed.1 -- the index to check from.
-        // - processed.2 -- the number of solved (process teminated normally).
-        if let Ok(v) = RESULT.get().unwrap().write() {
-            for j in processed.1..v.len() {
-                // skip all the processed
-                // I have the resposibility to print the (j-1) th task's result.
-                let task_id = j + 1;
-                if let Some(r) = &v[j] {
-                    processed.1 = j + 1;
-                    if r.1.is_ok() {
-                        processed.2 += 1;
-                        new_solution = true;
-                    }
-                    print!("{}", CLEAR);
-                    // Note again: j is an index for RESULT,
-                    // and it corresponds to (j + 1) th task.
-                    if new_solution {
-                        if config.is_new_record(&processed) {
-                            matrix
-                                .send(format!("*{:>3},{:>3}", task_id, processed.2))
-                                .unwrap();
-                            println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
-                        } else {
-                            matrix
-                                .send(format!(" {:>3},{:>3}", task_id, processed.2))
-                                .unwrap();
-                            println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
-                        }
-                    }
-                    if j % config.num_jobs == 0 {
-                        // The other processes might dump further results already.
-                        // So `report` may return a larger number than `processed.2`.
-                        // We should not update.
-                        report(config, task_id).unwrap();
-                    }
-                } else {
-                    // re-display the current running task id(s)
-                    // The following might be right under matrix configuration.
-                    // debug_assert!(task_id <= processed.0);
-                    if task_id < config.benchmark.len() {
-                        let mut fname = config.benchmark[task_id].1.to_string();
-                        fname.truncate(40);
-                        if task_id == processed.0 {
-                            print!(
-                                "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
-                                CLEAR, task_id, fname
-                            );
-                        } else {
-                            print!(
-                                "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
-                                CLEAR, task_id, processed.0, fname
-                            );
-                        }
-                        stdout().flush().unwrap();
-                    }
-                    break;
-                }
+    let mut processed = PROCESSED.get().unwrap().lock().await;
+    // - processed.0 -- the last queued task id.
+    // - processed.1 -- the index to check from.
+    // - processed.2 -- the number of solved (process teminated normally).
+    let v = RESULT.get().unwrap().lock().await;
+    for j in processed.1..v.len() {
+        // skip all the processed
+        // I have the resposibility to print the (j-1) th task's result.
+        let task_id = j + 1;
+        if let Some(r) = &v[j] {
+            processed.1 = j + 1;
+            if r.1.is_ok() {
+                processed.2 += 1;
+                new_solution = true;
             }
+            print!("{}", CLEAR);
+            // Note again: j is an index for RESULT,
+            // and it corresponds to (j + 1) th task.
+            if new_solution {
+                if config.is_new_record(&processed) {
+                    let msg: String = format!("*{:>3},{:>3}", task_id, processed.2);
+                    matrix.post(msg).await;
+                    println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
+                } else {
+                    matrix
+                        .post(format!(" {:>3},{:>3}", task_id, processed.2))
+                        .await;
+                    println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
+                };
+            }
+            if new_solution {
+                if config.is_new_record(&processed) {
+                    println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
+                } else {
+                    println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
+                };
+            }
+            if j % config.num_jobs == 0 {
+                // The other processes might dump further results already.
+                // So `report` may return a larger number than `processed.2`.
+                // We should not update.
+                report_nosync(config, task_id).unwrap();
+            }
+        } else {
+            // re-display the current running task id(s)
+            // The following might be right under matrix configuration.
+            // debug_assert!(task_id <= processed.0);
+            if task_id < config.benchmark.len() {
+                let mut fname = config.benchmark[task_id].1.to_string();
+                fname.truncate(40);
+                if task_id == processed.0 {
+                    print!(
+                        "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
+                        CLEAR, task_id, fname
+                    );
+                } else {
+                    print!(
+                        "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
+                        CLEAR, task_id, processed.0, fname
+                    );
+                }
+                stdout().flush().unwrap();
+            }
+            break;
         }
     }
 }
 
-fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)> {
+async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)> {
     let outname = config.sync_dir.join(format!("{}.csv", config.run_id));
     let mut nsat = 0;
     let mut nunsat = 0;
@@ -653,11 +676,179 @@ fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)>
             }
         }
         // show diff
-        if let Ok(diff) = DIFF.get().unwrap().write() {
-            for l in diff.lines() {
-                writeln!(outbuf, "# {}", l)?;
+        let diff = DIFF.get().unwrap().lock().await;
+        for l in diff.lines() {
+            writeln!(outbuf, "# {}", l)?;
+        }
+        writeln!(
+            outbuf,
+            "solver,num,target,nsolved,time,strategy,satisfiability"
+        )?;
+        let mut nsolved = 0;
+        for (i, key) in config.benchmark.iter() {
+            if let Some(v) = problem.get(key) {
+                match v {
+                    (Some(time_), str_, Some(sat_)) => {
+                        nsolved += 1;
+                        writeln!(
+                            outbuf,
+                            "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
+                            config.run_id,
+                            i,
+                            config.benchmark_name,
+                            key,
+                            nsolved,
+                            time_,
+                            str_,
+                            sat_,
+                        )?;
+                    }
+                    (_, str_, _) => writeln!(
+                        outbuf,
+                        "\"{}\",{},\"{}/{}\",{},{},{},",
+                        config.run_id,
+                        i,
+                        config.benchmark_name,
+                        key,
+                        nsolved,
+                        config.timeout + 10, // Sometimes a run ends in just the timeout.
+                        str_
+                    )?,
+                }
+            } else {
+                writeln!(
+                    outbuf,
+                    "\"{}\",{},\"{}/{}\",{},{},,",
+                    config.run_id,
+                    i,
+                    config.benchmark_name,
+                    key,
+                    nsolved,
+                    config.timeout + 10, // Sometimes a run ends in just the timeout.
+                )?;
             }
         }
+    }
+    Command::new("make")
+        .current_dir(&config.sync_dir)
+        .output()?;
+    if !config.sync_cmd.is_empty() {
+        Command::new(&config.sync_cmd).output()?;
+    }
+    Ok((nsat, nunsat))
+}
+
+fn report_nosync(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)> {
+    let outname = config.sync_dir.join(format!("{}.csv", config.run_id));
+    let mut nsat = 0;
+    let mut nunsat = 0;
+    {
+        let outfile = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(outname)?;
+        let mut outbuf = BufWriter::new(outfile);
+        // * key: problem name
+        // * value:
+        //    * elapsed time or None
+        //    * used strategy
+        //    * satisfiability or None
+        let mut problem: HashMap<&str, (Option<f64>, String, Option<bool>)> = HashMap::new();
+        let mut strategy: HashMap<String, (usize, usize)> = HashMap::new();
+        let mut found = 0;
+        let timeout = config.timeout as f64;
+        for e in config.dump_dir.read_dir()? {
+            let f = e?;
+            if !f.file_type()?.is_file() {
+                continue;
+            }
+            let fname = f.file_name().to_string_lossy().to_string();
+            if fname.starts_with(ANS_PREFIX) {
+                let cnf = fname.strip_prefix(ANS_PREFIX).expect("invalid answer file");
+                for (_n, key) in config.benchmark.iter() {
+                    if *key == cnf {
+                        if problem.get(key).is_some() {
+                            panic!("duplicated {}", cnf);
+                        }
+                        if let Some((t, s, m)) = parse_result(f.path()) {
+                            found += 1;
+                            match s {
+                                Some(b) => {
+                                    if b {
+                                        nsat += 1;
+                                    } else {
+                                        nunsat += 1;
+                                    }
+                                    if let Some(p) = strategy.get_mut(&m.to_string()) {
+                                        p.0 += 1;
+                                    } else {
+                                        strategy.insert(m.clone(), (1, 0));
+                                    }
+                                    problem.insert(key, (Some(timeout.min(t)), m, Some(b)));
+                                }
+                                None => {
+                                    if let Some(p) = strategy.get_mut(&m.to_string()) {
+                                        p.1 += 1;
+                                    } else {
+                                        strategy.insert(m.clone(), (0, 1));
+                                    }
+                                    problem.insert(key, (None, m, None));
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        // show header line
+        writeln!(
+            outbuf,
+            "#{} on {} by benchm.rs {}",
+            config.run_id, config.host, VERSION,
+        )?;
+        // show summary of settings
+        writeln!(
+            outbuf,
+            "# benchmark: {} from {} to {}, process: {}, timeout: {}",
+            config.benchmark_name,
+            config.target_from,
+            config.target_to,
+            config.num_jobs,
+            config.timeout,
+        )?;
+        // show summary of solutions
+        writeln!(
+            outbuf,
+            "# Procesed: {} (found {}), total answers: {} (SAT: {}, UNSAT: {}) so far",
+            nprocessed,
+            found,
+            nsat + nunsat,
+            nsat,
+            nunsat,
+        )?;
+        // show summary of each strategy
+        write!(outbuf, "# ")?;
+        let mut sv = strategy.iter().collect::<Vec<_>>();
+        sv.sort();
+        for (s, n) in &sv {
+            write!(outbuf, "{}:{:?}, ", *s, *n)?;
+        }
+        writeln!(outbuf)?;
+        // show options
+        if !config.solver_options.is_empty() {
+            if config.solver_options.starts_with('\\') {
+                let str = config.solver_options.chars().skip(1).collect::<String>();
+                writeln!(outbuf, "# options: {}", &str)?;
+            } else {
+                writeln!(outbuf, "# options: {}", &config.solver_options)?;
+            }
+        }
+        // show diff
+        // let diff = DIFF.get().unwrap().lock().await;
+        // for l in diff.lines() {
+        //     writeln!(outbuf, "# {}", l)?;
+        // }
         writeln!(
             outbuf,
             "solver,num,target,nsolved,time,strategy,satisfiability"

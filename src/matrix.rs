@@ -23,25 +23,32 @@ impl Matrix {
     }
 }
 
-pub async fn connect_to_matrix(
-    mid: &str,
-    mpasswd: &str,
-    mroom: &str,
-) -> Result<Matrix, Box<dyn std::error::Error>> {
+pub async fn connect_to_matrix(mid: &str, mpasswd: &str, mroom: &str) -> Option<Matrix> {
     let mut matrix = Matrix::default();
     let server = Url::parse("https://matrix.org").unwrap();
     let client = Client::new(server).await.unwrap();
-    client
+    if client
         .login_username(mid, mpasswd)
         .initial_device_display_name("SAT-bench Matrix bot")
         .send()
-        .await?;
-    client.sync_once(SyncSettings::default()).await?;
+        .await
+        .is_err()
+    {
+        dbg!();
+        return None;
+    }
+    if client.sync_once(SyncSettings::default()).await.is_err() {
+        dbg!();
+        return None;
+    }
     // let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
     // client.sync(settings).await?;
     let room_id = mroom.try_into().unwrap();
     if let Room::Joined(room) = client.get_room(room_id).unwrap() {
         matrix.room = Some(room);
+        dbg!();
+        return Some(matrix);
     }
-    Ok(matrix)
+    dbg!();
+    None
 }
