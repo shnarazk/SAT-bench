@@ -16,12 +16,9 @@ use {
         process::Command,
         str, time,
     },
-    tokio::{
-        sync::{
-            mpsc::{self, Receiver, Sender},
-            Mutex,
-        },
-        task::JoinHandle,
+    tokio::sync::{
+        mpsc::{self, Receiver, Sender},
+        Mutex,
     },
 };
 
@@ -50,7 +47,8 @@ pub enum SolverException {
     Abort,
 }
 
-type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
+type SolveResult = (usize, String, Result<f64, SolverException>);
+type SolveResultPromise = Option<SolveResult>;
 
 #[derive(Clone, Debug, Parser)]
 #[clap(name = "sat-bench", about = "A SAT Competition benchmark runner")]
@@ -210,17 +208,14 @@ impl Config {
             Command::new(&self.solver)
         }
     }
-    async fn worker(self, matrix: Sender<Msg>) -> bool {
+    async fn worker(self, matrix: Sender<SolveResult>) -> Result<bool, Box<dyn std::error::Error>> {
         while let Some((i, p)) = self.next_task().await {
-            // check_result(&self, &matrix).await;
-            let res: SolveResultPromise = self.execute(p);
-            let mut v = RESULT.get().unwrap().lock().await;
-            v[i - 1] = res.clone(); // RESULT starts from 0, while tasks start from 1.
-            matrix.send(Msg::Result(res)).await.expect("L223");
+            let res: SolveResultPromise = self.execute(i, p);
+            matrix.send(res.unwrap()).await?;
         }
-        true
+        Ok(true)
     }
-    fn execute(&self, cnf: PathBuf) -> SolveResultPromise {
+    fn execute(&self, index: usize, cnf: PathBuf) -> SolveResultPromise {
         assert!(cnf.is_file(), "{} does not exist.", cnf.to_string_lossy());
         let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
         println!("\x1B[032m{}\x1B[000m", target);
@@ -229,15 +224,11 @@ impl Config {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
         Some((
+            index,
             target,
             command.arg(cnf.as_os_str()).map_to_result(self, &cnf),
         ))
     }
-}
-#[derive(Clone, Debug)]
-enum Msg {
-    Str(String),
-    Result(SolveResultPromise),
 }
 
 #[allow(clippy::trivial_regex)]
@@ -366,38 +357,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             queue.reverse();
             queue.len()
         };
-        let (sx, rx): (Sender<Msg>, Receiver<Msg>) = mpsc::channel(20);
-        {
-            let cfg = config.clone();
-            async fn reporter(cfg: Config, mut rx: Receiver<Msg>, num_task: usize) -> bool {
-                let mid = cfg.matrix_id.clone();
-                let mpass = cfg.matrix_password.clone();
-                let mroom = cfg.matrix_room.clone();
-                if let Some(mut matrix) = connect_to_matrix(&mid, &mpass, &mroom).await {
-                    let mut done = 0;
-                    while let Some(msg) = rx.recv().await {
-                        let s = match msg {
-                            Msg::Str(s) => s,
-                            Msg::Result(s) => {
-                                done += 1;
-                                format!("{:?}", s)
-                            }
-                        };
-                        dbg!(done, &s);
-                        matrix.post(s).await;
-                        check_result(&cfg, &mut matrix).await;
-                        if done == num_task {
-                            break;
-                        }
-                    }
-                    report_nosync(&cfg, done).unwrap();
-                    wrap_up_benchmark(cfg, &mut matrix).await;
+        let (sx, rx): (Sender<SolveResult>, Receiver<SolveResult>) = mpsc::channel(20);
+        async fn reporter(
+            cfg: Config,
+            mut rx: Receiver<SolveResult>,
+            num_task: usize,
+        ) -> Result<(), Box<dyn std::error::Error>> {
+            let mut matrix =
+                connect_to_matrix(&cfg.matrix_id, &cfg.matrix_password, &cfg.matrix_room).await;
+            start_benchmark(&cfg, &mut matrix).await;
+            let mut done = 0;
+            report(&cfg, done).await?;
+            while let Some(res) = rx.recv().await {
+                {
+                    let i = res.0;
+                    let mut v = RESULT.get().unwrap().lock().await;
+                    v[i - 1] = Some(res); // RESULT starts from 0, while tasks start from 1.
                 }
-                true
+                done += 1;
+                check_result(&cfg, &mut matrix).await;
+                if done == num_task {
+                    break;
+                }
             }
-            tokio::spawn(async move { start_benchmark(config, sx).await });
-            let _ = reporter(cfg, rx, num_task).await;
+            report(&cfg, done).await?;
+            wrap_up_benchmark(cfg, &mut matrix).await;
+            Ok(())
         }
+        for i in 0..config.num_jobs {
+            let c = config.clone();
+            let sx = sx.clone();
+            tokio::spawn(async move {
+                std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
+                c.worker(sx).await.unwrap();
+            });
+        }
+        reporter(config, rx, num_task).await
     } else {
         config.run_id = format!(
             "{}{}-{}",
@@ -410,15 +405,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &config.benchmark_name,
         );
         config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
-        report(&config, config.target_to)
-            .await
-            .expect("fail to execute");
+        report(&config, config.target_to).await?;
+        Ok(())
     }
-    Ok(())
 }
 
-async fn start_benchmark(config: Config, summary: Sender<Msg>) {
-    dbg!();
+async fn start_benchmark(config: &Config, matrix: &mut Option<Matrix>) {
     let diff = {
         let diff8 = Command::new("git")
             .current_dir(&config.repo_dir)
@@ -437,36 +429,21 @@ async fn start_benchmark(config: Config, summary: Sender<Msg>) {
     } else {
         fs::create_dir(&config.dump_dir).expect("fail to mkdir");
     }
-    report(&config, 0).await.unwrap();
-    summary
-        .send(Msg::Str(format!(
+    if let Some(m) = matrix {
+        m.post(format!(
             "A new {} parallel, {} timeout benchmark starts.",
             config.num_jobs, config.timeout
-        )))
-        .await
-        .expect("L436");
-    if !diff.is_empty() {
-        summary
-            .send(Msg::Str(
-                "WARNING: There're unregistered modifications!".to_string(),
-            ))
-            .await
-            .expect("L442");
+        ))
+        .await;
+        if !diff.is_empty() {
+            m.post("WARNING: There're unregistered modifications!".to_string())
+                .await;
+        }
     }
     println!("Benchmark: {}", &config.run_id);
-    let _handles: Vec<JoinHandle<bool>> = (0..config.num_jobs)
-        .map(|i| {
-            let c = config.clone();
-            let mc = summary.clone();
-            tokio::spawn(async move {
-                std::thread::sleep(time::Duration::from_millis((2 + 2 * i as u64) * 1000));
-                c.worker(mc).await
-            })
-        })
-        .collect::<Vec<_>>();
 }
 
-async fn wrap_up_benchmark(config: Config, matrix: &mut Matrix) {
+async fn wrap_up_benchmark(config: Config, matrix: &mut Option<Matrix>) {
     // check_result(&config, &matrix_channel).await;
     let mut np = PROCESSED.get().unwrap().lock().await;
     let (s, u) = report(&config, np.1).await.unwrap_or((0, 0));
@@ -475,12 +452,13 @@ async fn wrap_up_benchmark(config: Config, matrix: &mut Matrix) {
         "Benchmark {} finished, {} problems, {} solutions",
         config.run_id, np.1, np.2
     );
-    matrix
-        .post(format!(
+    if let Some(m) = matrix {
+        m.post(format!(
             "A {} timeout benchmark {} ended, {} problems, {} solutions",
             config.timeout, config.run_id, np.1, np.2
         ))
         .await;
+    }
     make_verifier(config.benchmark, &config.dump_dir, &config.data_dir)
         .expect("fail to create verify.sh");
     let tarfile = config.sync_dir.join(format!("{}.tar.xz", config.run_id));
@@ -499,7 +477,7 @@ async fn wrap_up_benchmark(config: Config, matrix: &mut Matrix) {
     }
 }
 
-async fn check_result(config: &Config, matrix: &mut Matrix) {
+async fn check_result(config: &Config, matrix: &mut Option<Matrix>) {
     let mut new_solution = false;
     let mut processed = PROCESSED.get().unwrap().lock().await;
     // - processed.0 -- the last queued task id.
@@ -512,7 +490,7 @@ async fn check_result(config: &Config, matrix: &mut Matrix) {
         let task_id = j + 1;
         if let Some(r) = &v[j] {
             processed.1 = j + 1;
-            if r.1.is_ok() {
+            if r.2.is_ok() {
                 processed.2 += 1;
                 new_solution = true;
             }
@@ -522,27 +500,19 @@ async fn check_result(config: &Config, matrix: &mut Matrix) {
             if new_solution {
                 if config.is_new_record(&processed) {
                     let msg: String = format!("*{:>3},{:>3}", task_id, processed.2);
-                    matrix.post(msg).await;
+                    if let Some(m) = matrix {
+                        m.post(msg).await;
+                    }
                     println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
                 } else {
-                    matrix
-                        .post(format!(" {:>3},{:>3}", task_id, processed.2))
-                        .await;
-                    println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
-                };
-            }
-            if new_solution {
-                if config.is_new_record(&processed) {
-                    println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
-                } else {
+                    if let Some(m) = matrix {
+                        m.post(format!(" {:>3},{:>3}", task_id, processed.2)).await;
+                    }
                     println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
                 };
             }
             if j % config.num_jobs == 0 {
-                // The other processes might dump further results already.
-                // So `report` may return a larger number than `processed.2`.
-                // We should not update.
-                report_nosync(config, task_id).unwrap();
+                report(config, task_id).await.unwrap();
             }
         } else {
             // re-display the current running task id(s)
@@ -680,175 +650,6 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
         for l in diff.lines() {
             writeln!(outbuf, "# {}", l)?;
         }
-        writeln!(
-            outbuf,
-            "solver,num,target,nsolved,time,strategy,satisfiability"
-        )?;
-        let mut nsolved = 0;
-        for (i, key) in config.benchmark.iter() {
-            if let Some(v) = problem.get(key) {
-                match v {
-                    (Some(time_), str_, Some(sat_)) => {
-                        nsolved += 1;
-                        writeln!(
-                            outbuf,
-                            "\"{}\",{},\"{}/{}\",{},{:.2},{},{}",
-                            config.run_id,
-                            i,
-                            config.benchmark_name,
-                            key,
-                            nsolved,
-                            time_,
-                            str_,
-                            sat_,
-                        )?;
-                    }
-                    (_, str_, _) => writeln!(
-                        outbuf,
-                        "\"{}\",{},\"{}/{}\",{},{},{},",
-                        config.run_id,
-                        i,
-                        config.benchmark_name,
-                        key,
-                        nsolved,
-                        config.timeout + 10, // Sometimes a run ends in just the timeout.
-                        str_
-                    )?,
-                }
-            } else {
-                writeln!(
-                    outbuf,
-                    "\"{}\",{},\"{}/{}\",{},{},,",
-                    config.run_id,
-                    i,
-                    config.benchmark_name,
-                    key,
-                    nsolved,
-                    config.timeout + 10, // Sometimes a run ends in just the timeout.
-                )?;
-            }
-        }
-    }
-    Command::new("make")
-        .current_dir(&config.sync_dir)
-        .output()?;
-    if !config.sync_cmd.is_empty() {
-        Command::new(&config.sync_cmd).output()?;
-    }
-    Ok((nsat, nunsat))
-}
-
-fn report_nosync(config: &Config, nprocessed: usize) -> std::io::Result<(usize, usize)> {
-    let outname = config.sync_dir.join(format!("{}.csv", config.run_id));
-    let mut nsat = 0;
-    let mut nunsat = 0;
-    {
-        let outfile = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(outname)?;
-        let mut outbuf = BufWriter::new(outfile);
-        // * key: problem name
-        // * value:
-        //    * elapsed time or None
-        //    * used strategy
-        //    * satisfiability or None
-        let mut problem: HashMap<&str, (Option<f64>, String, Option<bool>)> = HashMap::new();
-        let mut strategy: HashMap<String, (usize, usize)> = HashMap::new();
-        let mut found = 0;
-        let timeout = config.timeout as f64;
-        for e in config.dump_dir.read_dir()? {
-            let f = e?;
-            if !f.file_type()?.is_file() {
-                continue;
-            }
-            let fname = f.file_name().to_string_lossy().to_string();
-            if fname.starts_with(ANS_PREFIX) {
-                let cnf = fname.strip_prefix(ANS_PREFIX).expect("invalid answer file");
-                for (_n, key) in config.benchmark.iter() {
-                    if *key == cnf {
-                        if problem.get(key).is_some() {
-                            panic!("duplicated {}", cnf);
-                        }
-                        if let Some((t, s, m)) = parse_result(f.path()) {
-                            found += 1;
-                            match s {
-                                Some(b) => {
-                                    if b {
-                                        nsat += 1;
-                                    } else {
-                                        nunsat += 1;
-                                    }
-                                    if let Some(p) = strategy.get_mut(&m.to_string()) {
-                                        p.0 += 1;
-                                    } else {
-                                        strategy.insert(m.clone(), (1, 0));
-                                    }
-                                    problem.insert(key, (Some(timeout.min(t)), m, Some(b)));
-                                }
-                                None => {
-                                    if let Some(p) = strategy.get_mut(&m.to_string()) {
-                                        p.1 += 1;
-                                    } else {
-                                        strategy.insert(m.clone(), (0, 1));
-                                    }
-                                    problem.insert(key, (None, m, None));
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-        // show header line
-        writeln!(
-            outbuf,
-            "#{} on {} by benchm.rs {}",
-            config.run_id, config.host, VERSION,
-        )?;
-        // show summary of settings
-        writeln!(
-            outbuf,
-            "# benchmark: {} from {} to {}, process: {}, timeout: {}",
-            config.benchmark_name,
-            config.target_from,
-            config.target_to,
-            config.num_jobs,
-            config.timeout,
-        )?;
-        // show summary of solutions
-        writeln!(
-            outbuf,
-            "# Procesed: {} (found {}), total answers: {} (SAT: {}, UNSAT: {}) so far",
-            nprocessed,
-            found,
-            nsat + nunsat,
-            nsat,
-            nunsat,
-        )?;
-        // show summary of each strategy
-        write!(outbuf, "# ")?;
-        let mut sv = strategy.iter().collect::<Vec<_>>();
-        sv.sort();
-        for (s, n) in &sv {
-            write!(outbuf, "{}:{:?}, ", *s, *n)?;
-        }
-        writeln!(outbuf)?;
-        // show options
-        if !config.solver_options.is_empty() {
-            if config.solver_options.starts_with('\\') {
-                let str = config.solver_options.chars().skip(1).collect::<String>();
-                writeln!(outbuf, "# options: {}", &str)?;
-            } else {
-                writeln!(outbuf, "# options: {}", &config.solver_options)?;
-            }
-        }
-        // show diff
-        // let diff = DIFF.get().unwrap().lock().await;
-        // for l in diff.lines() {
-        //     writeln!(outbuf, "# {}", l)?;
-        // }
         writeln!(
             outbuf,
             "solver,num,target,nsolved,time,strategy,satisfiability"
