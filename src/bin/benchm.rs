@@ -42,7 +42,7 @@ pub enum SolverException {
     Abort,
 }
 
-type SolveResult = (usize, String, Result<f64, SolverException>);
+type SolveResult = (usize, String, Result<bool, SolverException>);
 type SolveResultPromise = Option<SolveResult>;
 
 #[derive(Clone, Debug)]
@@ -512,7 +512,8 @@ async fn check_result(
                     println!("🎉 {:>3},{:>3},{}", task_id, processed.2, &r.1);
                 } else {
                     if let Some(m) = matrix {
-                        m.post(format!(" {:>3},{:>3},{}", task_id, processed.2, &r.1)).await;
+                        m.post(format!(" {:>3},{:>3},{}", task_id, processed.2, &r.1))
+                            .await;
                     }
                     println!(" {:>3},{:>3},{}", task_id, processed.2, &r.1);
                 };
@@ -716,11 +717,11 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
 }
 
 trait SolverHandling {
-    fn map_to_result(&mut self, config: &Config, cnf: &Path) -> Result<f64, SolverException>;
+    fn map_to_result(&mut self, config: &Config, cnf: &Path) -> Result<bool, SolverException>;
 }
 
 impl SolverHandling for Command {
-    fn map_to_result(&mut self, config: &Config, cnf: &Path) -> Result<f64, SolverException> {
+    fn map_to_result(&mut self, config: &Config, cnf: &Path) -> Result<bool, SolverException> {
         match &self.output() {
             Ok(r) => {
                 match (
@@ -728,19 +729,19 @@ impl SolverHandling for Command {
                     String::from_utf8_lossy(&r.stdout),
                     String::from_utf8_lossy(&r.stderr),
                 ) {
-                    (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(0.0),
-                    (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(0.0),
+                    (Some(0), ref s, _) if s.contains("SATISFIABLE: ") => Ok(true),
+                    (Some(0), ref s, _) if s.contains("UNSAT: ") => Ok(false),
                     (Some(10), ref s, _) if s.contains("s SATISFIABLE") => {
                         if !SPLR.get().unwrap().is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
                         }
-                        Ok(0.0)
+                        Ok(true)
                     }
                     (Some(20), ref s, _) if s.contains("s UNSATISFIABLE") => {
                         if !SPLR.get().unwrap().is_match(&config.solver) {
                             config.dump_stream(cnf, s).unwrap();
                         }
-                        Ok(0.0)
+                        Ok(false)
                     }
                     (_, ref s, _)
                         if s.contains("s UNKNOWN")
