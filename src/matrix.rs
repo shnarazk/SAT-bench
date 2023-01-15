@@ -34,21 +34,15 @@ pub async fn connect_to_matrix(mid: &str, mpasswd: &str, mroom: &str) -> Option<
         .await
         .is_err()
     {
-        dbg!();
         return None;
     }
     if client.sync_once(SyncSettings::default()).await.is_err() {
-        dbg!();
         return None;
     }
     // let settings = SyncSettings::default().token(client.sync_token().await.unwrap());
     // client.sync(settings).await?;
-    let room_id = mroom.try_into().unwrap();
-    if let Room::Joined(room) = client.get_room(room_id).unwrap() {
-        matrix.room = Some(room);
-        dbg!();
-        return Some(matrix);
-    }
-    dbg!();
-    None
+    let Ok(room_id) = mroom.try_into() else { return None; };
+    let Some(Room::Joined(room)) = client.get_room(room_id) else { return None; };
+    matrix.room = Some(room);
+    Some(matrix)
 }

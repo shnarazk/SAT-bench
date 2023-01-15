@@ -30,15 +30,10 @@ static GLUCOSE: OnceCell<Regex> = OnceCell::new();
 static MINISAT: OnceCell<Regex> = OnceCell::new();
 static MIOS: OnceCell<Regex> = OnceCell::new();
 static SPLR: OnceCell<Regex> = OnceCell::new();
+static DIFF: OnceCell<String> = OnceCell::new();
 
-static DIFF: OnceCell<Mutex<String>> = OnceCell::new();
 /// problem queue
 static PQ: OnceCell<Mutex<Vec<(usize, String)>>> = OnceCell::new();
-/// - the number of tried: usize
-/// - the number of reported: usize
-/// - the number of solved: usize
-static PROCESSED: OnceCell<Mutex<(usize, usize, usize)>> = OnceCell::new();
-static RESULT: OnceCell<Mutex<Vec<SolveResultPromise>>> = OnceCell::new();
 
 /// Abnormal termination flags.
 #[derive(Clone, Debug)]
@@ -49,6 +44,12 @@ pub enum SolverException {
 
 type SolveResult = (usize, String, Result<f64, SolverException>);
 type SolveResultPromise = Option<SolveResult>;
+
+#[derive(Clone, Debug)]
+enum MsgKind {
+    Start(usize),
+    Result(SolveResult),
+}
 
 #[derive(Clone, Debug, Parser)]
 #[clap(name = "sat-bench", about = "A SAT Competition benchmark runner")]
@@ -175,15 +176,8 @@ impl Config {
     }
     async fn next_task(&self) -> Option<(usize, PathBuf)> {
         let mut q = PQ.get().unwrap().lock().await;
-        if let Some((index, top)) = q.pop() {
-            let mut processed = PROCESSED.get().unwrap().lock().await;
-            // - processed.0 -- the last queued task id.
-            // - processed.1 -- the index to check from.
-            // - processed.2 -- the number of solved (process teminated normally).
-            processed.0 = index;
-            return Some((index, self.data_dir.join(top)));
-        }
-        None
+        let Some((index, top)) = q.pop() else { return None; };
+        Some((index, self.data_dir.join(top)))
     }
     fn solver_command(&self) -> Command {
         if SPLR.get().unwrap().is_match(&self.solver) {
@@ -208,17 +202,18 @@ impl Config {
             Command::new(&self.solver)
         }
     }
-    async fn worker(self, matrix: Sender<SolveResult>) -> Result<bool, Box<dyn std::error::Error>> {
+    async fn worker(self, matrix: Sender<MsgKind>) -> Result<bool, Box<dyn std::error::Error>> {
         while let Some((i, p)) = self.next_task().await {
+            matrix.send(MsgKind::Start(i)).await?;
             let res: SolveResultPromise = self.execute(i, p);
-            matrix.send(res.unwrap()).await?;
+            matrix.send(MsgKind::Result(res.unwrap())).await?;
         }
         Ok(true)
     }
     fn execute(&self, index: usize, cnf: PathBuf) -> SolveResultPromise {
         assert!(cnf.is_file(), "{} does not exist.", cnf.to_string_lossy());
         let target: String = cnf.file_name().unwrap().to_string_lossy().to_string();
-        println!("\x1B[032m{}\x1B[000m", target);
+        // println!("\x1B[032m{}\x1B[000m", target);
         let mut command: Command = self.solver_command();
         for opt in self.solver_options.split_whitespace() {
             command.arg(&opt[opt.starts_with('\\') as usize..]);
@@ -234,10 +229,7 @@ impl Config {
 #[allow(clippy::trivial_regex)]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _ = DIFF.set(Mutex::new(String::new()));
     let _ = PQ.set(Mutex::new(Vec::new()));
-    let _ = PROCESSED.set(Mutex::new((0, 0, 0)));
-    let _ = RESULT.set(Mutex::new(Vec::new()));
     let _ = MINISAT_LIKE.set(Regex::new(r"\b(glucose|minisat|cadical|splr)").expect("wrong regex"));
     let _ = CADICAL.set(Regex::new(r"\bcadical").expect("wrong regex"));
     let _ = GLUCOSE.set(Regex::new(r"\bglucose").expect("wrong regex"));
@@ -342,7 +334,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.dump_dir = PathBuf::from(&config.sync_dir).join(&config.run_id);
         let num_task = {
             let mut queue = PQ.get().unwrap().lock().await;
-            let mut v = RESULT.get().unwrap().lock().await;
+            let mut task_id = 0;
             for s in config
                 .benchmark
                 .iter()
@@ -350,38 +342,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .skip(config.target_from)
             {
                 if s.0 % config.target_step == 0 {
-                    queue.push((s.0 - config.target_from, s.1.to_string()));
+                    queue.push((task_id, s.1.to_string()));
+                    task_id += 1;
+                    // queue.push((s.0 - config.target_from, s.1.to_string()));
                 }
-                v.push(None);
             }
             queue.reverse();
             queue.len()
         };
-        let (sx, rx): (Sender<SolveResult>, Receiver<SolveResult>) = mpsc::channel(20);
+        let (sx, rx): (Sender<MsgKind>, Receiver<MsgKind>) = mpsc::channel(20);
         async fn reporter(
             cfg: Config,
-            mut rx: Receiver<SolveResult>,
+            mut rx: Receiver<MsgKind>,
             num_task: usize,
         ) -> Result<(), Box<dyn std::error::Error>> {
+            // (the number of tried, the number of reported, the number of solved)
+            let mut processed: (usize, usize, usize) = (0, 0, 0);
+            let mut results: Vec<SolveResultPromise> = vec![None; num_task];
             let mut matrix =
                 connect_to_matrix(&cfg.matrix_id, &cfg.matrix_password, &cfg.matrix_room).await;
             start_benchmark(&cfg, &mut matrix).await;
             let mut done = 0;
             report(&cfg, done).await?;
             while let Some(res) = rx.recv().await {
-                {
-                    let i = res.0;
-                    let mut v = RESULT.get().unwrap().lock().await;
-                    v[i - 1] = Some(res); // RESULT starts from 0, while tasks start from 1.
-                }
-                done += 1;
-                check_result(&cfg, &mut matrix).await;
-                if done == num_task {
-                    break;
+                match res {
+                    MsgKind::Start(i) => {
+                        processed.0 = i;
+                    }
+                    MsgKind::Result(r) => {
+                        check_result(&cfg, &mut matrix, r, &mut processed, &mut results).await;
+                        done += 1;
+                        if done == num_task {
+                            break;
+                        }
+                    }
                 }
             }
             report(&cfg, done).await?;
-            wrap_up_benchmark(cfg, &mut matrix).await;
+            finalize_benchmark(cfg, &mut matrix, &mut processed).await;
             Ok(())
         }
         for i in 0..config.num_jobs {
@@ -421,8 +419,7 @@ async fn start_benchmark(config: &Config, matrix: &mut Option<Matrix>) {
         String::from_utf8(diff8).expect("strange diff")
     };
     if !config.solver.starts_with('/') {
-        let mut d = DIFF.get().unwrap().lock().await;
-        *d = diff.clone();
+        DIFF.set(diff.clone()).expect("L429");
     }
     if config.dump_dir.exists() {
         println!("WARNING: {} exists.", config.dump_dir.to_string_lossy());
@@ -443,19 +440,21 @@ async fn start_benchmark(config: &Config, matrix: &mut Option<Matrix>) {
     println!("Benchmark: {}", &config.run_id);
 }
 
-async fn wrap_up_benchmark(config: Config, matrix: &mut Option<Matrix>) {
-    // check_result(&config, &matrix_channel).await;
-    let mut np = PROCESSED.get().unwrap().lock().await;
-    let (s, u) = report(&config, np.1).await.unwrap_or((0, 0));
-    np.2 = s + u;
+async fn finalize_benchmark(
+    config: Config,
+    matrix: &mut Option<Matrix>,
+    processed: &mut (usize, usize, usize),
+) {
+    let (s, u) = report(&config, processed.1).await.unwrap_or((0, 0));
+    processed.2 = s + u;
     println!(
         "Benchmark {} finished, {} problems, {} solutions",
-        config.run_id, np.1, np.2
+        config.run_id, processed.1, processed.2
     );
     if let Some(m) = matrix {
         m.post(format!(
             "A {} timeout benchmark {} ended, {} problems, {} solutions",
-            config.timeout, config.run_id, np.1, np.2
+            config.timeout, config.run_id, processed.1, processed.2
         ))
         .await;
     }
@@ -477,19 +476,26 @@ async fn wrap_up_benchmark(config: Config, matrix: &mut Option<Matrix>) {
     }
 }
 
-async fn check_result(config: &Config, matrix: &mut Option<Matrix>) {
+async fn check_result(
+    config: &Config,
+    matrix: &mut Option<Matrix>,
+    result: SolveResult,
+    processed: &mut (usize, usize, usize),
+    results: &mut [SolveResultPromise],
+) {
     let mut new_solution = false;
-    let mut processed = PROCESSED.get().unwrap().lock().await;
     // - processed.0 -- the last queued task id.
     // - processed.1 -- the index to check from.
     // - processed.2 -- the number of solved (process teminated normally).
-    let v = RESULT.get().unwrap().lock().await;
-    for j in processed.1..v.len() {
+    let i = result.0;
+    results[i] = Some(result);
+    // for j in processed.1..results.len() {
+    for (j, res) in results.iter_mut().enumerate().skip(processed.1) {
         // skip all the processed
         // I have the resposibility to print the (j-1) th task's result.
         let task_id = j + 1;
-        if let Some(r) = &v[j] {
-            processed.1 = j + 1;
+        if let Some(r) = res {
+            processed.1 = task_id;
             if r.2.is_ok() {
                 processed.2 += 1;
                 new_solution = true;
@@ -498,17 +504,17 @@ async fn check_result(config: &Config, matrix: &mut Option<Matrix>) {
             // Note again: j is an index for RESULT,
             // and it corresponds to (j + 1) th task.
             if new_solution {
-                if config.is_new_record(&processed) {
-                    let msg: String = format!("*{:>3},{:>3}", task_id, processed.2);
+                if config.is_new_record(processed) {
+                    let msg: String = format!("🎉 {:>3},{:>3},{}", task_id, processed.2, &r.1);
                     if let Some(m) = matrix {
                         m.post(msg).await;
                     }
-                    println!("*{:>3},{:>3},{}", task_id, processed.2, &r.0);
+                    println!("🎉 {:>3},{:>3},{}", task_id, processed.2, &r.1);
                 } else {
                     if let Some(m) = matrix {
-                        m.post(format!(" {:>3},{:>3}", task_id, processed.2)).await;
+                        m.post(format!(" {:>3},{:>3},{}", task_id, processed.2, &r.1)).await;
                     }
-                    println!(" {:>3},{:>3},{}", task_id, processed.2, &r.0);
+                    println!(" {:>3},{:>3},{}", task_id, processed.2, &r.1);
                 };
             }
             if j % config.num_jobs == 0 {
@@ -646,9 +652,10 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
             }
         }
         // show diff
-        let diff = DIFF.get().unwrap().lock().await;
-        for l in diff.lines() {
-            writeln!(outbuf, "# {}", l)?;
+        if let Some(diff) = DIFF.get() {
+            for l in diff.lines() {
+                writeln!(outbuf, "# {}", l)?;
+            }
         }
         writeln!(
             outbuf,
