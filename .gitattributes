@@ -1,1 +1,2 @@
 *.tex diff=tex
+*.bqn linguist-language=apl
