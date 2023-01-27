@@ -101,7 +101,7 @@ pub fn make_verifier<P: AsRef<Path>>(
     for (n, key) in problems.iter() {
         let fname = dump_dir
             .as_ref()
-            .join(PathBuf::from(format!("{}{}", ANS_PREFIX, key)));
+            .join(PathBuf::from(format!("{ANS_PREFIX}{key}")));
         if fname.exists() {
             if let Some((_, s, _)) = parse_result(fname) {
                 match s {
@@ -117,21 +117,20 @@ pub fn make_verifier<P: AsRef<Path>>(
         let key = path.join(p);
         let f = key.to_string_lossy();
         writeln!(outfile, "# - SAT:{}, {:>3}, {}", n + 1, i, p)?;
-        writeln!(outfile, "    dmcr {}", f)?;
+        writeln!(outfile, "    dmcr {f}")?;
     }
     writeln!(outfile, "# UNSAT")?;
     for (n, (i, p)) in unsats.iter().enumerate() {
         let key = path.join(p);
         let f = key.to_string_lossy();
-        writeln!(outfile, "# - UNSAT:{}, {:>3}, {}", n, i, p)?;
-        writeln!(outfile, "    echo '# UNSAT:{}, {:>3}, {}'", n, i, p)?;
-        writeln!(outfile, "    splr -c {} > /dev/null", f)?;
+        writeln!(outfile, "# - UNSAT:{n}, {i:>3}, {p}")?;
+        writeln!(outfile, "    echo '# UNSAT:{n}, {i:>3}, {p}'")?;
+        writeln!(outfile, "    splr -c {f} > /dev/null")?;
         writeln!(
             outfile,
-            "    gratgen {} proof.drat -o {}.grad -j 4 > /dev/null",
-            f, p
+            "    gratgen {f} proof.drat -o {p}.grad -j 4 > /dev/null"
         )?;
-        writeln!(outfile, "    gratchk unsat {} {}.grad", f, p)?;
+        writeln!(outfile, "    gratchk unsat {f} {p}.grad")?;
     }
     Ok(())
 }

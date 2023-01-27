@@ -160,7 +160,7 @@ impl Config {
             .create(true)
             .open(outname)?;
         let mut outbuf = BufWriter::new(outfile);
-        write!(outbuf, "{}", stream)?;
+        write!(outbuf, "{stream}")?;
         Ok(())
     }
     fn is_new_record(&self, r: &(usize, usize, usize)) -> bool {
@@ -500,7 +500,7 @@ async fn check_result(
                 processed.2 += 1;
                 new_solution = true;
             }
-            print!("{}", CLEAR);
+            print!("{CLEAR}");
             // Note again: j is an index for RESULT,
             // and it corresponds to (j + 1) th task.
             if new_solution {
@@ -530,13 +530,12 @@ async fn check_result(
                 fname.truncate(40);
                 if task_id == processed.0 {
                     print!(
-                        "{}\x1B[032mRunning on the {}th problem {}...\x1B[000m",
-                        CLEAR, task_id, fname
+                        "{CLEAR}\x1B[032mRunning on the {task_id}th problem {fname}...\x1B[000m"
                     );
                 } else {
                     print!(
-                        "{}\x1B[032mRunning on the {}-{}th problem {}...\x1B[000m",
-                        CLEAR, task_id, processed.0, fname
+                        "{CLEAR}\x1B[032mRunning on the {task_id}-{}th problem {fname}...\x1B[000m",
+                        processed.0
                     );
                 }
                 stdout().flush().unwrap();
@@ -576,7 +575,7 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
                 for (_n, key) in config.benchmark.iter() {
                     if *key == cnf {
                         if problem.get(key).is_some() {
-                            panic!("duplicated {}", cnf);
+                            panic!("duplicated {cnf}");
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {
                             found += 1;
@@ -655,7 +654,7 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
         // show diff
         if let Some(diff) = DIFF.get() {
             for l in diff.lines() {
-                writeln!(outbuf, "# {}", l)?;
+                writeln!(outbuf, "# {l}")?;
             }
         }
         writeln!(
@@ -774,7 +773,7 @@ impl SolverHandling for Command {
                 }
             }
             Err(r) => {
-                println!("{}", r);
+                println!("{r}");
                 Err(SolverException::Abort)
             }
         }

@@ -395,14 +395,14 @@ fn main() {
         if config.three_sat_set {
             for (n, s) in &SAT_PROBLEMS {
                 if config.range_from <= *n && *n <= config.range_to {
-                    let dir = format!("{}/{}", base, s);
+                    let dir = format!("{base}/{s}");
                     execute_3sats(&config, solver, "UF", num, *n, &dir);
                     num += 1;
                 }
             }
             for (n, s) in &UNSAT_PROBLEMS {
                 if config.range_from <= *n && *n <= config.range_to {
-                    let dir = format!("{}/{}", base, s);
+                    let dir = format!("{base}/{s}");
                     execute_3sats(&config, solver, "UUF", num, *n, &dir);
                     num += 1;
                 }
@@ -457,7 +457,7 @@ fn main() {
                 v.last().map_or(0.0, |r| *r),
                 {
                     if 0 < to {
-                        format!("total except {} timeouts", to)
+                        format!("total except {to} timeouts")
                     } else {
                         "total".to_string()
                     }
@@ -582,9 +582,9 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
             println!(
                 "{}{:<14}{:>3},{:>30}{:>9.3}",
                 CLEAR,
-                &format!("\"{}\",", solver),
+                &format!("\"{solver}\","),
                 num,
-                &format!("\"{}\",", name),
+                &format!("\"{name}\","),
                 end,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
@@ -595,9 +595,9 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
             println!(
                 "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                 CLEAR,
-                &format!("\"{}\",", solver),
+                &format!("\"{solver}\","),
                 num,
-                &format!("\"{}\",", name),
+                &format!("\"{name}\","),
                 MAGENTA,
                 "TIMEOUT",
                 RESET,
@@ -610,9 +610,9 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
             println!(
                 "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                 CLEAR,
-                &format!("\"{}\",", solver),
+                &format!("\"{solver}\","),
                 num,
-                &format!("\"{}\",", name),
+                &format!("\"{name}\","),
                 RED,
                 "ABORT",
                 RESET,
@@ -659,9 +659,9 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                 println!(
                     "{}{:<14}{:>3},{:>30} {}TIMEOUT{} at {}",
                     CLEAR,
-                    &format!("\"{}\",", solver_name),
+                    &format!("\"{solver_name}\","),
                     num,
-                    &format!("\"{}{}({})\",", name, n, count),
+                    &format!("\"{name}{n}({count})\","),
                     // &format!("\"{}({})\",", tag, count),
                     RED,
                     RESET,
@@ -673,9 +673,9 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
                 println!(
                     "{}{:<14}{:>3},{:>30} {}ABORT{} at {}",
                     CLEAR,
-                    &format!("\"{}\",", solver_name),
+                    &format!("\"{solver_name}\","),
                     num,
-                    &format!("\"{}{}({})\",", name, n, count),
+                    &format!("\"{name}{n}({count})\","),
                     RED,
                     RESET,
                     f.file_name().to_str().unwrap(),
@@ -691,9 +691,9 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
     println!(
         "{}{:<14}{:>3},{:>30}{:>9.3}",
         CLEAR,
-        &format!("\"{}\",", solver_name),
+        &format!("\"{solver_name}\","),
         num,
-        &format!("\"{}{}({})\",", name, n, count),
+        &format!("\"{name}{n}({count})\","),
         // &format!("\"{}({})\",", tag, count),
         end,
     );
@@ -753,7 +753,7 @@ impl SolverHandling for Command {
                     Some(10) | Some(20) if minisat_like.is_match(solver) => (),
                     Some(0) => (),
                     e => {
-                        println!("unknown exit code {:?}", e);
+                        println!("unknown exit code {e:?}");
                         println!("Abort stdout => {}", String::from_utf8_lossy(&done.stdout));
                         println!("Abort stderr => {}", String::from_utf8_lossy(&done.stderr));
                         return Err(SolverException::Abort);
@@ -772,7 +772,7 @@ impl SolverHandling for Command {
                 }
             }
             Err(e) => {
-                println!("Abort by {}", e);
+                println!("Abort by {e}");
                 Err(SolverException::Abort)
             }
         }
@@ -801,7 +801,7 @@ fn print_solver(solver: &str) -> Option<String> {
         Ok(o) => String::from_utf8_lossy(&o.stdout[..o.stdout.len() - 1]).to_string(),
         _ => String::from("???"),
     };
-    print!("# {} ({})", which, version);
+    print!("# {which} ({version})");
     if let Ok(meta) = at {
         if let Ok(time) = meta.modified() {
             println!(
@@ -843,9 +843,9 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                     println!(
                         "{}{:<14}{:>3},{:>30}{:>9.3}",
                         CLEAR,
-                        &format!("\"{}\",", solver_name),
+                        &format!("\"{solver_name}\","),
                         num,
-                        &format!("\"{}\",", name),
+                        &format!("\"{name}\","),
                         end,
                     );
                     if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
@@ -856,9 +856,9 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                     println!(
                         "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                         CLEAR,
-                        &format!("\"{}\",", solver_name),
+                        &format!("\"{solver_name}\","),
                         num,
-                        &format!("\"{}\",", name),
+                        &format!("\"{name}\","),
                         MAGENTA,
                         "TIMEOUT",
                         RESET
@@ -871,9 +871,9 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                     println!(
                         "{}{:<14}{:>3},{:>30}{}{:>9}{}",
                         CLEAR,
-                        &format!("\"{}\",", solver_name),
+                        &format!("\"{solver_name}\","),
                         num,
-                        &format!("\"{}\",", name),
+                        &format!("\"{name}\","),
                         RED,
                         "ABORT",
                         RESET,

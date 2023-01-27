@@ -51,7 +51,7 @@ fn main() -> std::io::Result<()> {
             for (_n, key) in SCB.1.iter() {
                 if *key == cnf {
                     if hash.get(key).is_some() {
-                        panic!("duplicated {}", cnf);
+                        panic!("duplicated {cnf}");
                     }
                     if let Some((t, Some(s), m)) = parse_result(f.path()) {
                         if s {

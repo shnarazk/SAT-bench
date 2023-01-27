@@ -14,7 +14,7 @@
                  stdenv.mkDerivation rec {
                    name = "sat-bench-${version}";
                    pname = "sat-bench";
-                   version = "0.16.0-20230124-1";
+                   version = "0.16.0-20230127-1";
                    src = self;
                    buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkg-config ];
                    buildPhase = "cargo build --release";
