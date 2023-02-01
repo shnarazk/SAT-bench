@@ -1216,6 +1216,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "konst"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "330f0e13e6483b8c34885f7e6c9f19b1a7bd449c673fbb948a51c99d66ef74f4"
+dependencies = [
+ "konst_macro_rules",
+ "konst_proc_macros",
+]
+
+[[package]]
+name = "konst_macro_rules"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4933f3f57a8e9d9da04db23fb153356ecaf00cbd14aee46279c33dc80925c37"
+
+[[package]]
+name = "konst_proc_macros"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "984e109462d46ad18314f10e392c286c3d47bce203088a09012de1015b45b737"
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1301,7 +1323,7 @@ dependencies = [
  "matrix-sdk-sled",
  "mime",
  "reqwest",
- "ruma",
+ "ruma 0.7.4",
  "serde",
  "serde_json",
  "thiserror",
@@ -1329,7 +1351,7 @@ dependencies = [
  "matrix-sdk-common",
  "matrix-sdk-crypto",
  "once_cell",
- "ruma",
+ "ruma 0.7.4",
  "serde",
  "serde_json",
  "thiserror",
@@ -1347,7 +1369,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "instant",
- "ruma",
+ "ruma 0.7.4",
  "serde",
  "tokio",
  "wasm-bindgen-futures",
@@ -1373,7 +1395,7 @@ dependencies = [
  "matrix-sdk-common",
  "pbkdf2",
  "rand 0.8.5",
- "ruma",
+ "ruma 0.7.4",
  "serde",
  "serde_json",
  "sha2 0.10.6",
@@ -1401,7 +1423,7 @@ dependencies = [
  "matrix-sdk-base",
  "matrix-sdk-crypto",
  "matrix-sdk-store-encryption",
- "ruma",
+ "ruma 0.7.4",
  "serde",
  "serde_json",
  "thiserror",
@@ -1427,7 +1449,7 @@ dependencies = [
  "matrix-sdk-common",
  "matrix-sdk-crypto",
  "matrix-sdk-store-encryption",
- "ruma",
+ "ruma 0.7.4",
  "serde",
  "serde_json",
  "sled",
@@ -1762,7 +1784,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66618389e4ec1c7afe67d51a9bf34ff9236480f8d51e7489b7d5ab0303c13f34"
 dependencies = [
  "once_cell",
- "toml_edit",
+ "toml_edit 0.18.0",
 ]
 
 [[package]]
@@ -1983,8 +2005,20 @@ dependencies = [
  "js_int",
  "js_option",
  "ruma-client-api",
- "ruma-common",
+ "ruma-common 0.10.5",
  "ruma-federation-api",
+]
+
+[[package]]
+name = "ruma"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eca6cc9a6b4bf261181565b731357675bbbb1d86a8bdf60e9e472e44cd5e03c6"
+dependencies = [
+ "assign",
+ "js_int",
+ "js_option",
+ "ruma-common 0.11.0",
 ]
 
 [[package]]
@@ -1999,7 +2033,7 @@ dependencies = [
  "js_int",
  "maplit",
  "percent-encoding",
- "ruma-common",
+ "ruma-common 0.10.5",
  "serde",
  "serde_json",
 ]
@@ -2024,7 +2058,7 @@ dependencies = [
  "rand 0.8.5",
  "regex",
  "ruma-identifiers-validation",
- "ruma-macros",
+ "ruma-macros 0.10.5",
  "serde",
  "serde_json",
  "thiserror",
@@ -2035,13 +2069,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruma-common"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f8d27114ad5317de41aad952ee0d9c7bcb069b6ba964e3ea630174195e603cc"
+dependencies = [
+ "base64 0.21.0",
+ "bytes",
+ "form_urlencoded",
+ "indexmap",
+ "js_int",
+ "js_option",
+ "konst",
+ "percent-encoding",
+ "regex",
+ "ruma-identifiers-validation",
+ "ruma-macros 0.11.0",
+ "serde",
+ "serde_html_form",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "url",
+ "wildmatch",
+]
+
+[[package]]
 name = "ruma-federation-api"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f905d12f6144c7a754bd0339fa6893698c03d03a908abb20cc6eeb4ec7f9466"
 dependencies = [
  "js_int",
- "ruma-common",
+ "ruma-common 0.10.5",
  "serde",
  "serde_json",
 ]
@@ -2069,7 +2129,23 @@ dependencies = [
  "ruma-identifiers-validation",
  "serde",
  "syn",
- "toml",
+ "toml 0.5.11",
+]
+
+[[package]]
+name = "ruma-macros"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc97e6fa08a05b98f5150473eafd8c49cb0a024d0ac53770fbad045fb272d84f"
+dependencies = [
+ "once_cell",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "ruma-identifiers-validation",
+ "serde",
+ "syn",
+ "toml 0.7.1",
 ]
 
 [[package]]
@@ -2102,7 +2178,7 @@ dependencies = [
  "matrix-sdk",
  "once_cell",
  "regex",
- "ruma",
+ "ruma 0.8.1",
  "tokio",
  "url",
 ]
@@ -2181,6 +2257,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_html_form"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53192e38d5c88564b924dbe9b60865ecbb71b81d38c4e61c817cffd3e36ef696"
+dependencies = [
+ "form_urlencoded",
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+]
+
+[[package]]
 name = "serde_json"
 version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2188,6 +2277,15 @@ checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
 dependencies = [
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_spanned"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0efd8caf556a6cebd3b285caf480045fcc1ac04f6bd786b09a6f11af30c4fcf4"
+dependencies = [
  "serde",
 ]
 
@@ -2461,10 +2559,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "772c1426ab886e7362aedf4abc9c0d1348a979517efedfc25862944d10137af0"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime 0.6.1",
+ "toml_edit 0.19.1",
+]
+
+[[package]]
 name = "toml_datetime"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4553f467ac8e3d374bc9a177a26801e5d0f9b211aa1673fb137a403afd1c9cf5"
+
+[[package]]
+name = "toml_datetime"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ab8ed2edee10b50132aed5f331333428b011c99402b5a534154ed15746f9622"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "toml_edit"
@@ -2474,7 +2593,20 @@ checksum = "729bfd096e40da9c001f778f5cdecbd2957929a24e10e5883d9392220a751581"
 dependencies = [
  "indexmap",
  "nom8",
- "toml_datetime",
+ "toml_datetime 0.5.1",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90a238ee2e6ede22fb95350acc78e21dc40da00bb66c0334bde83de4ed89424e"
+dependencies = [
+ "indexmap",
+ "nom8",
+ "serde",
+ "serde_spanned",
+ "toml_datetime 0.6.1",
 ]
 
 [[package]]
