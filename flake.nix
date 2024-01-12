@@ -11,11 +11,12 @@
              name = system;
              value = {
                default =
-                 stdenv.mkDerivation rec {
+                 rustPlatform.buildRustPackage rec {
                    name = "sat-bench-${version}";
                    pname = "sat-bench";
-                   version = "0.16.1-20230721-1";
+                   version = "0.16.1-20240113-1";
                    src = self;
+                  cargoHash = "sha256-EGaQikaCIpLT8WIvFK5PJ6YfKElgu5UyexFdMbDq5Fs=";
                    buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkg-config ];
                    buildPhase = "cargo build --release";
                    installPhase = ''
