@@ -16,7 +16,7 @@
                    pname = "sat-bench";
                    version = "0.16.1-20240113-1";
                    src = self;
-                  cargoHash = "sha256-EGaQikaCIpLT8WIvFK5PJ6YfKElgu5UyexFdMbDq5Fs=";
+                   cargoHash = "sha256-f1MuWW+ORSOChlQQcuK4oUOYZpJUhib88hqWcHyPxR0=";
                    buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkg-config ];
                    buildPhase = "cargo build --release";
                    installPhase = ''
