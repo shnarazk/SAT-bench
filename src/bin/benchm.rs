@@ -158,6 +158,7 @@ impl Config {
         let outfile = fs::OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(outname)?;
         let mut outbuf = BufWriter::new(outfile);
         write!(outbuf, "{stream}")?;
@@ -176,7 +177,7 @@ impl Config {
     }
     async fn next_task(&self) -> Option<(usize, PathBuf)> {
         let mut q = PQ.get().unwrap().lock().await;
-        let Some((index, top)) = q.pop() else { return None; };
+        let (index, top) = q.pop()?;
         Some((index, self.data_dir.join(top)))
     }
     fn solver_command(&self) -> Command {
@@ -553,6 +554,7 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
         let outfile = fs::OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(outname)?;
         let mut outbuf = BufWriter::new(outfile);
         // * key: problem name
@@ -574,7 +576,7 @@ async fn report(config: &Config, nprocessed: usize) -> std::io::Result<(usize, u
                 let cnf = fname.strip_prefix(ANS_PREFIX).expect("invalid answer file");
                 for (_n, key) in config.benchmark.iter() {
                     if *key == cnf {
-                        if problem.get(key).is_some() {
+                        if problem.contains_key(key) {
                             panic!("duplicated {cnf}");
                         }
                         if let Some((t, s, m)) = parse_result(f.path()) {

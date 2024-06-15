@@ -92,6 +92,7 @@ pub fn make_verifier<P: AsRef<Path>>(
     let mut outfile = OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .open(outname)
         .expect("fail to create velify.sh");
     let path = lib_dir.as_ref();
