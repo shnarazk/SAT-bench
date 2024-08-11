@@ -14,9 +14,9 @@
                  rustPlatform.buildRustPackage rec {
                    name = "sat-bench-${version}";
                    pname = "sat-bench";
-                   version = "0.16.1-20240113-1";
+                   version = "0.16.1-20240811-1";
                    src = self;
-                   cargoHash = "sha256-2jj4zgs7us2cHG7wdywSbUlNvYGkiIbGwRRuFuYLzvg=";
+                   cargoHash = "sha256-P7U63aXwJZxKS32PVk6apfhn8Gz2oqwKEmvMYrJLSbI=";
                    buildInputs = rustc.buildInputs ++ [ cargo rustc libiconv openssl pkg-config ];
                    buildPhase = "cargo build --release";
                    installPhase = ''
