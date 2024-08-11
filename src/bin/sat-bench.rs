@@ -360,7 +360,7 @@ fn main() {
     .output()
     .expect("failed to execute 'hostname'")
     .stdout; */
-    let h = String::from_utf8_lossy(&host[..host.len() - 1]);
+    let h = String::from_utf8_lossy(host.trim_ascii_end());
     if config.solver_opts.is_empty() {
         println!(
             "# {}, timeout:{} on {} @ {}{}",
