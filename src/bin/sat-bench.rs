@@ -350,11 +350,16 @@ fn main() {
         config.range_to = 250;
         config.benchmark_set = true;
     }
-    let host = Command::new("hostname")
-        .arg("-s")
-        .output()
-        .expect("failed to execute process")
-        .stdout;
+    let host = if let Ok(output) = Command::new("hostname").arg("-s").output() {
+        output.stdout
+    } else {
+        b"localhost".to_vec()
+    };
+    /* let host = Command::new("hostname")
+    .arg("-s")
+    .output()
+    .expect("failed to execute 'hostname'")
+    .stdout; */
     let h = String::from_utf8_lossy(&host[..host.len() - 1]);
     if config.solver_opts.is_empty() {
         println!(
