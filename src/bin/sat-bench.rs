@@ -355,11 +355,6 @@ fn main() {
     } else {
         b"localhost".to_vec()
     };
-    /* let host = Command::new("hostname")
-    .arg("-s")
-    .output()
-    .expect("failed to execute 'hostname'")
-    .stdout; */
     let h = String::from_utf8_lossy(host.trim_ascii_end());
     if config.solver_opts.is_empty() {
         println!(
