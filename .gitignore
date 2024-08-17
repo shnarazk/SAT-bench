@@ -25,3 +25,4 @@ stack.yaml
 .cabal-sandbox
 cabal.sandbox.config
 dist
+result
