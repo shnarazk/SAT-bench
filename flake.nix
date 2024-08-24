@@ -13,7 +13,7 @@
                 default = rustPlatform.buildRustPackage rec {
                   name = "sat-bench-${version}";
                   pname = "sat-bench";
-                  version = "0.16.1-20240816-1";
+                  version = "0.16.1-20240824-1";
                   src = fetchFromGitHub {
                     name = "SAT-bench";
                     owner = "shnarazk";
