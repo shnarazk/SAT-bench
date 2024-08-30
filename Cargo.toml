@@ -15,7 +15,7 @@ matrix-sdk = { version = "^0.7", optional = true }
 once_cell = "^1.19"
 regex = "^1.10"
 ruma = "^0.10"
-tokio = { version = "^1.39", features = ["full"] }
+tokio = { version = "^1.40", features = ["full"] }
 url = "^2.5"
 
 [features]
