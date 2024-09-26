@@ -18,7 +18,7 @@
                     name = "SAT-bench";
                     owner = "shnarazk";
                     repo = "SAT-bench";
-                    rev = "ea768f122170f63bbec5abfc74a2b7c4a867538e";
+                    rev = "0388ee0b5ec5ddca46eca36c063457d342adad6b";
                     hash = "sha256-BSUrlsswEkZAuDUd/gfxm7Rxf6d1PkHmUVjNF/R1HU0=";
                   };
                   cargoHash = "sha256-GLGAdY/bv9hgH0iCxIrsjifjNw3sFLdK2lbltn9NzR8=";
