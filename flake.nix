@@ -21,7 +21,7 @@
                     rev = "0388ee0b5ec5ddca46eca36c063457d342adad6b";
                     hash = "sha256-ldmHS9LZ+iRy06QV1JtcUb50SusjdyXTpbS7Aj21Jto=";
                   };
-                  cargoHash = "sha256-GLGAdY/bv9hgH0iCxIrsjifjNw3sFLdK2lbltn9NzR8=";
+                  cargoHash = "sha256-3lrJT7Z4qLJwSL3ZMAFpROOuv7sh7D5YKJsSPbX1dok=";
                   buildInputs = rustc.buildInputs ++ [
                     cargo
                     rustc
