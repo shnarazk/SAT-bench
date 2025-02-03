@@ -2329,9 +2329,9 @@ dependencies = [
 
 [[package]]
 name = "ruma"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5100fcaf13d18b9c5c2dfdee5632c428e3201b04ddefd82c930953b461d000a"
+checksum = "7d6fea33e3d17b9e009fefb3f175ca7fd40b1e7d1e72444478fd1b28611eb50a"
 dependencies = [
  "assign",
  "js_int",
@@ -2345,9 +2345,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-client-api"
-version = "0.20.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25f5929f675a96adb22dcfbab1c527862d7f92a6346a280f2ddcfc6380b19391"
+checksum = "23989b539eceeaad01ba089ad307788f90a29bac2e5f730ff0a523eeae3fa1d7"
 dependencies = [
  "as_variant",
  "assign",
@@ -2369,9 +2369,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-common"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c537899b20312655aa9bf4cd825aaf00dd13203f215df2007bc4fbbeac8d8ba"
+checksum = "1058c04b8dd62f4fba71c9f65112fb79bc332438d11aefe1e8edf67b7fb58a98"
 dependencies = [
  "as_variant",
  "base64",
@@ -2402,9 +2402,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-events"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34e4f72eb598c62f51a199bd9218f3fc36a5d50361ecc7a30d864df7bfcef220"
+checksum = "ff1b8e15942e35ba56004429bc0845f481281f903e86957973a08ec08f8d06f0"
 dependencies = [
  "as_variant",
  "indexmap",
@@ -2441,19 +2441,19 @@ dependencies = [
 
 [[package]]
 name = "ruma-identifiers-validation"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e7f9b534a65698d7db3c08d94bf91de0046fe6c7893a7b360502f65e7011ac4"
+checksum = "6ad674b5e5368c53a2c90fde7dac7e30747004aaf7b1827b72874a25fc06d4d8"
 dependencies = [
  "js_int",
- "thiserror 1.0.68",
+ "thiserror 2.0.7",
 ]
 
 [[package]]
 name = "ruma-macros"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff7bc55ea278668253c9898dd905325bf1f72df4bf2abddd04ff1c99b7b3c4fb"
+checksum = "c1182e83ee5cd10121974f163337b16af68a93eedfc7cdbdbd52307ac7e1d743"
 dependencies = [
  "cfg-if",
  "proc-macro-crate",
