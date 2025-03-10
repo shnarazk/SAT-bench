@@ -17,7 +17,7 @@ use {
         cmp::Ordering,
         collections::VecDeque,
         env, fs,
-        io::{stdout, Write},
+        io::{Write, stdout},
         path::PathBuf,
         process::Command,
         sync::RwLock,
@@ -747,7 +747,7 @@ impl SolverHandling for Command {
             {
                 Err(SolverException::Abort)
             }
-            Ok(ref done) => {
+            Ok(done) => {
                 match done.status.code() {
                     Some(124) => return Err(SolverException::TimeOut),
                     Some(10) | Some(20) if minisat_like.is_match(solver) => (),
