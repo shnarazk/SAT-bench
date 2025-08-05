@@ -2616,9 +2616,9 @@ dependencies = [
 
 [[package]]
 name = "ruma"
-version = "0.12.5"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1d47e42b7dea75a468dea63a230f51331c58d690ca018ea1c6ac782ea98880c"
+checksum = "3714d4ebd4314e6510bc64194fcdea1b51fe47898169a08f1bb4912e5c10e2c5"
 dependencies = [
  "assign",
  "js_int",
@@ -2690,9 +2690,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-events"
-version = "0.30.4"
+version = "0.30.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cdc7abec9bc2a9ca0b4831cc26ce97a6a8c39a0bde44a19281a719e861b4293"
+checksum = "f141b37dcd3cfa1199d6a13929db59be529b2c69107edc9f1702b81015e970b2"
 dependencies = [
  "as_variant",
  "indexmap",
