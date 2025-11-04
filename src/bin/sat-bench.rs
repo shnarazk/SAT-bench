@@ -319,10 +319,7 @@ fn main() {
     let _ = TOTALTIME.set(RwLock::new(Vec::new())); // : RwLock<Vec<f64>> = ;
     let mut config = Config::parse();
     let base = if config.lib_dir.is_empty() {
-        match option_env!("SATBENCHLIB") {
-            Some(dir) => dir,
-            None => env!("PWD"),
-        }
+        option_env!("SATBENCHLIB").unwrap_or(env!("PWD"))
     } else {
         &config.lib_dir
     };
