@@ -435,7 +435,7 @@ fn main() {
             });
             let median = if v.is_empty() {
                 0.0
-            } else if v.len() % 2 == 0 {
+            } else if v.len().is_multiple_of(2) {
                 let m = v.len() / 2;
                 0.5 * (v[m - 1] + v[m])
             } else {
@@ -485,15 +485,16 @@ fn threaded_execute(
         *r = 0;
     }
     let offset = *num;
-    if let Ok(mut q) = PQUEUE.get().unwrap().write() {
-        if let Ok(mut v) = RESVEC.get().unwrap().write() {
-            for (i, desc) in ps.iter().enumerate() {
-                q.push_back((i, desc.0.to_string(), format!("{}/{}", dir, desc.1)));
-                *num += 1;
-                v.push(None);
-            }
+    if let Ok(mut q) = PQUEUE.get().unwrap().write()
+        && let Ok(mut v) = RESVEC.get().unwrap().write()
+    {
+        for (i, desc) in ps.iter().enumerate() {
+            q.push_back((i, desc.0.to_string(), format!("{}/{}", dir, desc.1)));
+            *num += 1;
+            v.push(None);
         }
     }
+
     let mut hs = Vec::new();
     let solver_name = format!("{}{}", solver, config.aux_key);
     for _ in 0..config.num_jobs {

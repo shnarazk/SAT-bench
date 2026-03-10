@@ -1,7 +1,7 @@
 #![allow(clippy::trivial_regex)]
 use {
-    crate::{regex, ANS_PREFIX},
-    chrono::{offset::TimeZone, DateTime, Local},
+    crate::{ANS_PREFIX, regex},
+    chrono::{DateTime, Local, offset::TimeZone},
     std::{
         fs::{File, OpenOptions},
         io::*,
@@ -51,11 +51,12 @@ pub fn parse_result(fname: PathBuf) -> Option<(f64, Option<bool>, String)> {
             if let Ok(v) = c[1].parse() {
                 time = Some(v);
             }
-        } else if let Some(c) = glucose.captures(&buf) {
-            if let Ok(v) = c[1].parse() {
-                time = Some(v);
-            }
+        } else if let Some(c) = glucose.captures(&buf)
+            && let Ok(v) = c[1].parse()
+        {
+            time = Some(v);
         }
+
         buf.clear();
     }
     time.map(|t| (t, found, strategy))
@@ -103,13 +104,13 @@ pub fn make_verifier<P: AsRef<Path>>(
         let fname = dump_dir
             .as_ref()
             .join(PathBuf::from(format!("{ANS_PREFIX}{key}")));
-        if fname.exists() {
-            if let Some((_, s, _)) = parse_result(fname) {
-                match s {
-                    Some(true) => sats.push((n, key)),
-                    Some(false) => unsats.push((n, key)),
-                    _ => (),
-                }
+        if fname.exists()
+            && let Some((_, s, _)) = parse_result(fname)
+        {
+            match s {
+                Some(true) => sats.push((n, key)),
+                Some(false) => unsats.push((n, key)),
+                _ => (),
             }
         }
     }
