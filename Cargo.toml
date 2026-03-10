@@ -5,7 +5,7 @@ version = "0.16.1"
 authors = ["Narazaki Shuji <shujinarazaki@protonmail.com>"]
 edition = "2024"
 default-run = "sat-bench"
-rust-version = "1.85"
+rust-version = "1.94"
 
 [dependencies]
 chrono ="^0.4"
