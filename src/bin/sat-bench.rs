@@ -1,10 +1,11 @@
 /// A simple SAT benchmarker
 /// Usage: sat-bench [OPTIONS] [solvers]
 /// # Examples:
-/// - sat-bench -s minisat                      # run on structured problems
-/// - sat-bench -3 -U 225 -L 200 mios           # 3-SAT from 200 to 225 vars
-/// - sat-bench -o "\-cla-decay\ 0.9" glucose   # options to solver
-/// - sat-bench -t ../g2-ACG-15-10p1.cnf splr   # -t for a CNF file
+/// - sat-bench --structured minisat              # run on structured problems
+/// - sat-bench -s problems.txt splr              # run on files listed in problems.txt
+/// - sat-bench -3 -U 225 -L 200 mios            # 3-SAT from 200 to 225 vars
+/// - sat-bench -o "\-cla-decay\ 0.9" glucose    # options to solver
+/// - sat-bench -t ../g2-ACG-15-10p1.cnf splr    # -t for a CNF file
 use {
     clap::Parser,
     once_cell::sync::OnceCell,
@@ -278,7 +279,7 @@ struct Config {
     #[clap(long = "big", short = 'b')]
     big_problem_set: bool,
     /// Structured instances
-    #[clap(long = "structured", short = 's')]
+    #[clap(long = "structured")]
     structured_set: bool,
     /// SAT/UNSAT 360 3SAT instances
     #[clap(long = "massive", short = 'm')]
@@ -310,6 +311,9 @@ struct Config {
     /// disable realtime report
     #[clap(long = "no-report", short = 'Q')]
     no_report: bool,
+    /// A file containing a list of SAT problem paths (one per line)
+    #[clap(long = "set", short = 's', default_value = "")]
+    set_file: String,
 }
 
 fn main() {
@@ -342,6 +346,7 @@ fn main() {
         && !config.massive_3sat_set
         && !config.unsat_360_3sat_set
         && config.targets.is_empty()
+        && config.set_file.is_empty()
     {
         config.three_sat_set = true;
         config.range_to = 250;
@@ -422,6 +427,51 @@ fn main() {
         for t in config.targets.split_whitespace() {
             execute(&config, solver, num, t, t);
             num += 1;
+        }
+        if !config.set_file.is_empty() {
+            let start = SystemTime::now();
+            let before = TOTALTIME.get().unwrap().read().map_or(0, |t| t.len());
+            let content = fs::read_to_string(&config.set_file)
+                .unwrap_or_else(|e| panic!("Failed to read set file '{}': {}", config.set_file, e));
+            for line in content.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                let path = PathBuf::from(line);
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| line.to_string());
+                execute(&config, solver, num, &name, line);
+                num += 1;
+            }
+            let end: f64 = match start.elapsed() {
+                Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
+                Err(_) => 0.0f64,
+            };
+            let count = TOTALTIME
+                .get()
+                .unwrap()
+                .read()
+                .map_or(0, |t| t.iter().skip(before).filter(|v| !v.is_nan()).count());
+            let total = TOTALTIME
+                .get()
+                .unwrap()
+                .read()
+                .map_or(0, |t| t.len() - before);
+            let set_name = PathBuf::from(&config.set_file)
+                .file_stem()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| config.set_file.clone());
+            println!(
+                "{}{:<14}{:>3},{:>30}{:>9.3}",
+                CLEAR,
+                &format!("\"{solver_name}\","),
+                num,
+                &format!("\"{}({}/{})\",", set_name, count, total),
+                end,
+            );
         }
         if let Ok(t) = TOTALTIME.get().unwrap().read() {
             let mut v: Vec<f64> = t.iter().copied().collect();
