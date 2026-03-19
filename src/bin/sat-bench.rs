@@ -485,13 +485,11 @@ fn main() {
             );
         }
         if let Ok(t) = TOTALTIME.get().unwrap().read() {
-            let mut v: Vec<f64> = t.iter().copied().collect();
-            v.sort_by(|a, b| match (a.is_nan(), b.is_nan()) {
-                (true, true) => Ordering::Equal,
-                (true, false) => Ordering::Less,
-                (false, true) => Ordering::Greater,
-                (_, _) if (a - b).abs() < 0.001 => Ordering::Equal,
-                (_, _) if a < b => Ordering::Less,
+            let to = t.iter().filter(|v| v.is_nan()).count();
+            let mut v: Vec<f64> = t.iter().copied().filter(|x| !x.is_nan()).collect();
+            v.sort_by(|a, b| match (a - b).abs() < 0.001 {
+                true => Ordering::Equal,
+                false if a < b => Ordering::Less,
                 _ => Ordering::Greater,
             });
             let median = if v.is_empty() {
@@ -502,12 +500,6 @@ fn main() {
             } else {
                 v[v.len() / 2]
             };
-            let to = t.iter().filter(|v| v.is_nan()).count();
-            v = v
-                .iter()
-                .filter(|x| !x.is_nan())
-                .copied()
-                .collect::<Vec<_>>();
             println!(
                 "{}med:{:>10.3}, max:{:>10.3},{:>16}:{:>9.3}",
                 CLEAR,
