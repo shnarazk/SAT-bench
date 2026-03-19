@@ -439,6 +439,17 @@ fn main() {
                     continue;
                 }
                 let path = PathBuf::from(line);
+                if !path.is_file() {
+                    println!("Abort: file not found: {}", line);
+                    return;
+                }
+            }
+            for line in content.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                let path = PathBuf::from(line);
                 let name = path
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
