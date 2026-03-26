@@ -444,6 +444,17 @@ fn main() {
                     return;
                 }
             }
+            if let Ok(mut q) = PQUEUE.get().unwrap().write() {
+                *q = VecDeque::new();
+            }
+            if let Ok(mut v) = RESVEC.get().unwrap().write() {
+                *v = Vec::new();
+            }
+            if let Ok(mut r) = NREPORT.get().unwrap().write() {
+                *r = 0;
+            }
+            let offset = num;
+            let mut entries: Vec<(String, String)> = Vec::new();
             for line in content.lines() {
                 let line = line.trim();
                 if line.is_empty() || line.starts_with('#') {
@@ -454,8 +465,26 @@ fn main() {
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| line.to_string());
-                execute(&config, solver, num, &name, line);
-                num += 1;
+                entries.push((name, line.to_string()));
+            }
+            if let Ok(mut q) = PQUEUE.get().unwrap().write()
+                && let Ok(mut v) = RESVEC.get().unwrap().write()
+            {
+                for (i, (name, path)) in entries.iter().enumerate() {
+                    q.push_back((i, name.clone(), path.clone()));
+                    v.push(None);
+                    num += 1;
+                }
+            }
+            let mut hs = Vec::new();
+            for _ in 0..config.num_jobs {
+                let cfg = config.clone();
+                let slv = solver.to_string();
+                let sln = solver_name.to_string();
+                hs.push(thread::spawn(move || worker(cfg, slv, sln, offset)));
+            }
+            for h in hs {
+                let _ = h.join();
             }
             let end: f64 = match start.elapsed() {
                 Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
