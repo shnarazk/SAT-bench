@@ -20,7 +20,7 @@ use {
         env, fs,
         io::{Write, stdout},
         path::PathBuf,
-        process::Command,
+        process::{Command, Stdio},
         sync::RwLock,
         thread,
         time::SystemTime,
@@ -644,6 +644,9 @@ fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> Solv
     }
     let start = SystemTime::now();
     let mut run = Command::new("timeout");
+    if !config.set_file.is_empty() {
+        run.stdout(Stdio::null()).stderr(Stdio::null());
+    }
     let mut command = run.arg(format!("{}", config.timeout)).set_solver(solver);
     for opt in config.solver_opts.split_whitespace() {
         command = command.arg(&opt[opt.starts_with('\\') as usize..]);
@@ -817,7 +820,6 @@ impl SolverHandling for Command {
         start: &SystemTime,
         timeout: f64,
     ) -> Result<f64, SolverException> {
-        let minisat_like = regex!(r"\b(cadical|glucose|minisat|splr)");
         let result = self.output();
         match &result {
             Ok(r)
@@ -830,8 +832,7 @@ impl SolverHandling for Command {
             Ok(done) => {
                 match done.status.code() {
                     Some(124) => return Err(SolverException::TimeOut),
-                    Some(10) | Some(20) if minisat_like.is_match(solver) => (),
-                    Some(0) => (),
+                    Some(0) | Some(10) | Some(20) => (),
                     e => {
                         println!("unknown exit code {e:?}");
                         println!("Abort stdout => {}", String::from_utf8_lossy(&done.stdout));
