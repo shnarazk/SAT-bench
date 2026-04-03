@@ -44,7 +44,7 @@ pub enum SolverException {
     Abort,
 }
 
-type SolveResultPromise = Option<(String, Result<f64, SolverException>)>;
+type SolveResultPromise = Option<(String, Result<(f64, Option<i32>), SolverException>)>;
 
 static PQUEUE: OnceCell<RwLock<VecDeque<(usize, String, String)>>> = OnceCell::new();
 static RESVEC: OnceCell<RwLock<Vec<SolveResultPromise>>> = OnceCell::new();
@@ -381,10 +381,17 @@ fn main() {
     if single_solver {
         print_solver(&config.solvers[0]);
     }
-    println!(
-        "{:<14}{:>3},{:>30}{:>9}",
-        "solver,", "num", "target,", "time"
-    );
+    if !config.set_file.is_empty() {
+        println!(
+            "{:<14}{:>3},{:>30}{:>6},{:>9}",
+            "solver,", "num", "target,", "result", "time"
+        );
+    } else {
+        println!(
+            "{:<14}{:>3},{:>30}{:>9}",
+            "solver,", "num", "target,", "time"
+        );
+    }
     for solver in &config.solvers {
         if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
             t.clear();
@@ -429,89 +436,7 @@ fn main() {
             num += 1;
         }
         if !config.set_file.is_empty() {
-            let start = SystemTime::now();
-            let before = TOTALTIME.get().unwrap().read().map_or(0, |t| t.len());
-            let content = fs::read_to_string(&config.set_file)
-                .unwrap_or_else(|e| panic!("Failed to read set file '{}': {}", config.set_file, e));
-            for line in content.lines() {
-                let line = line.trim();
-                if line.is_empty() || line.starts_with('#') {
-                    continue;
-                }
-                let path = PathBuf::from(line);
-                if !path.is_file() {
-                    println!("Abort: file not found: {}", line);
-                    return;
-                }
-            }
-            if let Ok(mut q) = PQUEUE.get().unwrap().write() {
-                *q = VecDeque::new();
-            }
-            if let Ok(mut v) = RESVEC.get().unwrap().write() {
-                *v = Vec::new();
-            }
-            if let Ok(mut r) = NREPORT.get().unwrap().write() {
-                *r = 0;
-            }
-            let offset = num;
-            let mut entries: Vec<(String, String)> = Vec::new();
-            for line in content.lines() {
-                let line = line.trim();
-                if line.is_empty() || line.starts_with('#') {
-                    continue;
-                }
-                let path = PathBuf::from(line);
-                let name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| line.to_string());
-                entries.push((name, line.to_string()));
-            }
-            if let Ok(mut q) = PQUEUE.get().unwrap().write()
-                && let Ok(mut v) = RESVEC.get().unwrap().write()
-            {
-                for (i, (name, path)) in entries.iter().enumerate() {
-                    q.push_back((i, name.clone(), path.clone()));
-                    v.push(None);
-                    num += 1;
-                }
-            }
-            let mut hs = Vec::new();
-            for _ in 0..config.num_jobs {
-                let cfg = config.clone();
-                let slv = solver.to_string();
-                let sln = solver_name.to_string();
-                hs.push(thread::spawn(move || worker(cfg, slv, sln, offset)));
-            }
-            for h in hs {
-                let _ = h.join();
-            }
-            let end: f64 = match start.elapsed() {
-                Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
-                Err(_) => 0.0f64,
-            };
-            let count = TOTALTIME
-                .get()
-                .unwrap()
-                .read()
-                .map_or(0, |t| t.iter().skip(before).filter(|v| !v.is_nan()).count());
-            let total = TOTALTIME
-                .get()
-                .unwrap()
-                .read()
-                .map_or(0, |t| t.len() - before);
-            let set_name = PathBuf::from(&config.set_file)
-                .file_stem()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| config.set_file.clone());
-            println!(
-                "{}{:<14}{:>3},{:>30}{:>9.3}",
-                CLEAR,
-                &format!("\"{solver_name}\","),
-                num,
-                &format!("\"{}({}/{})\",", set_name, count, total),
-                end,
-            );
+            execute_set(&config, solver, &solver_name, &mut num);
         }
         if let Ok(t) = TOTALTIME.get().unwrap().read() {
             let to = t.iter().filter(|v| v.is_nan()).count();
@@ -583,14 +508,14 @@ fn threaded_execute(
         let cfg = config.clone();
         let slv = solver.to_string();
         let sln = solver_name.to_string();
-        hs.push(thread::spawn(move || worker(cfg, slv, sln, offset)));
+        hs.push(thread::spawn(move || worker(cfg, slv, sln, offset, false)));
     }
     for h in hs {
         let _ = h.join();
     }
 }
 
-fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
+fn worker(config: Config, solver: String, solver_name: String, offset: usize, set_mode: bool) {
     let mut i = 0;
     let mut n = String::new();
     let mut p = String::new();
@@ -610,7 +535,11 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize) {
             if let Ok(mut r) = NREPORT.get().unwrap().write() {
                 for j in *r..v.len() {
                     if let Some(r) = &v[j] {
-                        worker_report(&solver_name, j + offset, &r.0, &r.1);
+                        if set_mode {
+                            set_worker_report(&solver_name, j + offset, &r.0, &r.1);
+                        } else {
+                            worker_report(&solver_name, j + offset, &r.0, &r.1);
+                        }
                     } else {
                         *r = j;
                         if !config.no_report {
@@ -651,17 +580,67 @@ fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> Solv
     for opt in config.solver_opts.split_whitespace() {
         command = command.arg(&opt[opt.starts_with('\\') as usize..]);
     }
+    let result = command.arg(f.as_os_str()).output();
+    let exit_code = result.as_ref().ok().and_then(|o| o.status.code());
     Some((
         name.to_string(),
-        command
-            .arg(f.as_os_str())
-            .check_result(solver, &start, config.timeout as f64),
+        check_result_from_output(result, solver, &start, config.timeout as f64)
+            .map(|t| (t, exit_code)),
     ))
 }
 
-fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverException>) {
+fn check_result_from_output(
+    result: Result<std::process::Output, std::io::Error>,
+    _solver: &str,
+    start: &SystemTime,
+    timeout: f64,
+) -> Result<f64, SolverException> {
+    match &result {
+        Ok(r)
+            if String::from_utf8(r.stderr.clone())
+                .unwrap()
+                .contains("thread 'main' panicked") =>
+        {
+            Err(SolverException::Abort)
+        }
+        Ok(done) => {
+            match done.status.code() {
+                Some(124) => return Err(SolverException::TimeOut),
+                Some(0) | Some(10) | Some(20) => (),
+                e => {
+                    println!("unknown exit code {e:?}");
+                    println!("Abort stdout => {}", String::from_utf8_lossy(&done.stdout));
+                    println!("Abort stderr => {}", String::from_utf8_lossy(&done.stderr));
+                    return Err(SolverException::Abort);
+                }
+            }
+            match start.elapsed() {
+                Ok(e) => {
+                    let end = e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64;
+                    if end < timeout {
+                        Ok(end)
+                    } else {
+                        Err(SolverException::TimeOut)
+                    }
+                }
+                Err(_) => Err(SolverException::Abort),
+            }
+        }
+        Err(e) => {
+            println!("Abort by {e}");
+            Err(SolverException::Abort)
+        }
+    }
+}
+
+fn worker_report(
+    solver: &str,
+    num: usize,
+    name: &str,
+    res: &Result<(f64, Option<i32>), SolverException>,
+) {
     match res {
-        Ok(end) => {
+        Ok((end, _code)) => {
             println!(
                 "{}{:<14}{:>3},{:>30}{:>9.3}",
                 CLEAR,
@@ -707,6 +686,67 @@ fn worker_report(solver: &str, num: usize, name: &str, res: &Result<f64, SolverE
     };
 }
 
+fn set_worker_report(
+    solver: &str,
+    num: usize,
+    name: &str,
+    res: &Result<(f64, Option<i32>), SolverException>,
+) {
+    match res {
+        Ok((end, code)) => {
+            let status = match code {
+                Some(10) => "SAT",
+                Some(20) => "UNSAT",
+                _ => "",
+            };
+            println!(
+                "{}{:<14}{:>3},{:>30}{:>6},{:>9.3}",
+                CLEAR,
+                &format!("\"{solver}\","),
+                num,
+                &format!("\"{name}\","),
+                status,
+                end,
+            );
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
+                t.push(*end);
+            }
+        }
+        Err(SolverException::TimeOut) => {
+            println!(
+                "{}{:<14}{:>3},{:>30}{:>6},{}{:>9}{}",
+                CLEAR,
+                &format!("\"{solver}\","),
+                num,
+                &format!("\"{name}\","),
+                "TO",
+                MAGENTA,
+                "TIMEOUT",
+                RESET,
+            );
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
+                t.push(f64::NAN);
+            }
+        }
+        Err(SolverException::Abort) => {
+            println!(
+                "{}{:<14}{:>3},{:>30}{:>6},{}{:>9}{}",
+                CLEAR,
+                &format!("\"{solver}\","),
+                num,
+                &format!("\"{name}\","),
+                "",
+                RED,
+                "ABORT",
+                RESET,
+            );
+            if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
+                t.push(f64::NAN);
+            }
+        }
+    };
+}
+
 /// show the average or total result of SAT problems
 #[allow(unused_variables)]
 fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize, dir: &str) {
@@ -731,10 +771,8 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
         for opt in config.solver_opts.split_whitespace() {
             command = command.arg(&opt[opt.starts_with('\\') as usize..]);
         }
-        match command
-            .arg(f.path())
-            .check_result(solver, &start, config.timeout as f64)
-        {
+        let result = command.arg(f.path()).output();
+        match check_result_from_output(result, solver, &start, config.timeout as f64) {
             Ok(_) => {
                 count += 1;
             }
@@ -787,12 +825,6 @@ fn execute_3sats(config: &Config, solver: &str, name: &str, num: usize, n: usize
 
 trait SolverHandling {
     fn set_solver(&mut self, solver: &str) -> &mut Self;
-    fn check_result(
-        &mut self,
-        solver: &str,
-        start: &SystemTime,
-        timeout: f64,
-    ) -> Result<f64, SolverException>;
 }
 
 impl SolverHandling for Command {
@@ -812,50 +844,6 @@ impl SolverHandling for Command {
             self.args([solver, "-verb=0"])
         } else {
             self.arg(solver)
-        }
-    }
-    fn check_result(
-        &mut self,
-        solver: &str,
-        start: &SystemTime,
-        timeout: f64,
-    ) -> Result<f64, SolverException> {
-        let result = self.output();
-        match &result {
-            Ok(r)
-                if String::from_utf8(r.stderr.clone())
-                    .unwrap()
-                    .contains("thread 'main' panicked") =>
-            {
-                Err(SolverException::Abort)
-            }
-            Ok(done) => {
-                match done.status.code() {
-                    Some(124) => return Err(SolverException::TimeOut),
-                    Some(0) | Some(10) | Some(20) => (),
-                    e => {
-                        println!("unknown exit code {e:?}");
-                        println!("Abort stdout => {}", String::from_utf8_lossy(&done.stdout));
-                        println!("Abort stderr => {}", String::from_utf8_lossy(&done.stderr));
-                        return Err(SolverException::Abort);
-                    }
-                }
-                match start.elapsed() {
-                    Ok(e) => {
-                        let end = e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64;
-                        if end < timeout {
-                            Ok(end)
-                        } else {
-                            Err(SolverException::TimeOut)
-                        }
-                    }
-                    Err(_) => Err(SolverException::Abort),
-                }
-            }
-            Err(e) => {
-                println!("Abort by {e}");
-                Err(SolverException::Abort)
-            }
         }
     }
 }
@@ -896,6 +884,92 @@ fn print_solver(solver: &str) -> Option<String> {
     Some(which)
 }
 
+fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize) {
+    let start = SystemTime::now();
+    let before = TOTALTIME.get().unwrap().read().map_or(0, |t| t.len());
+    let content = fs::read_to_string(&config.set_file)
+        .unwrap_or_else(|e| panic!("Failed to read set file '{}': {}", config.set_file, e));
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let path = PathBuf::from(line);
+        if !path.is_file() {
+            println!("Abort: file not found: {}", line);
+            return;
+        }
+    }
+    if let Ok(mut q) = PQUEUE.get().unwrap().write() {
+        *q = VecDeque::new();
+    }
+    if let Ok(mut v) = RESVEC.get().unwrap().write() {
+        *v = Vec::new();
+    }
+    if let Ok(mut r) = NREPORT.get().unwrap().write() {
+        *r = 0;
+    }
+    let offset = *num;
+    let mut entries: Vec<(String, String)> = Vec::new();
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let path = PathBuf::from(line);
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| line.to_string());
+        entries.push((name, line.to_string()));
+    }
+    if let Ok(mut q) = PQUEUE.get().unwrap().write()
+        && let Ok(mut v) = RESVEC.get().unwrap().write()
+    {
+        for (i, (name, path)) in entries.iter().enumerate() {
+            q.push_back((i, name.clone(), path.clone()));
+            v.push(None);
+            *num += 1;
+        }
+    }
+    let mut hs = Vec::new();
+    for _ in 0..config.num_jobs {
+        let cfg = config.clone();
+        let slv = solver.to_string();
+        let sln = solver_name.to_string();
+        hs.push(thread::spawn(move || worker(cfg, slv, sln, offset, true)));
+    }
+    for h in hs {
+        let _ = h.join();
+    }
+    let end: f64 = match start.elapsed() {
+        Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
+        Err(_) => 0.0f64,
+    };
+    let count = TOTALTIME
+        .get()
+        .unwrap()
+        .read()
+        .map_or(0, |t| t.iter().skip(before).filter(|v| !v.is_nan()).count());
+    let total = TOTALTIME
+        .get()
+        .unwrap()
+        .read()
+        .map_or(0, |t| t.len() - before);
+    let set_name = PathBuf::from(&config.set_file)
+        .file_stem()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| config.set_file.clone());
+    println!(
+        "{}{:<14}{:>3},{:>30}{:>9.3}",
+        CLEAR,
+        &format!("\"{solver_name}\","),
+        *num,
+        &format!("\"{}({}/{})\",", set_name, count, total),
+        end,
+    );
+}
+
 #[allow(unused_variables)]
 fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) {
     let solver_name = format!("{}{}", solver, config.aux_key);
@@ -916,10 +990,8 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
             for opt in config.solver_opts.split_whitespace() {
                 command = command.arg(&opt[opt.starts_with('\\') as usize..]);
             }
-            match command
-                .arg(f.as_os_str())
-                .check_result(solver, &start, config.timeout as f64)
-            {
+            let result = command.arg(f.as_os_str()).output();
+            match check_result_from_output(result, solver, &start, config.timeout as f64) {
                 Ok(end) => {
                     println!(
                         "{}{:<14}{:>3},{:>30}{:>9.3}",
