@@ -383,8 +383,8 @@ fn main() {
     }
     if !config.set_file.is_empty() {
         println!(
-            "{:<14}{:>3},{:>30}{:>6},{:>9}",
-            "solver,", "num", "target,", "result", "time"
+            "{:<10}{:>3},{:>60},{:>9}",
+            "solver,", "num", "target", "time"
         );
     } else {
         println!(
@@ -689,24 +689,26 @@ fn worker_report(
 fn set_worker_report(
     solver: &str,
     num: usize,
-    name: &str,
+    name_original: &str,
     res: &Result<(f64, Option<i32>), SolverException>,
 ) {
+    let name = name_original.chars().take(58).collect::<String>();
     match res {
         Ok((end, code)) => {
             let status = match code {
-                Some(10) => "SAT",
-                Some(20) => "UNSAT",
+                Some(10) => "",
+                Some(20) => BLUE,
                 _ => "",
             };
             println!(
-                "{}{:<14}{:>3},{:>30}{:>6},{:>9.3}",
+                "{}{:<10}{:>3},{:>60}{}{:>9.3}{}",
                 CLEAR,
                 &format!("\"{solver}\","),
                 num,
                 &format!("\"{name}\","),
                 status,
                 end,
+                RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(*end);
@@ -714,12 +716,11 @@ fn set_worker_report(
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:<14}{:>3},{:>30}{:>6},{}{:>9}{}",
+                "{}{:<10}{:>3},{:>60}{}{:>9}{}",
                 CLEAR,
                 &format!("\"{solver}\","),
                 num,
                 &format!("\"{name}\","),
-                "TO",
                 MAGENTA,
                 "TIMEOUT",
                 RESET,
@@ -730,12 +731,11 @@ fn set_worker_report(
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:<14}{:>3},{:>30}{:>6},{}{:>9}{}",
+                "{}{:<10}{:>3},{:>60}{}{:>9}{}",
                 CLEAR,
                 &format!("\"{solver}\","),
                 num,
                 &format!("\"{name}\","),
-                "",
                 RED,
                 "ABORT",
                 RESET,
@@ -885,8 +885,6 @@ fn print_solver(solver: &str) -> Option<String> {
 }
 
 fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize) {
-    let start = SystemTime::now();
-    let before = TOTALTIME.get().unwrap().read().map_or(0, |t| t.len());
     let content = fs::read_to_string(&config.set_file)
         .unwrap_or_else(|e| panic!("Failed to read set file '{}': {}", config.set_file, e));
     for line in content.lines() {
@@ -942,32 +940,6 @@ fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize
     for h in hs {
         let _ = h.join();
     }
-    let end: f64 = match start.elapsed() {
-        Ok(e) => e.as_secs() as f64 + f64::from(e.subsec_millis()) / 1000.0f64,
-        Err(_) => 0.0f64,
-    };
-    let count = TOTALTIME
-        .get()
-        .unwrap()
-        .read()
-        .map_or(0, |t| t.iter().skip(before).filter(|v| !v.is_nan()).count());
-    let total = TOTALTIME
-        .get()
-        .unwrap()
-        .read()
-        .map_or(0, |t| t.len() - before);
-    let set_name = PathBuf::from(&config.set_file)
-        .file_stem()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| config.set_file.clone());
-    println!(
-        "{}{:<14}{:>3},{:>30}{:>9.3}",
-        CLEAR,
-        &format!("\"{solver_name}\","),
-        *num,
-        &format!("\"{}({}/{})\",", set_name, count, total),
-        end,
-    );
 }
 
 #[allow(unused_variables)]
