@@ -288,7 +288,7 @@ struct Config {
     #[clap(long = "unsat360", short = 'u')]
     unsat_360_3sat_set: bool,
     /// time out in seconds
-    #[clap(long = "timeout", short = 't', default_value = "2000")]
+    #[clap(long = "timeout", short = 't', default_value = "5000")]
     timeout: usize,
     /// command to be executed after a run
     #[clap(long = "hook", default_value = "finished")]
