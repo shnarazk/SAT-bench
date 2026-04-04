@@ -383,7 +383,7 @@ fn main() {
     }
     if !config.set_file.is_empty() {
         println!(
-            "{:<10}{:>3},{:>60},{:>9}",
+            "{:<10}{:>3},{:<60},{:>9}",
             "solver,", "num", "target", "time"
         );
     } else {
@@ -701,11 +701,11 @@ fn set_worker_report(
                 _ => "",
             };
             println!(
-                "{}{:<10}{:>3},{:>60}{}{:>9.3}{}",
+                "{}{:<10},{:>3},{:>60},{}{:>9.3}{}",
                 CLEAR,
-                &format!("\"{solver}\","),
+                &format!("\"{solver}\""),
                 num,
-                &format!("\"{name}\","),
+                &format!("\"{name}\""),
                 status,
                 end,
                 RESET,
@@ -716,11 +716,11 @@ fn set_worker_report(
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:<10}{:>3},{:>60}{}{:>9}{}",
+                "{}{:<10},{:>3},{:<60},{}{:>9}{}",
                 CLEAR,
-                &format!("\"{solver}\","),
+                &format!("\"{solver}\""),
                 num,
-                &format!("\"{name}\","),
+                &format!("\"{name}\""),
                 MAGENTA,
                 "TIMEOUT",
                 RESET,
@@ -731,11 +731,11 @@ fn set_worker_report(
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:<10}{:>3},{:>60}{}{:>9}{}",
+                "{}{:<10},{:>3},{:<60},{}{:>9}{}",
                 CLEAR,
-                &format!("\"{solver}\","),
+                &format!("\"{solver}\""),
                 num,
-                &format!("\"{name}\","),
+                &format!("\"{name}\""),
                 RED,
                 "ABORT",
                 RESET,
@@ -952,7 +952,13 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                 print!(
                     "{}\x1B[032mRunning on {}...\x1B[000m",
                     CLEAR,
-                    f.file_name().unwrap().to_str().unwrap()
+                    f.file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .chars()
+                        .take(60)
+                        .collect::<String>()
                 );
                 stdout().flush().unwrap();
             }
