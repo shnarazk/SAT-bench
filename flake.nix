@@ -13,15 +13,15 @@
                 default = rustPlatform.buildRustPackage rec {
                   name = "sat-bench-${version}";
                   pname = "sat-bench";
-                  version = "0.17.2-20260403-1";
+                  version = "0.17.3-20260404-1";
                   src = fetchFromGitHub {
                     name = "SAT-bench";
                     owner = "shnarazk";
                     repo = "SAT-bench";
-                    rev = "b9e773ba1bc8adf6d01c8bf59f6c8237ee710c24";
-                    hash = "sha256-VUqbCkXpEFtMP6lIUjOAsXH7Cy8GHtQdQTxwsU99t7I=";
+                    rev = "2d88225309d456e1e432da0649bcfab1e52c3cbe";
+                    hash = "sha256-jQ4yKXeJ0Q3R2BCHfVNAxpMbXDvxSt3Ok/42pttIQA4=";
                   };
-                  cargoHash = "sha256-D9WVhT0GaW7Ix7lhRvsLoEYrUEZ6RtHwg7w6B2FTSKM=";
+                  cargoHash = "sha256-AjC5thda6OZWF6CoWQHZX52bm7WL5rRpJ3eo4mVHiE8=";
                   buildInputs = rustc.buildInputs ++ [
                     cargo
                     rustc
