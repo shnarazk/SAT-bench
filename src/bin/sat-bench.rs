@@ -383,8 +383,8 @@ fn main() {
     }
     if !config.set_file.is_empty() {
         println!(
-            "{:<10}{:>3},{:<60},{:>9}",
-            "solver,", "num", "target", "time"
+            "{:<10},{:>3},{:<60},{:>9}",
+            "solver", "num", "target", "time"
         );
     } else {
         println!(
@@ -565,9 +565,17 @@ fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> Solv
     }
     if !config.no_report {
         print!(
-            "{}\x1B[032mRunning on {}...\x1B[000m",
+            "{}{}Running on {}...{}",
             CLEAR,
-            f.file_name().unwrap().to_str().unwrap()
+            GREEN,
+            f.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .chars()
+                .take(60)
+                .collect::<String>(),
+            RESET
         );
         stdout().flush().unwrap();
     }
@@ -942,13 +950,12 @@ fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize
     }
 }
 
-#[allow(unused_variables)]
 fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) {
     let solver_name = format!("{}{}", solver, config.aux_key);
     for e in target.split_whitespace() {
         let f = PathBuf::from(e);
         if f.is_file() {
-            if !config.no_report {
+            if !config.no_report && num >= config.num_jobs {
                 print!(
                     "{}\x1B[032mRunning on {}...\x1B[000m",
                     CLEAR,
