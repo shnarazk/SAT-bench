@@ -382,10 +382,7 @@ fn main() {
         print_solver(&config.solvers[0]);
     }
     if !config.set_file.is_empty() {
-        println!(
-            "{:<10},{:>3},{:<60},{:>9}",
-            "solver", "num", "target", "time"
-        );
+        println!("{:>3},{:<60},{:>8}", "num", "target", "time");
     } else {
         println!(
             "{:<14}{:>3},{:>30}{:>9}",
@@ -455,8 +452,9 @@ fn main() {
                 v[v.len() / 2]
             };
             println!(
-                "{}med:{:>10.3}, max:{:>10.3},{:>16}:{:>9.3}",
+                "{}{:<10}, med:{:>10.3}, max:{:>10.3},{:>16}:{:>8.3}",
                 CLEAR,
+                &format!("\"{solver}\""),
                 median,
                 v.last().map_or(0.0, |r| *r),
                 {
@@ -536,7 +534,7 @@ fn worker(config: Config, solver: String, solver_name: String, offset: usize, se
                 for j in *r..v.len() {
                     if let Some(r) = &v[j] {
                         if set_mode {
-                            set_worker_report(&solver_name, j + offset, &r.0, &r.1);
+                            set_worker_report(j + offset, &r.0, &r.1);
                         } else {
                             worker_report(&solver_name, j + offset, &r.0, &r.1);
                         }
@@ -573,7 +571,7 @@ fn worker_execute(config: &Config, solver: &str, name: &str, path: &str) -> Solv
                 .to_str()
                 .unwrap()
                 .chars()
-                .take(60)
+                .take(40)
                 .collect::<String>(),
             RESET
         );
@@ -695,7 +693,6 @@ fn worker_report(
 }
 
 fn set_worker_report(
-    solver: &str,
     num: usize,
     name_original: &str,
     res: &Result<(f64, Option<i32>), SolverException>,
@@ -709,9 +706,8 @@ fn set_worker_report(
                 _ => "",
             };
             println!(
-                "{}{:<10},{:>3},{:<60},{}{:>9.3}{}",
+                "{}{:>3},{:<60},{}{:>8.3}{}",
                 CLEAR,
-                &format!("\"{solver}\""),
                 num,
                 &format!("\"{name}\""),
                 status,
@@ -724,9 +720,8 @@ fn set_worker_report(
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:<10},{:>3},{:<60},{}{:>9}{}",
+                "{}{:>3},{:<60},{}{:>8}{}",
                 CLEAR,
-                &format!("\"{solver}\""),
                 num,
                 &format!("\"{name}\""),
                 MAGENTA,
@@ -739,9 +734,8 @@ fn set_worker_report(
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:<10},{:>3},{:<60},{}{:>9}{}",
+                "{}{:>3},{:<60},{}{:>8}{}",
                 CLEAR,
-                &format!("\"{solver}\""),
                 num,
                 &format!("\"{name}\""),
                 RED,
@@ -964,7 +958,7 @@ fn execute(config: &Config, solver: &str, num: usize, name: &str, target: &str) 
                         .to_str()
                         .unwrap()
                         .chars()
-                        .take(60)
+                        .take(40)
                         .collect::<String>()
                 );
                 stdout().flush().unwrap();
