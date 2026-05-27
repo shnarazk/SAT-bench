@@ -18,8 +18,8 @@
                     name = "SAT-bench";
                     owner = "shnarazk";
                     repo = "SAT-bench";
-                    rev = "";
-                    hash = "sha256-81EfTqsWSTV8c+iXOetWdSjl3DmmfaD2Mn34yJB8Po4=";
+                    rev = "6bbf5ae8b4d912cecf3fd84f78d8a4c789b3b1fb";
+                    hash = "sha256-fz4zzVKxGaa0QO0uzjNa269vQKYW/GHlUUORtkEdJ3I=";
                   };
                   cargoHash = "sha256-qWwtw2j+2NTvmmMCV9hscbyG5jbLez+MeUXxXfWZN/A=";
                   buildInputs = rustc.buildInputs ++ [
