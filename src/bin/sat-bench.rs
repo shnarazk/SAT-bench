@@ -695,16 +695,17 @@ fn set_worker_report(
     name_original: &str,
     res: &Result<(f64, Option<i32>), SolverException>,
 ) {
-    let name = name_original.chars().take(54).collect::<String>();
+    let name = format!("`{}`", name_original.chars().take(52).collect::<String>());
     match res {
         Ok((end, code)) => {
-            let (status, color): (&str, &str) = match code {
-                Some(10) => ("SAT", ""),
-                Some(20) => ("UNS", BLUE),
-                _ => ("", ""),
+            let (status, color): (i32, &str) = match code {
+                Some(10) => (10, ""),
+                Some(20) => (20, BLUE),
+                Some(n) => (*n, ""),
+                None => (-1, ""),
             };
             println!(
-                "{}|{:>3}|{:<54}|{:>8.2}|{}{}{}|",
+                "{}|{:>3}|{:<54}|{:>8.2}|{}{:>3}{}|",
                 CLEAR, num, name, end, color, status, RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
@@ -713,8 +714,8 @@ fn set_worker_report(
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}|{:>3}|{:<54}|{:>8}|{}{}{}|",
-                CLEAR, num, name, "", MAGENTA, "T.0", RESET,
+                "{}|{:>3}|{:<54}|{:>8}|{}{:>3}{}|",
+                CLEAR, num, name, "", MAGENTA, 124, RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
@@ -722,8 +723,8 @@ fn set_worker_report(
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}|{:>3}|{:<54}|{:>8}|{}{}{}|",
-                CLEAR, num, name, "", RED, "ABT", RESET,
+                "{}|{:>3}|{:<54}|{:>8}|{}{:>3}{}|",
+                CLEAR, num, name, "", RED, -1, RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
@@ -917,7 +918,7 @@ fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize
     }
     let mut hs = Vec::new();
     println!(
-        "| # | target CNF solved by {:<20}            |time(s) |res|",
+        "| # | target CNF solved by {:<20}            |time (s)|ret|",
         solver.to_string()
     );
     println!("|--:|:-----------------------------------------------------|-------:|:-:|");
