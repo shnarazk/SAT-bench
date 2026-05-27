@@ -381,9 +381,7 @@ fn main() {
     if single_solver {
         print_solver(&config.solvers[0]);
     }
-    if !config.set_file.is_empty() {
-        println!("{:>3},{:<60},{:>8}", "num", "target", "time");
-    } else {
+    if config.set_file.is_empty() {
         println!(
             "{:<14}{:>3},{:>30}{:>9}",
             "solver,", "num", "target,", "time"
@@ -452,7 +450,7 @@ fn main() {
                 v[v.len() / 2]
             };
             println!(
-                "{}{:<10}, med:{:>10.3}, max:{:>10.3},{:>16}:{:>8.3}",
+                "{}{:<10}, med:{:>10.2}, max:{:>10.2},{:>16}:{:>8.2}",
                 CLEAR,
                 &format!("\"{solver}\""),
                 median,
@@ -697,22 +695,17 @@ fn set_worker_report(
     name_original: &str,
     res: &Result<(f64, Option<i32>), SolverException>,
 ) {
-    let name = name_original.chars().take(58).collect::<String>();
+    let name = name_original.chars().take(54).collect::<String>();
     match res {
         Ok((end, code)) => {
-            let status = match code {
-                Some(10) => "",
-                Some(20) => BLUE,
-                _ => "",
+            let (status, color): (&str, &str) = match code {
+                Some(10) => ("SAT", ""),
+                Some(20) => ("UNS", BLUE),
+                _ => ("", ""),
             };
             println!(
-                "{}{:>3},{:<60},{}{:>8.3}{}",
-                CLEAR,
-                num,
-                &format!("\"{name}\""),
-                status,
-                end,
-                RESET,
+                "{}|{:>3}|{:<54}|{:>8.2}|{}{}{}|",
+                CLEAR, num, name, end, color, status, RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(*end);
@@ -720,13 +713,8 @@ fn set_worker_report(
         }
         Err(SolverException::TimeOut) => {
             println!(
-                "{}{:>3},{:<60},{}{:>8}{}",
-                CLEAR,
-                num,
-                &format!("\"{name}\""),
-                MAGENTA,
-                "TIMEOUT",
-                RESET,
+                "{}|{:>3}|{:<54}|{:>8}|{}{}{}|",
+                CLEAR, num, name, "", MAGENTA, "T.0", RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
@@ -734,13 +722,8 @@ fn set_worker_report(
         }
         Err(SolverException::Abort) => {
             println!(
-                "{}{:>3},{:<60},{}{:>8}{}",
-                CLEAR,
-                num,
-                &format!("\"{name}\""),
-                RED,
-                "ABORT",
-                RESET,
+                "{}|{:>3}|{:<54}|{:>8}|{}{}{}|",
+                CLEAR, num, name, "", RED, "ABT", RESET,
             );
             if let Ok(mut t) = TOTALTIME.get().unwrap().write() {
                 t.push(f64::NAN);
@@ -933,6 +916,11 @@ fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize
         }
     }
     let mut hs = Vec::new();
+    println!(
+        "| # | target CNF solved by {:<20}            |time(s) |res|",
+        solver.to_string()
+    );
+    println!("|--:|:-----------------------------------------------------|:------:|:-:|");
     for _ in 0..config.num_jobs {
         let cfg = config.clone();
         let slv = solver.to_string();
