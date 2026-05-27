@@ -920,7 +920,7 @@ fn execute_set(config: &Config, solver: &str, solver_name: &str, num: &mut usize
         "| # | target CNF solved by {:<20}            |time(s) |res|",
         solver.to_string()
     );
-    println!("|--:|:-----------------------------------------------------|:------:|:-:|");
+    println!("|--:|:-----------------------------------------------------|-------:|:-:|");
     for _ in 0..config.num_jobs {
         let cfg = config.clone();
         let slv = solver.to_string();
