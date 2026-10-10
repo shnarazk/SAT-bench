@@ -18,10 +18,10 @@
                     name = "SAT-bench";
                     owner = "shnarazk";
                     repo = "SAT-bench";
-                    rev = "884e3d163a0f28afb10d59a8e86fdf40554d4679";
-                    hash = "sha256-QwHWPrpwvHr077uIDg0wVMGhs6grroC2k0CuaMtNl74=";
+                    rev = "841dc3d4edbd3251bba52919935c3b75ca953816";
+                    hash = "sha256-WUFNOrphyEQtB/z7zDtZiilORsolQSh9fExhTwpqr9g=";
                   };
-                  cargoHash = "sha256-4mhtnVWnf/Snzm+1YOOAv5ZKNKhCXNMcVfCWzABOQWs=";
+                  cargoHash = "sha256-wfMEjBjCGHNIKKPG1kMrx9ImaIcSLgYSosT5NiFLbXQ=";
                   buildInputs = rustc.buildInputs ++ [
                     cargo
                     rustc
@@ -32,7 +32,7 @@
                   buildPhase = "cargo build --release";
                   installPhase = ''
                     mkdir -p $out/bin;
-                    install -t $out/bin target/release/sat-bench target/release/benchm
+                    install -t $out/bin target/release/sat-bench
                     mkdir -p $out/lib
                     cp -r 3-SAT SAT09 SatRace2015 SC21 $out/lib/
                   '';
