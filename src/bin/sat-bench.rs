@@ -8,12 +8,12 @@
 /// - sat-bench -t ../g2-ACG-15-10p1.cnf splr    # -t for a CNF file
 use {
     clap::Parser,
-    once_cell::sync::OnceCell,
     regex::Regex,
     sat_bench::{
         regex,
         utils::{current_date_time, system_time_to_date_time},
     },
+    std::sync::OnceLock,
     std::{
         cmp::Ordering,
         collections::VecDeque,
@@ -46,10 +46,10 @@ pub enum SolverException {
 
 type SolveResultPromise = Option<(String, Result<(f64, Option<i32>), SolverException>)>;
 
-static PQUEUE: OnceCell<RwLock<VecDeque<(usize, String, String)>>> = OnceCell::new();
-static RESVEC: OnceCell<RwLock<Vec<SolveResultPromise>>> = OnceCell::new();
-static NREPORT: OnceCell<RwLock<usize>> = OnceCell::new();
-static TOTALTIME: OnceCell<RwLock<Vec<f64>>> = OnceCell::new();
+static PQUEUE: OnceLock<RwLock<VecDeque<(usize, String, String)>>> = OnceLock::new();
+static RESVEC: OnceLock<RwLock<Vec<SolveResultPromise>>> = OnceLock::new();
+static NREPORT: OnceLock<RwLock<usize>> = OnceLock::new();
+static TOTALTIME: OnceLock<RwLock<Vec<f64>>> = OnceLock::new();
 
 const SAT_PROBLEMS: [(usize, &str); 18] = [
     (100, "3-SAT/UF100"),
